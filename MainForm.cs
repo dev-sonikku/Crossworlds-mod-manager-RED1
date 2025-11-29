@@ -26,11 +26,12 @@ namespace CrossworldsModManager
             ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new DarkThemeColorTable());
             LoadSettingsAndSetup();
 
-            // Show persistent debug log window so it's available at all times.
+            // Create debug log window but hide it by default; user can show it via button.
             try
             {
                 _logForm = new LogForm();
-                _logForm.Show(this);
+                _logForm.Hide();
+                btnToggleDebugLog.Enabled = true; // Enable the button now that log exists
             }
             catch
             {
@@ -162,6 +163,11 @@ namespace CrossworldsModManager
 
         private async void btnSave_Click(object sender, EventArgs e)
         {
+            // Disable the Play button during save and show status
+            btnPlay.Enabled = false;
+            btnPlay.ForeColor = Color.Gray;
+            btnPlay.Text = "Saving...";
+
             // First, save which mods are enabled.
             SaveModListState();
 
@@ -233,7 +239,7 @@ namespace CrossworldsModManager
                 _logForm.Show(this);
             }
 
-            var progress = new Progress<string>(s =>
+            IProgress<string> progress = new Progress<string>(s =>
             {
                 try { _logForm?.AppendLog(s); } catch { /* best-effort logging */ }
             });
@@ -245,11 +251,83 @@ namespace CrossworldsModManager
             try
             {
                 await Task.WhenAll(installTask, jsonTask);
+
+                // After merging JSON, automatically pack the results back to .locres
+                progress.Report("\nStarting to pack merged .locres files...");
+                // PackMergedLocresAsync expects the game's root path as the first argument.
+                var gamePathForPack = !string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var _gameInfoForPack)
+                    ? _gameInfoForPack.Path
+                    : string.Empty;
+                await LocresConverter.PackMergedLocresAsync(gamePathForPack, progress);
+
+                // After the pack operation completes, install the final produced pak into the game's ~mods folder.
+                try
+                {
+                    var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                    // Prefer the pak in Tools root, but search subfolders (UnrealPak output location may vary)
+                    var sourcePak = Path.Combine(toolsDir, "LocresMod.pak");
+                    if (!File.Exists(sourcePak))
+                    {
+                        var found = Directory.GetFiles(toolsDir, "LocresMod.pak", SearchOption.AllDirectories).FirstOrDefault();
+                        if (!string.IsNullOrEmpty(found)) sourcePak = found;
+                    }
+
+                    if (File.Exists(sourcePak))
+                    {
+                        if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
+                        {
+                            var targetModsDir = Path.Combine(gameInfo.Path, "UNION", "Content", "Paks", "~mods");
+                            Directory.CreateDirectory(targetModsDir);
+                            var destPak = Path.Combine(targetModsDir, "LocresMod.pak");
+                            try
+                            {
+                                if (File.Exists(destPak)) File.Delete(destPak);
+                                // Move the produced pak into the ~mods folder (matching user request)
+                                File.Move(sourcePak, destPak);
+                                progress.Report($"Moved merged pak to ~mods: {destPak}");
+                            }
+                            catch (Exception moveEx)
+                            {
+                                // If moving fails, attempt a copy as a fallback
+                                try
+                                {
+                                    File.Copy(sourcePak, destPak, true);
+                                    File.Delete(sourcePak);
+                                    progress.Report($"Copied merged pak to ~mods (fallback): {destPak}");
+                                }
+                                catch (Exception copyEx)
+                                {
+                                    progress.Report($"Failed to move or copy merged pak: {moveEx.Message}; {copyEx.Message}");
+                                }
+                            }
+                        }
+                        else
+                        {
+                            progress.Report("Merged pak exists, but game installation not found to install it.");
+                        }
+                    }
+                    else
+                    {
+                        progress.Report("No merged pak found in Tools to install.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    progress.Report($"Failed to install merged pak: {ex.Message}");
+                }
+
+                progress.Report("\n✓ All tasks completed successfully!");
+                MessageBox.Show("Save, merge, pack, and install complete!", "Process Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             finally
             {
                 // Mark the persistent log as done so the user can close it manually when they want.
                 try { _logForm?.MarkDone(); } catch { }
+
+                // Re-enable the Play button
+                btnPlay.Enabled = true;
+                btnPlay.ForeColor = Color.White;
+                btnPlay.Text = "Play";
             }
         }
 
@@ -516,6 +594,10 @@ namespace CrossworldsModManager
                 int installedCount = results.Count(success => success);
 
                 UpdateStatus($"Successfully installed {installedCount} of {installTasks.Count} enabled mod(s).");
+
+                // Note: do NOT add the LocresMod pak here — it must be added after UnrealPak has
+                // finished producing the final `LocresMod.pak`. That step is handled after
+                // `PackMergedLocresAsync` completes so we don't install a clean/old pak.
                 return true;
             }
             catch (Exception ex)
@@ -551,6 +633,29 @@ namespace CrossworldsModManager
                     return false;
                 }
                 return true;
+            }
+        }
+
+        private async Task<bool> CreateHardLinkAsync(string linkPath, string targetPath)
+        {
+            // Delete the old link if it exists, to ensure we can create a new one.
+            if (File.Exists(linkPath))
+            {
+                File.Delete(linkPath);
+            }
+
+            using (var process = new Process())
+            {
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c mklink /H \"{linkPath}\" \"{targetPath}\"",
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                process.Start();
+                await process.WaitForExitAsync();
+                return process.ExitCode == 0;
             }
         }
         
@@ -772,6 +877,30 @@ namespace CrossworldsModManager
                 {
                     await LocresConverter.ConvertToLocresAsync(ofd.FileName);
                 }
+            }
+        }
+
+        private void btnToggleDebugLog_Click(object sender, EventArgs e)
+        {
+            if (_logForm == null || _logForm.IsDisposed)
+            {
+                try
+                {
+                    _logForm = new LogForm();
+                    _logForm.Show(this);
+                    btnToggleDebugLog.Text = "Hide Debug Log";
+                }
+                catch { }
+            }
+            else if (_logForm.Visible)
+            {
+                _logForm.Hide();
+                btnToggleDebugLog.Text = "Show Debug Log";
+            }
+            else
+            {
+                _logForm.Show(this);
+                btnToggleDebugLog.Text = "Hide Debug Log";
             }
         }
     }

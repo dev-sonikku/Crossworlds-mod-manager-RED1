@@ -28,7 +28,7 @@ namespace CrossworldsModManager
                 if (exePath == null) return;
 
                 // Use the 'export' command: export <outputPath> <targetPath>
-                await RunProcessAsync(exePath, $"export \"{jsonPath}\" \"{locresPath}\" -y");
+                await RunProcessAsync(exePath, $"export \"{jsonPath}\" \"{locresPath}\" -y", null);
                 MessageBox.Show($"Successfully converted to:\n{jsonPath}",
                     "Conversion Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -57,7 +57,7 @@ namespace CrossworldsModManager
 
                 // Use the 'import' command: import <outputPath> <targetPath> <sourcePath>
                 // outputPath = new .locres, targetPath = base Game.locres, sourcePath = our .json
-                await RunProcessAsync(exePath, $"import \"{locresPath}\" \"{baseLocresPath}\" \"{jsonPath}\" -y");
+                await RunProcessAsync(exePath, $"import \"{locresPath}\" \"{baseLocresPath}\" \"{jsonPath}\" -y", null);
                 MessageBox.Show($"Successfully created new .locres at:\n{locresPath}",
                     "Conversion Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
@@ -70,7 +70,8 @@ namespace CrossworldsModManager
 
         public static async Task ProcessModJsonFilesAsync(IEnumerable<ModInfo> enabledMods, IProgress<string>? progress = null)
         {
-            var jsonModifications = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>(); // Language -> Namespace -> Key -> Value
+            // Language -> Namespace -> Key -> Value
+            var jsonModifications = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
 
             // 1. Collect all JSON modifications from enabled mods, respecting load order (reverse iteration)
             foreach (var modInfo in enabledMods.Reverse())
@@ -80,8 +81,38 @@ namespace CrossworldsModManager
                 {
                     try
                     {
-                        var modJson = JObject.Parse(await File.ReadAllTextAsync(jsonFile));
-                        ExtractModifications(modJson, jsonModifications);
+                        var jsonContent = await File.ReadAllTextAsync(jsonFile);
+                        var token = JToken.Parse(jsonContent);
+
+                        if (token is JArray modArray)
+                        {
+                            ExtractModifications(modArray, jsonModifications);
+                        }
+                        else if (token is JObject modObj)
+                        {
+                            // Support two object formats:
+                            // 1) { "en": { "strings": { ... } } }
+                            // 2) { "Language": "en", "Namespace": "...", "Key": "...", "Value": "..." }
+                            var handled = false;
+                            // Format 1: language -> { strings: { Namespace: [ { Key, Value }, ... ] } }
+                            foreach (var prop in modObj.Properties())
+                            {
+                                if (prop.Value is JObject valObj && valObj["strings"] is JObject)
+                                {
+                                    ExtractModificationsFromObject(modObj, jsonModifications);
+                                    handled = true;
+                                    break;
+                                }
+                            }
+                            if (!handled)
+                            {
+                                // Treat it as a single change object and wrap into array
+                                var arr = new JArray();
+                                arr.Add(modObj);
+                                ExtractModifications(arr, jsonModifications);
+                            }
+                        }
+
                         progress?.Report($"Loaded JSON: {jsonFile}");
                     }
                     catch (Exception ex)
@@ -95,64 +126,212 @@ namespace CrossworldsModManager
 
             if (jsonModifications.Count == 0)
             {
-                // No JSON files found, nothing to do.
+                progress?.Report("No text mod (.json) files found to merge.");
                 return;
             }
 
-            // 2. Get base Game.locres and convert to JSON
+            // 2. Ensure the tool exists
             string? exePath = await EnsureToolExistsAsync();
             if (exePath == null) return;
 
-            var baseLocresPath = Path.Combine(ToolsDir, "Game.locres");
-            if (!File.Exists(baseLocresPath))
+            // 3. Iterate through each language folder and process the locres file
+            var languagesRoot = Path.Combine(ToolsDir, "Locres", "UNION", "Content", "Localization", "Game");
+            if (!Directory.Exists(languagesRoot))
             {
-                MessageBox.Show($"Base file 'Game.locres' not found in the Tools folder.\nPlease place a clean copy of the game's .locres file there to merge JSON text mods.",
-                    "Base File Missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                var msg = $"Base locres directory not found at: {languagesRoot}";
+                if (progress != null) progress.Report(msg);
+                MessageBox.Show(msg, "Directory Missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            var tempBaseJsonPath = Path.Combine(Path.GetTempPath(), "base_locres.json");
-            await RunProcessAsync(exePath, $"export \"{tempBaseJsonPath}\" \"{baseLocresPath}\" -y", progress);
-            if (!File.Exists(tempBaseJsonPath)) throw new Exception("Failed to convert base Game.locres to JSON.");
-
-            var baseJson = JObject.Parse(await File.ReadAllTextAsync(tempBaseJsonPath));
-
-            // 3. Apply modifications to the base JSON
-            foreach (var langEntry in jsonModifications)
+            // 3. Iterate through each language that has modifications.
+            var languagesToProcess = jsonModifications.Keys;
+            if (languagesToProcess.Count == 0)
             {
-                var lang = langEntry.Key;
-                if (baseJson[lang]?["strings"] is not JObject namespaces) continue;
+                progress?.Report("No valid language-specific modifications found in JSON files.");
+                return;
+            }
 
-                foreach (var nsEntry in langEntry.Value)
+            foreach (var langCode in languagesToProcess)
+            {
+                var baseLocresPath = Path.Combine(languagesRoot, langCode, "Game.locres");
+
+                if (!File.Exists(baseLocresPath))
                 {
-                    var ns = nsEntry.Key;
-                    if (namespaces[ns] is not JArray stringEntries) continue;
+                    progress?.Report($"Skipping '{langCode}': Game.locres not found.");
+                    continue;
+                }
 
-                    foreach (var keyEntry in nsEntry.Value)
+                progress?.Report($"Processing language: {langCode}");
+
+                var tempBaseJsonPath = Path.Combine(Path.GetTempPath(), $"base_{langCode}.json");
+                await RunProcessAsync(exePath, $"export \"{tempBaseJsonPath}\" \"{baseLocresPath}\" -y", progress);
+                if (!File.Exists(tempBaseJsonPath))
+                {
+                    progress?.Report($"Failed to convert Game.locres for '{langCode}'.");
+                    continue;
+                }
+
+                var baseJson = JObject.Parse(await File.ReadAllTextAsync(tempBaseJsonPath));
+
+                // Try to locate namespaces in several common JSON layouts produced by different exports.
+                // 1) Mapping style: baseJson[lang]["strings"] is an object where properties are namespace names -> JArray
+                JObject? namespacesObj = null;
+                if (baseJson[langCode] is JObject langRoot && langRoot["strings"] is JObject sObj)
+                {
+                    namespacesObj = (JObject)sObj;
+                }
+                else if (baseJson["strings"] is JObject sObj2)
+                {
+                    namespacesObj = (JObject)sObj2;
+                }
+
+                // 2) Array style: baseJson["Items"][*]["Namespaces"] -> JArray where each namespace has { "Name": ..., "Strings": [...] }
+                JArray? namespacesArray = null;
+                if (baseJson["Items"] is JArray itemsArray)
+                {
+                    foreach (var item in itemsArray.Children<JObject>())
                     {
-                        var key = keyEntry.Key;
-                        var value = keyEntry.Value;
-
-                        var entryToUpdate = stringEntries.FirstOrDefault(t => t["Key"]?.ToString() == key);
-                        if (entryToUpdate != null)
+                        // Some exports include Culture on the item; if present prefer the one matching langCode
+                        if (item["Culture"] != null)
                         {
-                            entryToUpdate["Value"] = value;
+                            if (string.Equals(item["Culture"]?.ToString(), langCode, StringComparison.OrdinalIgnoreCase) && item["Namespaces"] is JArray nsArr)
+                            {
+                                namespacesArray = (JArray)nsArr;
+                                break;
+                            }
+                        }
+                        // Fallback: first item that has Namespaces
+                        if (namespacesArray == null && item["Namespaces"] is JArray anyNs)
+                        {
+                            namespacesArray = (JArray)anyNs;
                         }
                     }
                 }
+
+                if (namespacesObj == null && namespacesArray == null)
+                {
+                    progress?.Report($"Could not find namespaces structure for language '{langCode}' in exported JSON.");
+                    if (File.Exists(tempBaseJsonPath)) File.Delete(tempBaseJsonPath);
+                    continue;
+                }
+
+                // 4. Apply modifications to the base JSON for the current language
+                foreach (var nsEntry in jsonModifications[langCode])
+                {
+                    var ns = nsEntry.Key;
+
+                    if (namespacesObj != null)
+                    {
+                        if (namespacesObj[ns] is not JArray stringEntries) continue;
+
+                        foreach (KeyValuePair<string, string> keyEntry in nsEntry.Value)
+                        {
+                            var key = keyEntry.Key;
+                            var value = keyEntry.Value;
+                            var entryToUpdate = stringEntries.FirstOrDefault(t => t["Key"]?.ToString() == key);
+                            if (entryToUpdate != null) entryToUpdate["Value"] = value;
+                        }
+                    }
+                    else if (namespacesArray != null)
+                    {
+                        var namespaceObject = namespacesArray.FirstOrDefault(item => item["Name"]?.ToString().Equals(ns, StringComparison.OrdinalIgnoreCase) ?? false) as JObject;
+                        if (namespaceObject == null || namespaceObject["Strings"] is not JArray stringEntries) continue;
+
+                        foreach (KeyValuePair<string, string> keyEntry in nsEntry.Value)
+                        {
+                            var key = keyEntry.Key;
+                            var value = keyEntry.Value;
+                            var entryToUpdate = stringEntries.FirstOrDefault(t => t["Key"]?.ToString() == key);
+                            if (entryToUpdate != null) entryToUpdate["Value"] = value;
+                        }
+                    }
+                }
+
+                // 5. Save the final merged JSON for this language to the Tools folder
+                var outputJsonPath = Path.Combine(ToolsDir, $"Game_{langCode}.json");
+                await File.WriteAllTextAsync(outputJsonPath, baseJson.ToString(Newtonsoft.Json.Formatting.Indented));
+                progress?.Report($"Saved merged JSON for {langCode}: {outputJsonPath}");
+
+                if (File.Exists(tempBaseJsonPath)) File.Delete(tempBaseJsonPath);
             }
 
-            // 4. Save the final merged JSON to the Tools folder
-            var outputJsonPath = Path.Combine(ToolsDir, "Game.json");
-            await File.WriteAllTextAsync(outputJsonPath, baseJson.ToString(Newtonsoft.Json.Formatting.Indented));
-            progress?.Report($"Merged JSON saved to: {outputJsonPath}");
+            progress?.Report("Successfully merged JSON modifications for all found languages.");
+        }
 
-            // Clean up temp file
-            if (File.Exists(tempBaseJsonPath)) File.Delete(tempBaseJsonPath);
+        public static async Task PackMergedLocresAsync(string gamePath, IProgress<string>? progress = null)
+        {
+            try
+            {
+                string? exePath = await EnsureToolExistsAsync();
+                if (exePath == null) return;
 
-            // Notify via progress and also show the message box for users.
-            progress?.Report("JSON merge complete.");
-            MessageBox.Show($"Successfully merged JSON modifications into:\n{outputJsonPath}", "JSON Merge Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var mergedJsonFiles = Directory.GetFiles(ToolsDir, "Game_*.json");
+                if (mergedJsonFiles.Length == 0)
+                {
+                    MessageBox.Show("No merged 'Game_*.json' files found in the Tools folder to pack.", "No Files Found", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    progress?.Report("No merged JSON files found.");
+                    return;
+                }
+
+                var languagesRoot = Path.Combine(ToolsDir, "Locres", "UNION", "Content", "Localization", "Game");
+                var outputRoot = Path.Combine(ToolsDir, "LocresMod", "UNION", "Content", "Localization", "Game");
+
+                int successCount = 0;
+                foreach (var jsonPath in mergedJsonFiles)
+                {
+                    var fileName = Path.GetFileName(jsonPath); // e.g., Game_en.json
+                    var langCode = fileName.Substring("Game_".Length, fileName.Length - "Game_".Length - ".json".Length);
+
+                    var baseLocresPath = Path.Combine(languagesRoot, langCode, "Game.locres");
+                    if (!File.Exists(baseLocresPath))
+                    {
+                        progress?.Report($"Skipping '{langCode}': Original Game.locres not found.");
+                        continue;
+                    }
+
+                    var outputLangDir = Path.Combine(outputRoot, langCode);
+                    Directory.CreateDirectory(outputLangDir);
+                    var outputLocresPath = Path.Combine(outputLangDir, "Game.locres");
+
+                    progress?.Report($"Packing '{langCode}'...");
+                    // Use the 'import' command: import <outputPath> <targetPath> <sourcePath>
+                    await RunProcessAsync(exePath, $"import \"{outputLocresPath}\" \"{baseLocresPath}\" \"{jsonPath}\" -y", progress);
+                    successCount++;
+                }
+
+                if (successCount > 0)
+                {
+                    progress?.Report($"\nPacking {successCount} language(s) complete. Now creating final pak file...");
+
+                    // Final step: Run UnrealPak.bat with the LocresMod folder path.
+                    var unrealPakDir = Path.Combine(ToolsDir, "UnrealPak");
+                    var unrealPakBatPath = Path.Combine(unrealPakDir, "UnrealPak.bat");
+                    if (File.Exists(unrealPakBatPath))
+                    {
+                        var locresModPath = Path.Combine(ToolsDir, "LocresMod");
+                        var outputPakPath = Path.Combine(ToolsDir, "LocresMod.pak");
+
+                        // Pass the LocresMod folder to the .bat file (emulates drag-and-drop).
+                        // The .bat will handle filelist.txt creation and UnrealPak invocation.
+                        var batCommand = $"\"{unrealPakBatPath}\" \"{locresModPath}\"";
+                        var cmdArgs = $"/c \"{batCommand}\"";
+                        await RunProcessAsync("cmd.exe", cmdArgs, progress, unrealPakDir);
+
+                        progress?.Report($"Final pak file created at: {outputPakPath}");
+                    }
+                    else
+                    {
+                        progress?.Report($"Warning: UnrealPak.bat not found at {unrealPakBatPath}. Skipping final pak creation.");
+                    }
+                }
+
+                progress?.Report($"Successfully packed {successCount} of {mergedJsonFiles.Length} language(s).");
+            }
+            catch (Exception ex)
+            {
+                progress?.Report($"An error occurred while packing .locres files: {ex.Message}");
+            }
         }
 
         private static async Task<string?> EnsureToolExistsAsync()
@@ -203,11 +382,11 @@ namespace CrossworldsModManager
             }
         }
 
-        private static async Task RunProcessAsync(string fileName, string arguments, IProgress<string>? progress = null)
+        private static async Task RunProcessAsync(string fileName, string arguments, IProgress<string>? progress = null, string? workingDirectory = null)
         {
             var header = $"\n> Running command: {Path.GetFileName(fileName)} {arguments}";
-            if (progress != null) progress.Report(header);
-            else Console.WriteLine(header);
+            if (progress != null) { progress.Report(header); }
+            else { Debug.WriteLine(header); }
 
             var process = new Process
             {
@@ -216,7 +395,8 @@ namespace CrossworldsModManager
                     CreateNoWindow = true,
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
-                    RedirectStandardError = true
+                    RedirectStandardError = true,
+                    WorkingDirectory = workingDirectory ?? Path.GetDirectoryName(fileName) ?? AppDomain.CurrentDomain.BaseDirectory
                 }
             };
 
@@ -231,23 +411,46 @@ namespace CrossworldsModManager
             if (!string.IsNullOrWhiteSpace(output))
             {
                 var outMsg = $"[Output]:\n{output.Trim()}";
-                if (progress != null) progress.Report(outMsg);
-                else Console.WriteLine(outMsg);
+                if (progress != null) { progress.Report(outMsg); }
+                else { Debug.WriteLine(outMsg); }
             }
             if (!string.IsNullOrWhiteSpace(error))
             {
                 var errMsg = $"[Error]:\n{error.Trim()}";
-                if (progress != null) progress.Report(errMsg);
-                else Console.WriteLine(errMsg);
+                if (progress != null) { progress.Report(errMsg); }
+                else { Debug.WriteLine(errMsg); }
             }
         }
 
-        private static void ExtractModifications(JObject modJson, Dictionary<string, Dictionary<string, Dictionary<string, string>>> modifications)
+        private static void ExtractModifications(JArray modArray, Dictionary<string, Dictionary<string, Dictionary<string, string>>> modifications)
+        {
+            foreach (var item in modArray.Children<JObject>())
+            {
+                var language = item["Language"]?.ToString();
+                var ns = item["Namespace"]?.ToString();
+                var key = item["Key"]?.ToString();
+                var value = item["Value"]?.ToString();
+
+                if (string.IsNullOrEmpty(language) || string.IsNullOrEmpty(ns) || string.IsNullOrEmpty(key) || value == null) continue;
+
+                if (!modifications.ContainsKey(language))
+                {
+                    modifications[language] = new Dictionary<string, Dictionary<string, string>>();
+                }
+                if (!modifications[language].ContainsKey(ns))
+                {
+                    modifications[language][ns] = new Dictionary<string, string>();
+                }
+                modifications[language][ns][key] = value;
+            }
+        }
+
+        private static void ExtractModificationsFromObject(JObject modJson, Dictionary<string, Dictionary<string, Dictionary<string, string>>> modifications)
         {
             foreach (var langProperty in modJson.Properties())
             {
                 var language = langProperty.Name;
-                if (langProperty.Value?["strings"] is not JObject namespaces) continue;
+                if (langProperty.Value? ["strings"] is not JObject namespaces) continue;
 
                 if (!modifications.ContainsKey(language))
                 {
@@ -264,7 +467,7 @@ namespace CrossworldsModManager
                         modifications[language][ns] = new Dictionary<string, string>();
                     }
 
-                    foreach (var entry in stringEntries)
+                    foreach (var entry in stringEntries.Children<JObject>())
                     {
                         var key = entry["Key"]?.ToString();
                         var value = entry["Value"]?.ToString();

@@ -39,7 +39,7 @@ namespace CrossworldsModManager
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.locresToolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.convertlocresToJsonToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.convertjsonTolocresToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.convertJsonToLocresToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -59,6 +59,7 @@ namespace CrossworldsModManager
             this.btnPlay = new System.Windows.Forms.Button();
             this.txtSearch = new System.Windows.Forms.TextBox();
             this.labelSearch = new System.Windows.Forms.Label();
+            this.btnToggleDebugLog = new System.Windows.Forms.Button();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
@@ -143,7 +144,7 @@ namespace CrossworldsModManager
             // 
             this.locresToolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.convertlocresToJsonToolStripMenuItem,
-            this.convertjsonTolocresToolStripMenuItem});
+            this.convertJsonToLocresToolStripMenuItem});
             this.locresToolsToolStripMenuItem.Name = "locresToolsToolStripMenuItem";
             this.locresToolsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.locresToolsToolStripMenuItem.Text = "Locres Tools";
@@ -155,12 +156,12 @@ namespace CrossworldsModManager
             this.convertlocresToJsonToolStripMenuItem.Text = "Convert .locres to .json...";
             this.convertlocresToJsonToolStripMenuItem.Click += new System.EventHandler(this.convertlocresToJsonToolStripMenuItem_Click);
             // 
-            // convertjsonTolocresToolStripMenuItem
+            // convertJsonToLocresToolStripMenuItem
             // 
-            this.convertjsonTolocresToolStripMenuItem.Name = "convertjsonTolocresToolStripMenuItem";
-            this.convertjsonTolocresToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
-            this.convertjsonTolocresToolStripMenuItem.Text = "Convert .json to .locres...";
-            this.convertjsonTolocresToolStripMenuItem.Click += new System.EventHandler(this.convertjsonTolocresToolStripMenuItem_Click);
+            this.convertJsonToLocresToolStripMenuItem.Name = "convertJsonToLocresToolStripMenuItem";
+            this.convertJsonToLocresToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
+            this.convertJsonToLocresToolStripMenuItem.Text = "Convert .json to .locres...";
+            this.convertJsonToLocresToolStripMenuItem.Click += new System.EventHandler(this.convertjsonTolocresToolStripMenuItem_Click);
             // 
             // aboutToolStripMenuItem
             // 
@@ -393,12 +394,28 @@ namespace CrossworldsModManager
             this.labelSearch.TabIndex = 12;
             this.labelSearch.Text = "Search:";
             // 
+            // btnToggleDebugLog
+            // 
+            this.btnToggleDebugLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnToggleDebugLog.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.btnToggleDebugLog.Enabled = false;
+            this.btnToggleDebugLog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnToggleDebugLog.ForeColor = System.Drawing.Color.White;
+            this.btnToggleDebugLog.Location = new System.Drawing.Point(633, 280);
+            this.btnToggleDebugLog.Name = "btnToggleDebugLog";
+            this.btnToggleDebugLog.Size = new System.Drawing.Size(155, 23);
+            this.btnToggleDebugLog.TabIndex = 13;
+            this.btnToggleDebugLog.Text = "Show Debug Log";
+            this.btnToggleDebugLog.UseVisualStyleBackColor = false;
+            this.btnToggleDebugLog.Click += new System.EventHandler(this.btnToggleDebugLog_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.btnToggleDebugLog);
             this.Controls.Add(this.labelSearch);
             this.Controls.Add(this.txtSearch);
             this.Controls.Add(this.btnPlay);
@@ -437,7 +454,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem locresToolsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem convertlocresToJsonToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem convertjsonTolocresToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem convertJsonToLocresToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
@@ -459,6 +476,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.Button btnPlay;
         private System.Windows.Forms.TextBox txtSearch;
         private System.Windows.Forms.Label labelSearch;
+        private System.Windows.Forms.Button btnToggleDebugLog;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
     }
 }
