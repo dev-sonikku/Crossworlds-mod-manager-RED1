@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("CrossworldsModManager")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+24b6f9164ae437b16932224a587daa1408fc5f65")]
 [assembly: System.Reflection.AssemblyProductAttribute("CrossworldsModManager")]
 [assembly: System.Reflection.AssemblyTitleAttribute("CrossworldsModManager")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

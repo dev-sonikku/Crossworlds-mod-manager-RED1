@@ -17,6 +17,7 @@ namespace CrossworldsModManager
         private Dictionary<string, (string Path, string? AppName)> _gameInstallations = new();
         private List<ListViewItem> _allModItems = new List<ListViewItem>();
         private string? _selectedPlatform;
+        private LogForm? _logForm;
 
         public MainForm()
         {
@@ -24,6 +25,17 @@ namespace CrossworldsModManager
             // Apply the custom dark theme renderer for menus and tool strips
             ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new DarkThemeColorTable());
             LoadSettingsAndSetup();
+
+            // Show persistent debug log window so it's available at all times.
+            try
+            {
+                _logForm = new LogForm();
+                _logForm.Show(this);
+            }
+            catch
+            {
+                // If creating the log window fails, ignore and continue — logging will still use Console/Debug.
+            }
         }
 
         private void LoadSettingsAndSetup()
@@ -213,8 +225,32 @@ namespace CrossworldsModManager
                 }
             }
 
-            // Finally, asynchronously install mods and wait for the process to complete.
-            await InstallModsAsync();
+            // Finally, asynchronously install mods and run the JSON merge while writing into the persistent debug log.
+            // Ensure the persistent log form exists and is visible.
+            if (_logForm == null || _logForm.IsDisposed)
+            {
+                _logForm = new LogForm();
+                _logForm.Show(this);
+            }
+
+            var progress = new Progress<string>(s =>
+            {
+                try { _logForm?.AppendLog(s); } catch { /* best-effort logging */ }
+            });
+
+            // Start the async tasks
+            var installTask = InstallModsAsync();
+            var jsonTask = LocresConverter.ProcessModJsonFilesAsync(modListView.Items.Cast<ListViewItem>().Where(i => i.Checked).Select(i => i.Tag as ModInfo).Where(m => m != null)!, progress);
+
+            try
+            {
+                await Task.WhenAll(installTask, jsonTask);
+            }
+            finally
+            {
+                // Mark the persistent log as done so the user can close it manually when they want.
+                try { _logForm?.MarkDone(); } catch { }
+            }
         }
 
         private void btnPlay_Click(object sender, EventArgs e)
@@ -711,6 +747,32 @@ namespace CrossworldsModManager
         private void txtSearch_TextChanged(object sender, EventArgs e)
         {
             ApplyFilter();
+        }
+
+        private async void convertlocresToJsonToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var ofd = new OpenFileDialog())
+            {
+                ofd.Title = "Select .locres file to convert";
+                ofd.Filter = "Localization Resource (*.locres)|*.locres";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    await LocresConverter.ConvertToJsonAsync(ofd.FileName);
+                }
+            }
+        }
+
+        private async void convertjsonTolocresToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var ofd = new OpenFileDialog())
+            {
+                ofd.Title = "Select .json file to convert";
+                ofd.Filter = "JSON File (*.json)|*.json";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    await LocresConverter.ConvertToLocresAsync(ofd.FileName);
+                }
+            }
         }
     }
 }

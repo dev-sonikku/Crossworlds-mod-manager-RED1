@@ -12,3 +12,9 @@ C:\games\Projects\Crossworlds mod manager RED1\obj\Debug\net8.0-windows\refint\C
 C:\games\Projects\Crossworlds mod manager RED1\obj\Debug\net8.0-windows\CrossworldsModManager.pdb
 C:\games\Projects\Crossworlds mod manager RED1\obj\Debug\net8.0-windows\CrossworldsModManager.genruntimeconfig.cache
 C:\games\Projects\Crossworlds mod manager RED1\obj\Debug\net8.0-windows\ref\CrossworldsModManager.dll
+C:\games\Projects\Crossworlds mod manager RED1\obj\Debug\net8.0-windows\CrossworldsModManager.sourcelink.json
+C:\games\Projects\Crossworlds mod manager RED1\bin\Debug\net8.0-windows\SharpCompress.dll
+C:\games\Projects\Crossworlds mod manager RED1\bin\Debug\net8.0-windows\ZstdSharp.dll
+C:\games\Projects\Crossworlds mod manager RED1\obj\Debug\net8.0-windows\CrossworldsModManager.csproj.AssemblyReference.cache
+C:\games\Projects\Crossworlds mod manager RED1\obj\Debug\net8.0-windows\Crosswor.3E6D2302.Up2Date
+C:\games\Projects\Crossworlds mod manager RED1\bin\Debug\net8.0-windows\Newtonsoft.Json.dll
