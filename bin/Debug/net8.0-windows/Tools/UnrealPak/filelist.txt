@@ -1,1 +1,0 @@
-"C:\games\Projects\Crossworlds mod manager RED1\bin\Debug\net8.0-windows\Tools\LocresMod\*.*" "..\..\..\*.*" 
