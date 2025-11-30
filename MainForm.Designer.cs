@@ -40,6 +40,11 @@ namespace CrossworldsModManager
             this.locresToolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.convertlocresToJsonToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.convertJsonToLocresToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.profilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.newProfileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.renameProfileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteProfileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
@@ -70,6 +75,7 @@ namespace CrossworldsModManager
             this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
             this.toolsToolStripMenuItem,
+            this.profilesToolStripMenuItem,
             this.aboutToolStripMenuItem});
             this.menuStrip1.ForeColor = System.Drawing.Color.White;
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
@@ -162,6 +168,44 @@ namespace CrossworldsModManager
             this.convertJsonToLocresToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
             this.convertJsonToLocresToolStripMenuItem.Text = "Convert .json to .locres...";
             this.convertJsonToLocresToolStripMenuItem.Click += new System.EventHandler(this.convertjsonTolocresToolStripMenuItem_Click);
+            // 
+            // profilesToolStripMenuItem
+            // 
+            this.profilesToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.toolStripSeparator3,
+            this.newProfileToolStripMenuItem,
+            this.renameProfileToolStripMenuItem,
+            this.deleteProfileToolStripMenuItem});
+            this.profilesToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.profilesToolStripMenuItem.Name = "profilesToolStripMenuItem";
+            this.profilesToolStripMenuItem.Size = new System.Drawing.Size(56, 20);
+            this.profilesToolStripMenuItem.Text = "Profiles";
+            // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(203, 6);
+            // 
+            // newProfileToolStripMenuItem
+            // 
+            this.newProfileToolStripMenuItem.Name = "newProfileToolStripMenuItem";
+            this.newProfileToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
+            this.newProfileToolStripMenuItem.Text = "New Profile...";
+            this.newProfileToolStripMenuItem.Click += new System.EventHandler(this.newProfileToolStripMenuItem_Click);
+            // 
+            // renameProfileToolStripMenuItem
+            // 
+            this.renameProfileToolStripMenuItem.Name = "renameProfileToolStripMenuItem";
+            this.renameProfileToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
+            this.renameProfileToolStripMenuItem.Text = "Rename Current Profile...";
+            this.renameProfileToolStripMenuItem.Click += new System.EventHandler(this.renameProfileToolStripMenuItem_Click);
+            // 
+            // deleteProfileToolStripMenuItem
+            // 
+            this.deleteProfileToolStripMenuItem.Name = "deleteProfileToolStripMenuItem";
+            this.deleteProfileToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
+            this.deleteProfileToolStripMenuItem.Text = "Delete Current Profile...";
+            this.deleteProfileToolStripMenuItem.Click += new System.EventHandler(this.deleteProfileToolStripMenuItem_Click);
             // 
             // aboutToolStripMenuItem
             // 
@@ -478,5 +522,10 @@ namespace CrossworldsModManager
         private System.Windows.Forms.Label labelSearch;
         private System.Windows.Forms.Button btnToggleDebugLog;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem profilesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem newProfileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem renameProfileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem deleteProfileToolStripMenuItem;
     }
 }

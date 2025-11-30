@@ -43,6 +43,8 @@ namespace CrossworldsModManager
         {
             SettingsManager.Load();
 
+            MigrateToProfiles();
+
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory))
             {
                 PromptForModsDirectory();
@@ -53,6 +55,7 @@ namespace CrossworldsModManager
                 DetectGameInstallations();
             }
 
+            UpdateProfilesMenu();
             // Load the list of mods when the application starts.
             RefreshModList();
         }
@@ -179,13 +182,16 @@ namespace CrossworldsModManager
             foreach (ListViewItem item in modListView.Items)
             {
                 if (item.Checked && item.Tag is ModInfo modInfo && modInfo.ConfigType != ModConfigType.None)
-                {
+                {   
+                    var activeProfile = GetActiveProfile();
+                    if (activeProfile == null) continue;
+
                     // If a configurable mod is enabled but has no saved configuration, set the default.
-                    if (!SettingsManager.Settings.ModConfigurations.ContainsKey(modInfo.Name))
+                    if (!activeProfile.ModConfigurations.ContainsKey(modInfo.Name))
                     {
                         if (modInfo.ConfigOptions.Count > 0)
                         {
-                            SettingsManager.Settings.ModConfigurations[modInfo.Name] = modInfo.ConfigOptions[0];
+                            activeProfile.ModConfigurations[modInfo.Name] = modInfo.ConfigOptions[0];
                             defaultsSet = true;
                         }
                     }
@@ -219,7 +225,10 @@ namespace CrossworldsModManager
                     if (item.Tag is ModInfo modInfo && modInfo.ConfigOptions.Count > 0)
                     {
                         // Get the saved selection for this mod.
-                        if (SettingsManager.Settings.ModConfigurations.TryGetValue(modInfo.Name, out var selectedOption))
+                        var activeProfile = GetActiveProfile();
+                        if (activeProfile == null) continue;
+
+                        if (activeProfile.ModConfigurations.TryGetValue(modInfo.Name, out var selectedOption))
                         {
                             ApplyModConfiguration(modInfo, selectedOption);
                         }
@@ -447,9 +456,12 @@ namespace CrossworldsModManager
             var modsDir = SettingsManager.Settings.ModsDirectory;
             var modDirectories = Directory.GetDirectories(modsDir);
 
+            var activeProfile = GetActiveProfile();
+            if (activeProfile == null) return;
+
             // Use saved settings
-            var enabledMods = SettingsManager.Settings.EnabledMods ?? new List<string>();
-            var modLoadOrder = SettingsManager.Settings.ModLoadOrder ?? new List<string>();
+            var enabledMods = activeProfile.EnabledMods;
+            var modLoadOrder = activeProfile.ModLoadOrder;
             var foundMods = new Dictionary<string, ModInfo>();
             
             foreach (var dir in modDirectories) // First, find all available mods
@@ -579,6 +591,9 @@ namespace CrossworldsModManager
         
         private void SaveModListState()
         {
+            var activeProfile = GetActiveProfile();
+            if (activeProfile == null) return;
+
             var enabledMods = new List<string>();
             var modLoadOrder = new List<string>();
             foreach (ListViewItem item in modListView.Items)
@@ -596,8 +611,8 @@ namespace CrossworldsModManager
                     }
                 }
             }
-            SettingsManager.Settings.EnabledMods = enabledMods;
-            SettingsManager.Settings.ModLoadOrder = modLoadOrder;
+            activeProfile.EnabledMods = enabledMods;
+            activeProfile.ModLoadOrder = modLoadOrder;
             SettingsManager.Save();
         }
 
@@ -922,10 +937,13 @@ namespace CrossworldsModManager
                 {
                     using (var configForm = new ModConfigForm(modInfo))
                     {
-                        if (configForm.ShowDialog() == DialogResult.OK)
+                        var activeProfile = GetActiveProfile();
+                        if (activeProfile == null) return;
+
+                        if (configForm.ShowDialog(this) == DialogResult.OK)
                         {
                             // Save the selected option to the settings file.
-                            SettingsManager.Settings.ModConfigurations[modInfo.Name] = configForm.ConfigurationString ?? "";
+                            activeProfile.ModConfigurations[modInfo.Name] = configForm.ConfigurationString ?? "";
                             SettingsManager.Save();
                             UpdateStatus($"Configuration saved for '{modInfo.Name}'. Click Save to apply changes.");
                         }
@@ -988,5 +1006,157 @@ namespace CrossworldsModManager
                 btnToggleDebugLog.Text = "Hide Debug Log";
             }
         }
+
+        #region Profile Management
+
+        private void MigrateToProfiles()
+        {
+            // If old settings exist and no profiles exist, migrate them.
+            if (SettingsManager.Settings.Profiles.Count == 0 && SettingsManager.Settings.EnabledMods != null)
+            {
+                const string defaultProfileName = "Default";
+                var defaultProfile = new ModProfile
+                {
+                    EnabledMods = SettingsManager.Settings.EnabledMods,
+                    ModConfigurations = SettingsManager.Settings.ModConfigurations ?? new Dictionary<string, string>(),
+                    ModLoadOrder = SettingsManager.Settings.ModLoadOrder ?? new List<string>()
+                };
+
+                SettingsManager.Settings.Profiles[defaultProfileName] = defaultProfile;
+                SettingsManager.Settings.ActiveProfileName = defaultProfileName;
+
+                // Clear old properties to finalize migration
+                SettingsManager.Settings.EnabledMods = null;
+                SettingsManager.Settings.ModConfigurations = null;
+                SettingsManager.Settings.ModLoadOrder = null;
+
+                SettingsManager.Save();
+            }
+            else if (SettingsManager.Settings.Profiles.Count == 0)
+            {
+                // First run, create a default profile.
+                const string defaultProfileName = "Default";
+                SettingsManager.Settings.Profiles[defaultProfileName] = new ModProfile();
+                SettingsManager.Settings.ActiveProfileName = defaultProfileName;
+                SettingsManager.Save();
+            }
+        }
+
+        private ModProfile? GetActiveProfile()
+        {
+            if (string.IsNullOrEmpty(SettingsManager.Settings.ActiveProfileName) ||
+                !SettingsManager.Settings.Profiles.TryGetValue(SettingsManager.Settings.ActiveProfileName, out var profile))
+            {
+                // Fallback if active profile is missing
+                if (SettingsManager.Settings.Profiles.Any())
+                {
+                    SettingsManager.Settings.ActiveProfileName = SettingsManager.Settings.Profiles.Keys.First();
+                    return SettingsManager.Settings.Profiles.Values.First();
+                }
+                return null;
+            }
+            return profile;
+        }
+
+        private void UpdateProfilesMenu()
+        {
+            profilesToolStripMenuItem.DropDownItems.Clear();
+
+            foreach (var profileName in SettingsManager.Settings.Profiles.Keys.OrderBy(p => p))
+            {
+                var item = new ToolStripMenuItem(profileName)
+                {
+                    Tag = profileName,
+                    Checked = profileName == SettingsManager.Settings.ActiveProfileName,
+                    CheckOnClick = true
+                };
+                item.Click += ProfileMenuItem_Click;
+                profilesToolStripMenuItem.DropDownItems.Add(item);
+            }
+
+            profilesToolStripMenuItem.DropDownItems.Add(toolStripSeparator3);
+            profilesToolStripMenuItem.DropDownItems.Add(newProfileToolStripMenuItem);
+            profilesToolStripMenuItem.DropDownItems.Add(renameProfileToolStripMenuItem);
+            profilesToolStripMenuItem.DropDownItems.Add(deleteProfileToolStripMenuItem);
+        }
+
+        private void ProfileMenuItem_Click(object? sender, EventArgs e)
+        {
+            if (sender is not ToolStripMenuItem clickedItem || clickedItem.Tag is not string profileName) return;
+
+            // Uncheck all other items
+            foreach (var item in profilesToolStripMenuItem.DropDownItems)
+            {
+                if (item is ToolStripMenuItem menuItem && menuItem != clickedItem)
+                {
+                    menuItem.Checked = false;
+                }
+            }
+            clickedItem.Checked = true;
+
+            SettingsManager.Settings.ActiveProfileName = profileName;
+            SettingsManager.Save();
+            RefreshModList();
+            UpdateStatus($"Switched to profile: {profileName}");
+        }
+
+        private void newProfileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string newProfileName = Prompt.ShowDialog("Enter a name for the new profile:", "New Profile");
+            if (string.IsNullOrWhiteSpace(newProfileName) || SettingsManager.Settings.Profiles.ContainsKey(newProfileName))
+            {
+                if (!string.IsNullOrWhiteSpace(newProfileName))
+                    MessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            SettingsManager.Settings.Profiles[newProfileName] = new ModProfile();
+            SettingsManager.Settings.ActiveProfileName = newProfileName;
+            SettingsManager.Save();
+            UpdateProfilesMenu();
+            RefreshModList();
+        }
+
+        private void renameProfileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var currentName = SettingsManager.Settings.ActiveProfileName;
+            if (string.IsNullOrEmpty(currentName)) return;
+
+            string newName = Prompt.ShowDialog("Enter a new name for the profile:", "Rename Profile", currentName);
+            if (string.IsNullOrWhiteSpace(newName) || newName == currentName || SettingsManager.Settings.Profiles.ContainsKey(newName))
+            {
+                if (!string.IsNullOrWhiteSpace(newName) && newName != currentName)
+                    MessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var profile = SettingsManager.Settings.Profiles[currentName];
+            SettingsManager.Settings.Profiles.Remove(currentName);
+            SettingsManager.Settings.Profiles[newName] = profile;
+            SettingsManager.Settings.ActiveProfileName = newName;
+            SettingsManager.Save();
+            UpdateProfilesMenu();
+        }
+
+        private void deleteProfileToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var currentName = SettingsManager.Settings.ActiveProfileName;
+            if (string.IsNullOrEmpty(currentName) || SettingsManager.Settings.Profiles.Count <= 1)
+            {
+                MessageBox.Show("You cannot delete the last profile.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (MessageBox.Show($"Are you sure you want to delete the '{currentName}' profile?", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                SettingsManager.Settings.Profiles.Remove(currentName);
+                SettingsManager.Settings.ActiveProfileName = SettingsManager.Settings.Profiles.Keys.First();
+                SettingsManager.Save();
+                UpdateProfilesMenu();
+                RefreshModList();
+            }
+        }
+
+        #endregion
     }
 }

@@ -2,18 +2,29 @@ using System.Collections.Generic;
 
 namespace CrossworldsModManager
 {
+    public class ModProfile
+    {
+        public List<string> EnabledMods { get; set; } = new();
+        public Dictionary<string, string> ModConfigurations { get; set; } = new();
+        public List<string> ModLoadOrder { get; set; } = new();
+    }
+
     public class AppSettings
     {
         public string? GameDirectory { get; set; }
         public string? ModsDirectory { get; set; }
-        public List<string> EnabledMods { get; set; } = new();
-        // Key: Mod Name, Value: For SelectOne, it's the single selected option.
-        // For SelectMultiple, it's a comma-separated string of enabled options.
-        public Dictionary<string, string> ModConfigurations { get; set; } = new();
-        public List<string> ModLoadOrder { get; set; } = new();
+
+        public Dictionary<string, ModProfile> Profiles { get; set; } = new();
+        public string? ActiveProfileName { get; set; }
+
         public bool SortEnabledModsToTop { get; set; } = true;
         public bool AutoCleanTemporaryFiles { get; set; } = true;
         public bool CheckForGamesOnStartup { get; set; } = true;
         public bool AutoCloseLogOnSuccess { get; set; } = false;
+
+        // Deprecated properties for migration
+        public List<string>? EnabledMods { get; set; }
+        public Dictionary<string, string>? ModConfigurations { get; set; }
+        public List<string>? ModLoadOrder { get; set; }
     }
 }

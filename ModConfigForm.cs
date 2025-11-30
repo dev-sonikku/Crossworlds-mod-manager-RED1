@@ -9,6 +9,7 @@ namespace CrossworldsModManager
     public partial class ModConfigForm : Form
     {
         private readonly ModInfo _modInfo;
+        private readonly ModProfile _activeProfile;
         public string ConfigurationString { get; private set; } = "";
 
         public ModConfigForm(ModInfo modInfo)
@@ -16,6 +17,12 @@ namespace CrossworldsModManager
             InitializeComponent();
             _modInfo = modInfo;
             this.Text = $"Configure '{_modInfo.Name}'";
+
+            // This is a bit of a shortcut. A better way would be to pass the profile in.
+            // But for now, this will work.
+            var activeProfileName = SettingsManager.Settings.ActiveProfileName ?? "";
+            if (!SettingsManager.Settings.Profiles.TryGetValue(activeProfileName, out _activeProfile!))
+                _activeProfile = new ModProfile(); // Fallback to an empty profile if something is wrong.
         }
 
         private void ModConfigForm_Load(object sender, EventArgs e)
@@ -34,7 +41,7 @@ namespace CrossworldsModManager
 
         private void BuildSelectOneUI()
         {
-            SettingsManager.Settings.ModConfigurations.TryGetValue(_modInfo.Name, out var savedOption);
+            _activeProfile.ModConfigurations.TryGetValue(_modInfo.Name, out var savedOption);
 
             int yPos = 20;
             foreach (string optionName in _modInfo.ConfigOptions)
@@ -61,7 +68,7 @@ namespace CrossworldsModManager
 
         private void BuildSelectMultipleUI()
         {
-            SettingsManager.Settings.ModConfigurations.TryGetValue(_modInfo.Name, out var savedOptionsString);
+            _activeProfile.ModConfigurations.TryGetValue(_modInfo.Name, out var savedOptionsString);
             var savedOptions = savedOptionsString?.Split(',').Select(s => s.Trim()).ToList() ?? new List<string>();
 
             int yPos = 20;
