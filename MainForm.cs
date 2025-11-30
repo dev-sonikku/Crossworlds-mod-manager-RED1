@@ -168,33 +168,10 @@ namespace CrossworldsModManager
             btnPlay.ForeColor = Color.Gray;
             btnPlay.Text = "Saving...";
 
-            // First, save which mods are enabled.
-            SaveModListState();
-
-            // Reorder the list to show enabled mods at the top.
-            var enabledItems = new List<ListViewItem>();
-            var disabledItems = new List<ListViewItem>();
-
-            foreach (ListViewItem item in modListView.Items)
-            {
-                if (item.Checked)
-                {
-                    enabledItems.Add(item);
-                }
-                else
-                {
-                    disabledItems.Add(item);
-                }
-            }
-
-            modListView.BeginUpdate(); // Prevent flickering during reordering
-            modListView.Items.Clear();
-            modListView.Items.AddRange(enabledItems.ToArray());
-            modListView.Items.AddRange(disabledItems.ToArray());
-            modListView.EndUpdate();
-
             // Before applying configurations, check for newly enabled mods that need a default config.
             bool defaultsSet = false;
+            // Use a copy of the items to iterate over, as the collection can be modified.
+            var itemsToProcess = modListView.Items.Cast<ListViewItem>().ToList();
             foreach (ListViewItem item in modListView.Items)
             {
                 if (item.Checked && item.Tag is ModInfo modInfo && modInfo.ConfigType != ModConfigType.None)
@@ -212,6 +189,12 @@ namespace CrossworldsModManager
             }
 
             if (defaultsSet) SettingsManager.Save(); // Save the new default settings.
+
+            // Sort the view to bring enabled mods to the top, if the setting is enabled.
+            SortModsView();
+
+            // Now that defaults are set, save the final state of enabled mods and their order.
+            SaveModListState();
 
             if (_logForm == null || _logForm.IsDisposed)
             {
@@ -823,7 +806,37 @@ namespace CrossworldsModManager
 
         private void modListView_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
-            e.Item.ForeColor = e.Item.Checked ? Color.White : Color.Gray;
+            // To prevent this from running for every item during a refresh, we check if the listview has focus.
+            if (modListView.Focused)
+                e.Item.ForeColor = e.Item.Checked ? Color.White : Color.Gray;
+        }
+
+        private void SortModsView()
+        {
+            if (SettingsManager.Settings.SortEnabledModsToTop)
+            {
+                var enabledItems = new List<ListViewItem>();
+                var disabledItems = new List<ListViewItem>();
+
+                foreach (ListViewItem item in modListView.Items)
+                {
+                    item.ForeColor = item.Checked ? Color.White : Color.Gray;
+                    if (item.Checked) enabledItems.Add(item);
+                    else disabledItems.Add(item);
+                }
+
+                modListView.BeginUpdate();
+                modListView.Items.Clear();
+                modListView.Items.AddRange(enabledItems.ToArray());
+                modListView.Items.AddRange(disabledItems.ToArray());
+                modListView.EndUpdate();
+            }
+            else
+            {
+                // Just update colors without re-ordering
+                foreach (ListViewItem item in modListView.Items)
+                    item.ForeColor = item.Checked ? Color.White : Color.Gray;
+            }
         }
 
         private void modListView_DrawColumnHeader(object sender, DrawListViewColumnHeaderEventArgs e)

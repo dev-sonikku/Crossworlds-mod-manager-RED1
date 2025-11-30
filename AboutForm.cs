@@ -7,7 +7,6 @@ namespace CrossworldsModManager
         public AboutForm()
         {
             InitializeComponent();
-            // You can set the version number dynamically here if you want in the future
         }
     }
 }

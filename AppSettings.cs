@@ -11,5 +11,6 @@ namespace CrossworldsModManager
         // For SelectMultiple, it's a comma-separated string of enabled options.
         public Dictionary<string, string> ModConfigurations { get; set; } = new();
         public List<string> ModLoadOrder { get; set; } = new();
+        public bool SortEnabledModsToTop { get; set; } = true;
     }
 }

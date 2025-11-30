@@ -14,6 +14,7 @@ namespace CrossworldsModManager
         {
             txtGameDir.Text = SettingsManager.Settings.GameDirectory;
             txtModsDir.Text = SettingsManager.Settings.ModsDirectory;
+            chkSortEnabled.Checked = SettingsManager.Settings.SortEnabledModsToTop;
         }
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
@@ -44,6 +45,7 @@ namespace CrossworldsModManager
         {
             SettingsManager.Settings.GameDirectory = txtGameDir.Text;
             SettingsManager.Settings.ModsDirectory = txtModsDir.Text;
+            SettingsManager.Settings.SortEnabledModsToTop = chkSortEnabled.Checked;
             SettingsManager.Save();
             DialogResult = DialogResult.OK;
             Close();

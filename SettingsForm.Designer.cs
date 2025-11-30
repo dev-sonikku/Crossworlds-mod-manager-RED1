@@ -25,6 +25,7 @@ namespace CrossworldsModManager
             this.label2 = new System.Windows.Forms.Label();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
+            this.chkSortEnabled = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // label1
@@ -121,11 +122,23 @@ namespace CrossworldsModManager
             this.btnCancel.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
             this.btnCancel.ForeColor = System.Drawing.Color.White;
             // 
+            // chkSortEnabled
+            // 
+            this.chkSortEnabled.AutoSize = true;
+            this.chkSortEnabled.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkSortEnabled.Location = new System.Drawing.Point(102, 67);
+            this.chkSortEnabled.Name = "chkSortEnabled";
+            this.chkSortEnabled.Size = new System.Drawing.Size(215, 17);
+            this.chkSortEnabled.TabIndex = 8;
+            this.chkSortEnabled.Text = "Sort enabled mods to the top of the list";
+            this.chkSortEnabled.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 114);
+            this.ClientSize = new System.Drawing.Size(584, 121);
+            this.Controls.Add(this.chkSortEnabled);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSave);
             this.Controls.Add(this.btnBrowseModsDir);
@@ -158,5 +171,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button btnSave;
         private System.Windows.Forms.Button btnCancel;
+        private System.Windows.Forms.CheckBox chkSortEnabled;
     }
 }
