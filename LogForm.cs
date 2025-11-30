@@ -31,15 +31,22 @@ namespace CrossworldsModManager
                 Text = "Close",
                 Dock = DockStyle.Right,
                 Width = 80,
-                Enabled = false
+                Enabled = false,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(63, 63, 70),
+                ForeColor = Color.White
             };
             btnClose.Click += (s, e) => Close();
+            btnClose.FlatAppearance.BorderSize = 0;
 
             btnClear = new Button
             {
                 Text = "Clear",
                 Dock = DockStyle.Right,
-                Width = 80
+                Width = 80,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(63, 63, 70),
+                ForeColor = Color.White
             };
             btnClear.Click += (s, e) => rtbLog.Clear();
 

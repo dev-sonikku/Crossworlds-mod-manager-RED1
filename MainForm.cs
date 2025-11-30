@@ -23,7 +23,7 @@ namespace CrossworldsModManager
         {
             InitializeComponent();
             // Apply the custom dark theme renderer for menus and tool strips
-            ToolStripManager.Renderer = new ToolStripProfessionalRenderer(new DarkThemeColorTable());
+            ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
             LoadSettingsAndSetup();
 
             // Create debug log window but hide it by default; user can show it via button.
@@ -421,9 +421,7 @@ namespace CrossworldsModManager
                 }
                 else if (_selectedPlatform == "Epic Games")
                 {
-                    var epicAppName = _gameInstallations[_selectedPlatform].AppName;
-                    if (string.IsNullOrEmpty(epicAppName)) throw new InvalidOperationException("Epic Games AppName not found.");
-                    launchUrl = $"com.epicgames.launcher://apps/{epicAppName}?action=launch&silent=true";
+                    launchUrl = "com.epicgames.launcher://apps/da1c2c6e190147019e4188f24687a17c%3A3cd74802827f4ecdac46214273fd701a%3A7133a8c315324112a3eee2458f0a8242?action=launch&silent=true";
                 }
                 else if (_selectedPlatform == "Custom")
                 {
@@ -768,20 +766,37 @@ namespace CrossworldsModManager
 
         private void btnRemoveMod_Click(object sender, EventArgs e)
         {
-            if (modListView.SelectedItems.Count == 0)
+            var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
+            if (selectedItems.Count == 0)
             {
                 MessageBox.Show("Please select a mod to remove.", "Remove Mod", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            if (MessageBox.Show("Are you sure you want to remove the selected mod(s)?", "Confirm Removal", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (MessageBox.Show($"Are you sure you want to permanently delete the selected {selectedItems.Count} mod(s)? This cannot be undone.", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
-                foreach (ListViewItem item in modListView.SelectedItems)
+                foreach (ListViewItem item in selectedItems)
                 {
-                    // TODO: Implement logic to delete the actual mod files/folders.
-                    modListView.Items.Remove(item);
+                    if (item.Tag is ModInfo modInfo)
+                    {
+                        try
+                        {
+                            if (Directory.Exists(modInfo.DirectoryPath))
+                            {
+                                Directory.Delete(modInfo.DirectoryPath, true);
+                            }
+                            _allModItems.Remove(item);
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Failed to delete mod '{modInfo.Name}':\n{ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
                 }
-                UpdateStatus("Mod(s) removed.");
+
+                ApplyFilter(); // Refresh the list view
+                SaveModListState(); // Save the new load order without the deleted mods
+                UpdateStatus($"{selectedItems.Count} mod(s) deleted.");
             }
         }
 

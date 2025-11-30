@@ -53,7 +53,7 @@ namespace CrossworldsModManager
                     Location = new System.Drawing.Point(15, yPos),
                     AutoSize = true,
                     ForeColor = System.Drawing.Color.White,
-                    BackColor = System.Drawing.Color.FromArgb(30, 30, 30)
+                    BackColor = System.Drawing.Color.Transparent
                 };
 
                 if ((!string.IsNullOrEmpty(savedOption) && optionName == savedOption) || (string.IsNullOrEmpty(savedOption) && yPos == 20))
@@ -81,7 +81,7 @@ namespace CrossworldsModManager
                     Location = new System.Drawing.Point(15, yPos),
                     AutoSize = true,
                     ForeColor = System.Drawing.Color.White,
-                    BackColor = System.Drawing.Color.FromArgb(30, 30, 30)
+                    BackColor = System.Drawing.Color.Transparent
                 };
 
                 // Check the box if the option is in our saved list.

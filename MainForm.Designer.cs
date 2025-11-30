@@ -73,6 +73,8 @@ namespace CrossworldsModManager
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.moveUpToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.moveDownToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.modContextMenuStrip.SuspendLayout();
@@ -469,15 +471,18 @@ namespace CrossworldsModManager
             this.configureToolStripMenuItem,
             this.openFolderToolStripMenuItem,
             this.toggleEnabledToolStripMenuItem,
+            this.toolStripSeparator5,
+            this.deleteToolStripMenuItem,
             this.toolStripSeparator4,
             this.moveUpToolStripMenuItem1,
             this.moveDownToolStripMenuItem1});
             this.modContextMenuStrip.Name = "modContextMenuStrip";
-            this.modContextMenuStrip.Size = new System.Drawing.Size(181, 142);
+            this.modContextMenuStrip.Size = new System.Drawing.Size(181, 170);
             this.modContextMenuStrip.Opening += new System.ComponentModel.CancelEventHandler(this.modContextMenuStrip_Opening);
             // 
             // configureToolStripMenuItem
             // 
+            this.configureToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.configureToolStripMenuItem.Name = "configureToolStripMenuItem";
             this.configureToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.configureToolStripMenuItem.Text = "Configure";
@@ -485,6 +490,7 @@ namespace CrossworldsModManager
             // 
             // openFolderToolStripMenuItem
             // 
+            this.openFolderToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.openFolderToolStripMenuItem.Name = "openFolderToolStripMenuItem";
             this.openFolderToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.openFolderToolStripMenuItem.Text = "Open Folder";
@@ -492,6 +498,7 @@ namespace CrossworldsModManager
             // 
             // toggleEnabledToolStripMenuItem
             // 
+            this.toggleEnabledToolStripMenuItem.ForeColor = System.Drawing.Color.White;
             this.toggleEnabledToolStripMenuItem.Name = "toggleEnabledToolStripMenuItem";
             this.toggleEnabledToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.toggleEnabledToolStripMenuItem.Text = "Enable/Disable";
@@ -504,6 +511,7 @@ namespace CrossworldsModManager
             // 
             // moveUpToolStripMenuItem1
             // 
+            this.moveUpToolStripMenuItem1.ForeColor = System.Drawing.Color.White;
             this.moveUpToolStripMenuItem1.Name = "moveUpToolStripMenuItem1";
             this.moveUpToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.moveUpToolStripMenuItem1.Text = "Move Up";
@@ -511,10 +519,24 @@ namespace CrossworldsModManager
             // 
             // moveDownToolStripMenuItem1
             // 
+            this.moveDownToolStripMenuItem1.ForeColor = System.Drawing.Color.White;
             this.moveDownToolStripMenuItem1.Name = "moveDownToolStripMenuItem1";
             this.moveDownToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
             this.moveDownToolStripMenuItem1.Text = "Move Down";
             this.moveDownToolStripMenuItem1.Click += new System.EventHandler(this.moveDownContextMenuItem_Click);
+            // 
+            // deleteToolStripMenuItem
+            // 
+            this.deleteToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.deleteToolStripMenuItem.Name = "deleteToolStripMenuItem";
+            this.deleteToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.deleteToolStripMenuItem.Text = "Delete";
+            this.deleteToolStripMenuItem.Click += new System.EventHandler(this.btnRemoveMod_Click);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            this.toolStripSeparator5.Size = new System.Drawing.Size(177, 6);
             // 
             // MainForm
             // 
@@ -598,5 +620,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.ToolStripMenuItem moveUpToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem moveDownToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
     }
 }

@@ -18,8 +18,20 @@ namespace CrossworldsModManager
             };
             Label textLabel = new Label() { Left = 20, Top = 20, Text = text, ForeColor = Color.White, AutoSize = true };
             TextBox textBox = new TextBox() { Left = 20, Top = 50, Width = 350, Text = defaultValue };
-            Button confirmation = new Button() { Text = "Ok", Left = 215, Width = 75, Top = 80, DialogResult = DialogResult.OK };
-            Button cancel = new Button() { Text = "Cancel", Left = 295, Width = 75, Top = 80, DialogResult = DialogResult.Cancel };
+            Button confirmation = new Button() { 
+                Text = "Ok", Left = 215, Width = 75, Top = 80, DialogResult = DialogResult.OK,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(0, 122, 204),
+                ForeColor = Color.White
+            };
+            confirmation.FlatAppearance.BorderSize = 0;
+            Button cancel = new Button() { 
+                Text = "Cancel", Left = 295, Width = 75, Top = 80, DialogResult = DialogResult.Cancel,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(63, 63, 70),
+                ForeColor = Color.White
+            };
+            cancel.FlatAppearance.BorderSize = 0;
 
             confirmation.Click += (sender, e) => { prompt.Close(); };
             cancel.Click += (sender, e) => { prompt.Close(); };
