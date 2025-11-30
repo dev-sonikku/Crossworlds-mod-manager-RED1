@@ -792,32 +792,27 @@ namespace CrossworldsModManager
 
         private void btnMoveUp_Click(object sender, EventArgs e)
         {
-            if (modListView.SelectedItems.Count != 1) return;
-
-            var selectedItem = modListView.SelectedItems[0];
-            int index = selectedItem.Index;
-
-            if (index > 0)
-            {
-                modListView.Items.RemoveAt(index);
-                modListView.Items.Insert(index - 1, selectedItem);
-                modListView.Items[index - 1].Selected = true;
-                modListView.Focus();
-            }
+            MoveSelectedItem(-1);
         }
 
         private void btnMoveDown_Click(object sender, EventArgs e)
+        {
+            MoveSelectedItem(1);
+        }
+
+        private void MoveSelectedItem(int direction)
         {
             if (modListView.SelectedItems.Count != 1) return;
 
             var selectedItem = modListView.SelectedItems[0];
             int index = selectedItem.Index;
+            int newIndex = index + direction;
 
-            if (index < modListView.Items.Count - 1)
+            if (newIndex >= 0 && newIndex < modListView.Items.Count)
             {
                 modListView.Items.RemoveAt(index);
-                modListView.Items.Insert(index + 1, selectedItem);
-                modListView.Items[index + 1].Selected = true;
+                modListView.Items.Insert(newIndex, selectedItem);
+                modListView.Items[newIndex].Selected = true;
                 modListView.Focus();
             }
         }
@@ -935,19 +930,7 @@ namespace CrossworldsModManager
             {
                 if (item.Tag is ModInfo modInfo && modInfo.ConfigType != ModConfigType.None)
                 {
-                    using (var configForm = new ModConfigForm(modInfo))
-                    {
-                        var activeProfile = GetActiveProfile();
-                        if (activeProfile == null) return;
-
-                        if (configForm.ShowDialog(this) == DialogResult.OK)
-                        {
-                            // Save the selected option to the settings file.
-                            activeProfile.ModConfigurations[modInfo.Name] = configForm.ConfigurationString ?? "";
-                            SettingsManager.Save();
-                            UpdateStatus($"Configuration saved for '{modInfo.Name}'. Click Save to apply changes.");
-                        }
-                    }
+                    ShowModConfigForm(modInfo);
                 }
             }
         }
@@ -1006,6 +989,85 @@ namespace CrossworldsModManager
                 btnToggleDebugLog.Text = "Hide Debug Log";
             }
         }
+
+        #region Context Menu
+
+        private void modContextMenuStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            if (modListView.SelectedItems.Count != 1)
+            {
+                e.Cancel = true; // Don't show the menu if no item is selected
+                return;
+            }
+
+            var selectedItem = modListView.SelectedItems[0];
+            var modInfo = selectedItem.Tag as ModInfo;
+
+            // Configure option
+            configureToolStripMenuItem.Enabled = modInfo?.ConfigType != ModConfigType.None;
+
+            // Move Up/Down options
+            moveUpToolStripMenuItem1.Enabled = selectedItem.Index > 0;
+            moveDownToolStripMenuItem1.Enabled = selectedItem.Index < modListView.Items.Count - 1;
+        }
+
+        private void ShowModConfigForm(ModInfo modInfo)
+        {
+            using (var configForm = new ModConfigForm(modInfo))
+            {
+                var activeProfile = GetActiveProfile();
+                if (activeProfile == null) return;
+
+                if (configForm.ShowDialog(this) == DialogResult.OK)
+                {
+                    // Save the selected option to the settings file.
+                    activeProfile.ModConfigurations[modInfo.Name] = configForm.ConfigurationString ?? "";
+                    SettingsManager.Save();
+                    UpdateStatus($"Configuration saved for '{modInfo.Name}'. Click Save to apply changes.");
+                }
+            }
+        }
+
+        private void configureToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (modListView.SelectedItems.Count != 1) return;
+            var item = modListView.SelectedItems[0];
+
+            if (item.Tag is ModInfo modInfo && modInfo.ConfigType != ModConfigType.None)
+            {
+                ShowModConfigForm(modInfo);
+            }
+        }
+
+        private void openFolderToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (modListView.SelectedItems.Count != 1) return;
+            var item = modListView.SelectedItems[0];
+
+            if (item.Tag is ModInfo modInfo)
+            {
+                Process.Start("explorer.exe", modInfo.DirectoryPath);
+            }
+        }
+
+        private void toggleEnabledToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (modListView.SelectedItems.Count != 1) return;
+            var item = modListView.SelectedItems[0];
+            item.Checked = !item.Checked;
+        }
+
+        private void moveUpContextMenuItem_Click(object sender, EventArgs e)
+        {
+            MoveSelectedItem(-1);
+        }
+
+        private void moveDownContextMenuItem_Click(object sender, EventArgs e)
+        {
+            MoveSelectedItem(1);
+        }
+
+        #endregion
 
         #region Profile Management
 

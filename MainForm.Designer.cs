@@ -28,6 +28,7 @@ namespace CrossworldsModManager
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addModToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -65,8 +66,16 @@ namespace CrossworldsModManager
             this.txtSearch = new System.Windows.Forms.TextBox();
             this.labelSearch = new System.Windows.Forms.Label();
             this.btnToggleDebugLog = new System.Windows.Forms.Button();
+            this.modContextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.configureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.openFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toggleEnabledToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
+            this.moveUpToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.moveDownToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.statusStrip1.SuspendLayout();
+            this.modContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -254,6 +263,7 @@ namespace CrossworldsModManager
             | System.Windows.Forms.AnchorStyles.Right)));
             this.modListView.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.modListView.CheckBoxes = true;
+            this.modListView.ContextMenuStrip = this.modContextMenuStrip;
             this.modListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeaderName,
             this.columnHeaderAuthor,
@@ -453,6 +463,59 @@ namespace CrossworldsModManager
             this.btnToggleDebugLog.UseVisualStyleBackColor = false;
             this.btnToggleDebugLog.Click += new System.EventHandler(this.btnToggleDebugLog_Click);
             // 
+            // modContextMenuStrip
+            // 
+            this.modContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.configureToolStripMenuItem,
+            this.openFolderToolStripMenuItem,
+            this.toggleEnabledToolStripMenuItem,
+            this.toolStripSeparator4,
+            this.moveUpToolStripMenuItem1,
+            this.moveDownToolStripMenuItem1});
+            this.modContextMenuStrip.Name = "modContextMenuStrip";
+            this.modContextMenuStrip.Size = new System.Drawing.Size(181, 142);
+            this.modContextMenuStrip.Opening += new System.ComponentModel.CancelEventHandler(this.modContextMenuStrip_Opening);
+            // 
+            // configureToolStripMenuItem
+            // 
+            this.configureToolStripMenuItem.Name = "configureToolStripMenuItem";
+            this.configureToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.configureToolStripMenuItem.Text = "Configure";
+            this.configureToolStripMenuItem.Click += new System.EventHandler(this.configureToolStripMenuItem_Click);
+            // 
+            // openFolderToolStripMenuItem
+            // 
+            this.openFolderToolStripMenuItem.Name = "openFolderToolStripMenuItem";
+            this.openFolderToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.openFolderToolStripMenuItem.Text = "Open Folder";
+            this.openFolderToolStripMenuItem.Click += new System.EventHandler(this.openFolderToolStripMenuItem_Click);
+            // 
+            // toggleEnabledToolStripMenuItem
+            // 
+            this.toggleEnabledToolStripMenuItem.Name = "toggleEnabledToolStripMenuItem";
+            this.toggleEnabledToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.toggleEnabledToolStripMenuItem.Text = "Enable/Disable";
+            this.toggleEnabledToolStripMenuItem.Click += new System.EventHandler(this.toggleEnabledToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator4
+            // 
+            this.toolStripSeparator4.Name = "toolStripSeparator4";
+            this.toolStripSeparator4.Size = new System.Drawing.Size(177, 6);
+            // 
+            // moveUpToolStripMenuItem1
+            // 
+            this.moveUpToolStripMenuItem1.Name = "moveUpToolStripMenuItem1";
+            this.moveUpToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.moveUpToolStripMenuItem1.Text = "Move Up";
+            this.moveUpToolStripMenuItem1.Click += new System.EventHandler(this.moveUpContextMenuItem_Click);
+            // 
+            // moveDownToolStripMenuItem1
+            // 
+            this.moveDownToolStripMenuItem1.Name = "moveDownToolStripMenuItem1";
+            this.moveDownToolStripMenuItem1.Size = new System.Drawing.Size(180, 22);
+            this.moveDownToolStripMenuItem1.Text = "Move Down";
+            this.moveDownToolStripMenuItem1.Click += new System.EventHandler(this.moveDownContextMenuItem_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -481,6 +544,7 @@ namespace CrossworldsModManager
             this.menuStrip1.PerformLayout();
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
+            this.modContextMenuStrip.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -527,5 +591,12 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripMenuItem newProfileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem renameProfileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteProfileToolStripMenuItem;
+        private System.Windows.Forms.ContextMenuStrip modContextMenuStrip;
+        private System.Windows.Forms.ToolStripMenuItem configureToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem openFolderToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem toggleEnabledToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
+        private System.Windows.Forms.ToolStripMenuItem moveUpToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem moveDownToolStripMenuItem1;
     }
 }
