@@ -77,5 +77,10 @@ namespace CrossworldsModManager
             }
             btnClose.Enabled = true;
         }
+
+        public bool ContainsText(string text)
+        {
+            return rtbLog.Text.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
     }
 }

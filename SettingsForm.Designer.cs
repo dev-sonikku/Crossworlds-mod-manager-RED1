@@ -26,6 +26,9 @@ namespace CrossworldsModManager
             this.btnSave = new System.Windows.Forms.Button();
             this.btnCancel = new System.Windows.Forms.Button();
             this.chkSortEnabled = new System.Windows.Forms.CheckBox();
+            this.chkAutoClean = new System.Windows.Forms.CheckBox();
+            this.chkCheckForGames = new System.Windows.Forms.CheckBox();
+            this.chkAutoCloseLog = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // label1
@@ -133,11 +136,47 @@ namespace CrossworldsModManager
             this.chkSortEnabled.Text = "Sort enabled mods to the top of the list";
             this.chkSortEnabled.UseVisualStyleBackColor = true;
             // 
+            // chkAutoClean
+            // 
+            this.chkAutoClean.AutoSize = true;
+            this.chkAutoClean.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkAutoClean.Location = new System.Drawing.Point(102, 90);
+            this.chkAutoClean.Name = "chkAutoClean";
+            this.chkAutoClean.Size = new System.Drawing.Size(212, 17);
+            this.chkAutoClean.TabIndex = 9;
+            this.chkAutoClean.Text = "Automatically clean up temporary files";
+            this.chkAutoClean.UseVisualStyleBackColor = true;
+            // 
+            // chkCheckForGames
+            // 
+            this.chkCheckForGames.AutoSize = true;
+            this.chkCheckForGames.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkCheckForGames.Location = new System.Drawing.Point(102, 113);
+            this.chkCheckForGames.Name = "chkCheckForGames";
+            this.chkCheckForGames.Size = new System.Drawing.Size(226, 17);
+            this.chkCheckForGames.TabIndex = 10;
+            this.chkCheckForGames.Text = "Check for game installations on startup";
+            this.chkCheckForGames.UseVisualStyleBackColor = true;
+            // 
+            // chkAutoCloseLog
+            // 
+            this.chkAutoCloseLog.AutoSize = true;
+            this.chkAutoCloseLog.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkAutoCloseLog.Location = new System.Drawing.Point(102, 136);
+            this.chkAutoCloseLog.Name = "chkAutoCloseLog";
+            this.chkAutoCloseLog.Size = new System.Drawing.Size(221, 17);
+            this.chkAutoCloseLog.TabIndex = 11;
+            this.chkAutoCloseLog.Text = "Auto-close debug log on successful save";
+            this.chkAutoCloseLog.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 121);
+            this.ClientSize = new System.Drawing.Size(584, 191);
+            this.Controls.Add(this.chkAutoCloseLog);
+            this.Controls.Add(this.chkCheckForGames);
+            this.Controls.Add(this.chkAutoClean);
             this.Controls.Add(this.chkSortEnabled);
             this.Controls.Add(this.btnCancel);
             this.Controls.Add(this.btnSave);
@@ -172,5 +211,8 @@ namespace CrossworldsModManager
         private System.Windows.Forms.Button btnSave;
         private System.Windows.Forms.Button btnCancel;
         private System.Windows.Forms.CheckBox chkSortEnabled;
+        private System.Windows.Forms.CheckBox chkAutoClean;
+        private System.Windows.Forms.CheckBox chkCheckForGames;
+        private System.Windows.Forms.CheckBox chkAutoCloseLog;
     }
 }

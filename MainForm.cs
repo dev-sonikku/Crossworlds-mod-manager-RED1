@@ -48,7 +48,11 @@ namespace CrossworldsModManager
                 PromptForModsDirectory();
             }
 
-            DetectGameInstallations();
+            if (SettingsManager.Settings.CheckForGamesOnStartup)
+            {
+                DetectGameInstallations();
+            }
+
             // Load the list of mods when the application starts.
             RefreshModList();
         }
@@ -339,26 +343,38 @@ namespace CrossworldsModManager
             }
             finally
             {
-                // Cleanup the LocresMod folder from the Tools directory as it's no longer needed.
-                var locresModTempPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "LocresMod");
-                if (Directory.Exists(locresModTempPath))
+                if (SettingsManager.Settings.AutoCleanTemporaryFiles)
                 {
-                    try { Directory.Delete(locresModTempPath, true); progress.Report($"Cleaned up temporary folder: {locresModTempPath}"); }
-                    catch (Exception ex) { progress.Report($"Could not clean up temporary folder: {ex.Message}"); }
+                    // Cleanup the LocresMod folder from the Tools directory as it's no longer needed.
+                    var locresModTempPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "LocresMod");
+                    if (Directory.Exists(locresModTempPath))
+                    {
+                        try { Directory.Delete(locresModTempPath, true); progress.Report($"Cleaned up temporary folder: {locresModTempPath}"); }
+                        catch (Exception ex) { progress.Report($"Could not clean up temporary folder: {ex.Message}"); }
+                    }
+
+                    // Cleanup the merged Game_*.json files from the Tools directory.
+                    var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                    try
+                    {
+                        var mergedJsonFiles = Directory.GetFiles(toolsDir, "Game_*.json");
+                        foreach (var file in mergedJsonFiles)
+                        {
+                            File.Delete(file);
+                            progress.Report($"Cleaned up merged JSON: {Path.GetFileName(file)}");
+                        }
+                    }
+                    catch (Exception ex) { progress.Report($"Could not clean up merged JSON files: {ex.Message}"); }
                 }
 
-                // Cleanup the merged Game_*.json files from the Tools directory.
-                var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
-                try
+                if (SettingsManager.Settings.AutoCloseLogOnSuccess && (_logForm?.IsHandleCreated ?? false) && !_logForm.IsDisposed)
                 {
-                    var mergedJsonFiles = Directory.GetFiles(toolsDir, "Game_*.json");
-                    foreach (var file in mergedJsonFiles)
+                    // Check if there were errors by looking for specific keywords in the log. A more robust method could be used in the future.
+                    if (!_logForm.ContainsText("Failed") && !_logForm.ContainsText("Error"))
                     {
-                        File.Delete(file);
-                        progress.Report($"Cleaned up merged JSON: {Path.GetFileName(file)}");
+                        _logForm.Close();
                     }
                 }
-                catch (Exception ex) { progress.Report($"Could not clean up merged JSON files: {ex.Message}"); }
 
                 // Mark the persistent log as done so the user can close it manually when they want.
                 try { _logForm?.MarkDone(); } catch { }

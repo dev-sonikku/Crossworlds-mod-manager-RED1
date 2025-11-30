@@ -15,6 +15,9 @@ namespace CrossworldsModManager
             txtGameDir.Text = SettingsManager.Settings.GameDirectory;
             txtModsDir.Text = SettingsManager.Settings.ModsDirectory;
             chkSortEnabled.Checked = SettingsManager.Settings.SortEnabledModsToTop;
+            chkAutoClean.Checked = SettingsManager.Settings.AutoCleanTemporaryFiles;
+            chkCheckForGames.Checked = SettingsManager.Settings.CheckForGamesOnStartup;
+            chkAutoCloseLog.Checked = SettingsManager.Settings.AutoCloseLogOnSuccess;
         }
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
@@ -46,6 +49,9 @@ namespace CrossworldsModManager
             SettingsManager.Settings.GameDirectory = txtGameDir.Text;
             SettingsManager.Settings.ModsDirectory = txtModsDir.Text;
             SettingsManager.Settings.SortEnabledModsToTop = chkSortEnabled.Checked;
+            SettingsManager.Settings.AutoCleanTemporaryFiles = chkAutoClean.Checked;
+            SettingsManager.Settings.CheckForGamesOnStartup = chkCheckForGames.Checked;
+            SettingsManager.Settings.AutoCloseLogOnSuccess = chkAutoCloseLog.Checked;
             SettingsManager.Save();
             DialogResult = DialogResult.OK;
             Close();
