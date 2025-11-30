@@ -213,121 +213,177 @@ namespace CrossworldsModManager
 
             if (defaultsSet) SettingsManager.Save(); // Save the new default settings.
 
-            // Then, apply the current configurations for all mods.
-            foreach (ListViewItem item in modListView.Items)
-            {
-                if (item.Tag is ModInfo modInfo && modInfo.ConfigOptions.Count > 0)
-                {
-                    // Get the saved selection for this mod.
-                    if (SettingsManager.Settings.ModConfigurations.TryGetValue(modInfo.Name, out var selectedOption))
-                    {
-                        ApplyModConfiguration(modInfo, selectedOption);
-                    }
-                    else if (modInfo.ConfigOptions.Count > 0)
-                    {
-                        // If no setting is saved, apply the default (first) option.
-                        ApplyModConfiguration(modInfo, modInfo.ConfigOptions[0]);
-                    }
-                }
-            }
-
-            // Finally, asynchronously install mods and run the JSON merge while writing into the persistent debug log.
-            // Ensure the persistent log form exists and is visible.
             if (_logForm == null || _logForm.IsDisposed)
             {
                 _logForm = new LogForm();
                 _logForm.Show(this);
             }
-
+            
             IProgress<string> progress = new Progress<string>(s =>
             {
                 try { _logForm?.AppendLog(s); } catch { /* best-effort logging */ }
             });
-
-            // Start the async tasks
-            var installTask = InstallModsAsync();
-            var jsonTask = LocresConverter.ProcessModJsonFilesAsync(modListView.Items.Cast<ListViewItem>().Where(i => i.Checked).Select(i => i.Tag as ModInfo).Where(m => m != null)!, progress);
-
+            
             try
             {
-                await Task.WhenAll(installTask, jsonTask);
-
-                // After merging JSON, automatically pack the results back to .locres
-                progress.Report("\nStarting to pack merged .locres files...");
-                // PackMergedLocresAsync expects the game's root path as the first argument.
-                var gamePathForPack = !string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var _gameInfoForPack)
-                    ? _gameInfoForPack.Path
-                    : string.Empty;
-                await LocresConverter.PackMergedLocresAsync(gamePathForPack, progress);
-
-                // After the pack operation completes, install the final produced pak into the game's ~mods folder.
-                try
+                // Then, apply the current configurations for all mods.
+                foreach (ListViewItem item in modListView.Items)
                 {
-                    var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
-                    // Prefer the pak in Tools root, but search subfolders (UnrealPak output location may vary)
-                    var sourcePak = Path.Combine(toolsDir, "LocresMod.pak");
-                    if (!File.Exists(sourcePak))
+                    if (item.Tag is ModInfo modInfo && modInfo.ConfigOptions.Count > 0)
                     {
-                        var found = Directory.GetFiles(toolsDir, "LocresMod.pak", SearchOption.AllDirectories).FirstOrDefault();
-                        if (!string.IsNullOrEmpty(found)) sourcePak = found;
-                    }
-
-                    if (File.Exists(sourcePak))
-                    {
-                        if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
+                        // Get the saved selection for this mod.
+                        if (SettingsManager.Settings.ModConfigurations.TryGetValue(modInfo.Name, out var selectedOption))
                         {
-                            var targetModsDir = Path.Combine(gameInfo.Path, "UNION", "Content", "Paks", "~mods");
-                            Directory.CreateDirectory(targetModsDir);
-                            var destPak = Path.Combine(targetModsDir, "LocresMod.pak");
+                            ApplyModConfiguration(modInfo, selectedOption);
+                        }
+                        else if (modInfo.ConfigOptions.Count > 0)
+                        {
+                            // If no setting is saved, apply the default (first) option.
+                            ApplyModConfiguration(modInfo, modInfo.ConfigOptions[0]);
+                        }
+                    }
+                }
+
+                // Check if any enabled mods have JSON files.
+                var enabledModsWithJson = modListView.Items.Cast<ListViewItem>()
+                    .Where(i => i.Checked && i.Tag is ModInfo modInfo && Directory.EnumerateFiles(modInfo.DirectoryPath, "*.json", SearchOption.AllDirectories).Any())
+                    .ToList();
+
+                if (enabledModsWithJson.Count == 0)
+                {
+                    progress.Report("No enabled mods with .json files found. Cleaning up old merged pak...");
+                    if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
+                    {
+                        var targetModsDir = Path.Combine(gameInfo.Path, "UNION", "Content", "Paks", "~mods");
+                        var locresPakPath = Path.Combine(targetModsDir, "LocresMod.pak");
+                        if (File.Exists(locresPakPath))
+                        {
                             try
                             {
-                                if (File.Exists(destPak)) File.Delete(destPak);
-                                // Move the produced pak into the ~mods folder (matching user request)
-                                File.Move(sourcePak, destPak);
-                                progress.Report($"Moved merged pak to ~mods: {destPak}");
+                                File.Delete(locresPakPath);
+                                progress.Report($"Deleted old merged pak: {locresPakPath}");
                             }
-                            catch (Exception moveEx)
+                            catch (Exception ex)
                             {
-                                // If moving fails, attempt a copy as a fallback
-                                try
-                                {
-                                    File.Copy(sourcePak, destPak, true);
-                                    File.Delete(sourcePak);
-                                    progress.Report($"Copied merged pak to ~mods (fallback): {destPak}");
-                                }
-                                catch (Exception copyEx)
-                                {
-                                    progress.Report($"Failed to move or copy merged pak: {moveEx.Message}; {copyEx.Message}");
-                                }
+                                progress.Report($"Failed to delete old merged pak: {ex.Message}");
                             }
                         }
                         else
                         {
-                            progress.Report("Merged pak exists, but game installation not found to install it.");
+                            progress.Report("No old merged pak found to delete.");
                         }
                     }
-                    else
-                    {
-                        progress.Report("No merged pak found in Tools to install.");
-                    }
+                    await InstallModsAsync(); // Still install other mods
+                    progress.Report("\n✓ Save and install complete!");
+                    MessageBox.Show("Save and install complete!", "Process Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                catch (Exception ex)
+                else
                 {
-                    progress.Report($"Failed to install merged pak: {ex.Message}");
-                }
+                    // Run the full merge/pack process since there are JSON mods.
+                    var installTask = InstallModsAsync();
+                    var jsonTask = LocresConverter.ProcessModJsonFilesAsync(modListView.Items.Cast<ListViewItem>().Where(i => i.Checked).Select(i => i.Tag as ModInfo).Where(m => m != null)!, progress);
 
-                progress.Report("\n✓ All tasks completed successfully!");
-                MessageBox.Show("Save, merge, pack, and install complete!", "Process Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    await Task.WhenAll(installTask, jsonTask);
+
+                    // After merging JSON, automatically pack the results back to .locres
+                    progress.Report("\nStarting to pack merged .locres files...");
+                    var gamePathForPack = !string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var _gameInfoForPack)
+                        ? _gameInfoForPack.Path
+                        : string.Empty;
+                    await LocresConverter.PackMergedLocresAsync(gamePathForPack, progress);
+
+                    // After the pack operation completes, install the final produced pak into the game's ~mods folder.
+                    try
+                    {
+                        var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                        var sourcePak = Path.Combine(toolsDir, "LocresMod.pak");
+                        if (!File.Exists(sourcePak))
+                        {
+                            var found = Directory.GetFiles(toolsDir, "LocresMod.pak", SearchOption.AllDirectories).FirstOrDefault();
+                            if (!string.IsNullOrEmpty(found)) sourcePak = found;
+                        }
+
+                        if (File.Exists(sourcePak))
+                        {
+                            if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
+                            {
+                                var targetModsDir = Path.Combine(gameInfo.Path, "UNION", "Content", "Paks", "~mods");
+                                Directory.CreateDirectory(targetModsDir);
+                                var destPak = Path.Combine(targetModsDir, "LocresMod.pak");
+                                try
+                                {
+                                    if (File.Exists(destPak)) File.Delete(destPak);
+                                    File.Move(sourcePak, destPak);
+                                    progress.Report($"Moved merged pak to ~mods: {destPak}");
+                                }
+                                catch (Exception moveEx)
+                                {
+                                    try
+                                    {
+                                        File.Copy(sourcePak, destPak, true);
+                                        File.Delete(sourcePak);
+                                        progress.Report($"Copied merged pak to ~mods (fallback): {destPak}");
+                                    }
+                                    catch (Exception copyEx)
+                                    {
+                                        progress.Report($"Failed to move or copy merged pak: {moveEx.Message}; {copyEx.Message}");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                progress.Report("Merged pak exists, but game installation not found to install it.");
+                            }
+                        }
+                        else
+                        {
+                            progress.Report("No merged pak found in Tools to install.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        progress.Report($"Failed to install merged pak: {ex.Message}");
+                    }
+
+                    progress.Report("\n✓ All tasks completed successfully!");
+                    MessageBox.Show("Save, merge, pack, and install complete!", "Process Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                progress.Report($"\nAn error occurred during the save process: {ex.Message}");
+                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
+                // Cleanup the LocresMod folder from the Tools directory as it's no longer needed.
+                var locresModTempPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "LocresMod");
+                if (Directory.Exists(locresModTempPath))
+                {
+                    try { Directory.Delete(locresModTempPath, true); progress.Report($"Cleaned up temporary folder: {locresModTempPath}"); }
+                    catch (Exception ex) { progress.Report($"Could not clean up temporary folder: {ex.Message}"); }
+                }
+
+                // Cleanup the merged Game_*.json files from the Tools directory.
+                var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                try
+                {
+                    var mergedJsonFiles = Directory.GetFiles(toolsDir, "Game_*.json");
+                    foreach (var file in mergedJsonFiles)
+                    {
+                        File.Delete(file);
+                        progress.Report($"Cleaned up merged JSON: {Path.GetFileName(file)}");
+                    }
+                }
+                catch (Exception ex) { progress.Report($"Could not clean up merged JSON files: {ex.Message}"); }
+
                 // Mark the persistent log as done so the user can close it manually when they want.
                 try { _logForm?.MarkDone(); } catch { }
 
                 // Re-enable the Play button
                 btnPlay.Enabled = true;
                 btnPlay.ForeColor = Color.White;
-                btnPlay.Text = "Play";
+                btnPlay.Text = "▶ Play";
             }
         }
 
