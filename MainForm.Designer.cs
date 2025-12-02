@@ -49,6 +49,7 @@ namespace CrossworldsModManager
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
+            this.progressBar = new System.Windows.Forms.ToolStripProgressBar();
             this.launchPlatformDropDown = new System.Windows.Forms.ToolStripDropDownButton();
             this.modListView = new System.Windows.Forms.ListView();
             this.columnHeaderName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -230,6 +231,7 @@ namespace CrossworldsModManager
             // 
             this.statusStrip1.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
             this.statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.progressBar,
             this.launchPlatformDropDown,
             this.toolStripStatusLabel1});
             this.statusStrip1.ForeColor = System.Drawing.Color.White;
@@ -244,10 +246,17 @@ namespace CrossworldsModManager
             // 
             this.toolStripStatusLabel1.ForeColor = System.Drawing.Color.White;
             this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            this.toolStripStatusLabel1.Size = new System.Drawing.Size(667, 17);
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(547, 17);
             this.toolStripStatusLabel1.Spring = true;
             this.toolStripStatusLabel1.Text = "Ready";
             this.toolStripStatusLabel1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // progressBar
+            // 
+            this.progressBar.Name = "progressBar";
+            this.progressBar.Size = new System.Drawing.Size(100, 16);
+            this.progressBar.Style = System.Windows.Forms.ProgressBarStyle.Continuous;
+            this.progressBar.Visible = false;
             // 
             // launchPlatformDropDown
             // 
@@ -588,6 +597,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripMenuItem aboutToolStripMenuItem;
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
+        private System.Windows.Forms.ToolStripProgressBar progressBar;
         private System.Windows.Forms.ToolStripDropDownButton launchPlatformDropDown;
         private System.Windows.Forms.ListView modListView;
         private System.Windows.Forms.ColumnHeader columnHeaderName;

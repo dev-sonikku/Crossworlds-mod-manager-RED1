@@ -206,17 +206,20 @@ namespace CrossworldsModManager
             // Now that defaults are set, save the final state of enabled mods and their order.
             SaveModListState();
 
-            if (_logForm == null || _logForm.IsDisposed)
-            {
-                _logForm = new LogForm();
-                _logForm.Show(this);
-            }
-            
+            // Show progress in the status bar
+            progressBar.Visible = true;
+            progressBar.Value = 0;
+
             IProgress<string> progress = new Progress<string>(s =>
             {
-                try { _logForm?.AppendLog(s); } catch { /* best-effort logging */ }
+                UpdateStatus(s);
+                if (_logForm != null && !_logForm.IsDisposed)
+                {
+                    _logForm.AppendLog(s);
+                }
             });
-            
+            IProgress<int> progressBarProgress = new Progress<int>(p => progressBar.Value = p);
+
             try
             {
                 // Then, apply the current configurations for all mods.
@@ -240,13 +243,27 @@ namespace CrossworldsModManager
                     }
                 }
 
+                progressBarProgress.Report(10);
                 // Check if any enabled mods have JSON files.
                 var enabledModsWithJson = modListView.Items.Cast<ListViewItem>()
-                    .Where(i => i.Checked && i.Tag is ModInfo modInfo && Directory.EnumerateFiles(modInfo.DirectoryPath, "*.json", SearchOption.AllDirectories).Any())
+                    .Where(i => i.Checked && i.Tag is ModInfo modInfo &&
+                                Directory.EnumerateFiles(modInfo.DirectoryPath, "*.json", SearchOption.AllDirectories)
+                                    .Any(jsonPath => {
+                                        if (Path.GetFileName(jsonPath).Equals("info.json", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            // Check if it's a metadata file to be ignored.
+                                            var content = File.ReadAllText(jsonPath);
+                                            return !(content.Contains("\"name\"") && content.Contains("\"version\"") &&
+                                                     content.Contains("\"author\"") && content.Contains("\"mod_type\""));
+                                        }
+                                        return true; // It's not info.json, so include it.
+                                    })
+                    )
                     .ToList();
 
                 if (enabledModsWithJson.Count == 0)
                 {
+                    progressBarProgress.Report(20);
                     progress.Report("No enabled mods with .json files found. Cleaning up old merged pak...");
                     if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
                     {
@@ -269,17 +286,20 @@ namespace CrossworldsModManager
                             progress.Report("No old merged pak found to delete.");
                         }
                     }
+                    progressBarProgress.Report(50);
                     await InstallModsAsync(); // Still install other mods
+                    progressBarProgress.Report(100);
                     progress.Report("\n✓ Save and install complete!");
-                    MessageBox.Show("Save and install complete!", "Process Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
                     // Run the full merge/pack process since there are JSON mods.
+                    progressBarProgress.Report(20);
                     var installTask = InstallModsAsync();
                     var jsonTask = LocresConverter.ProcessModJsonFilesAsync(modListView.Items.Cast<ListViewItem>().Where(i => i.Checked).Select(i => i.Tag as ModInfo).Where(m => m != null)!, progress);
 
                     await Task.WhenAll(installTask, jsonTask);
+                    progressBarProgress.Report(50);
 
                     // After merging JSON, automatically pack the results back to .locres
                     progress.Report("\nStarting to pack merged .locres files...");
@@ -287,6 +307,7 @@ namespace CrossworldsModManager
                         ? _gameInfoForPack.Path
                         : string.Empty;
                     await LocresConverter.PackMergedLocresAsync(gamePathForPack, progress);
+                    progressBarProgress.Report(80);
 
                     // After the pack operation completes, install the final produced pak into the game's ~mods folder.
                     try
@@ -341,8 +362,8 @@ namespace CrossworldsModManager
                         progress.Report($"Failed to install merged pak: {ex.Message}");
                     }
 
+                    progressBarProgress.Report(100);
                     progress.Report("\n✓ All tasks completed successfully!");
-                    MessageBox.Show("Save, merge, pack, and install complete!", "Process Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
@@ -352,6 +373,8 @@ namespace CrossworldsModManager
             }
             finally
             {
+                progressBar.Visible = false;
+
                 if (SettingsManager.Settings.AutoCleanTemporaryFiles)
                 {
                     // Cleanup the LocresMod folder from the Tools directory as it's no longer needed.
@@ -387,6 +410,8 @@ namespace CrossworldsModManager
 
                 // Mark the persistent log as done so the user can close it manually when they want.
                 try { _logForm?.MarkDone(); } catch { }
+
+                progress.Report("Saving Complete");
 
                 // Re-enable the Play button
                 btnPlay.Enabled = true;
