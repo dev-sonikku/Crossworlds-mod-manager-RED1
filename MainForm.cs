@@ -479,6 +479,8 @@ namespace CrossworldsModManager
             var modsDir = SettingsManager.Settings.ModsDirectory;
             var modDirectories = Directory.GetDirectories(modsDir);
 
+            ScanAndConvertModConfigs(modDirectories);
+
             var activeProfile = GetActiveProfile();
             if (activeProfile == null) return;
 
@@ -1256,6 +1258,83 @@ namespace CrossworldsModManager
                 SettingsManager.Save();
                 UpdateProfilesMenu();
                 RefreshModList();
+            }
+        }
+
+        #endregion
+
+        #region Mod Config Conversion
+
+        private void ScanAndConvertModConfigs(string[] modDirectories)
+        {
+            foreach (var modDir in modDirectories)
+            {
+                var optionFolders = Directory.GetDirectories(modDir)
+                    .Where(subDir => File.Exists(Path.Combine(subDir, "desc.ini")))
+                    .ToList();
+
+                if (!optionFolders.Any()) continue;
+
+                // This mod uses the desc.ini configuration style.
+                // We need to generate/update its mod.ini.
+                var modIniPath = Path.Combine(modDir, "mod.ini");
+                var iniSections = File.Exists(modIniPath) ? IniParser.Parse(modIniPath) : new Dictionary<string, Dictionary<string, string>>();
+
+                // Ensure [Main] section exists
+                if (!iniSections.ContainsKey("Main"))
+                {
+                    iniSections["Main"] = new Dictionary<string, string>();
+                }
+                var mainSection = iniSections["Main"];
+                if (!mainSection.ContainsKey("Name")) mainSection["Name"] = Path.GetFileName(modDir);
+                if (!mainSection.ContainsKey("Author")) mainSection["Author"] = "Unknown";
+                if (!mainSection.ContainsKey("Version")) mainSection["Version"] = "1.0";
+                if (!mainSection.ContainsKey("Description")) mainSection["Description"] = "Configurable mod.";
+
+                // Create/Update [Config] section
+                var configSection = new Dictionary<string, string>
+                {
+                    ["Type"] = "SelectOne",
+                    ["Description"] = "Select an option for this mod:"
+                };
+
+                var optionNames = new List<string>();
+                var fileMappings = new Dictionary<string, string>();
+
+                foreach (var optionFolder in optionFolders)
+                {
+                    var optionName = Path.GetFileName(optionFolder);
+                    optionNames.Add(optionName);
+
+                    // Find all files in the option folder to map them.
+                    var filesInOption = Directory.GetFiles(optionFolder, "*", SearchOption.AllDirectories)
+                        .Where(f => !Path.GetFileName(f).Equals("desc.ini", StringComparison.OrdinalIgnoreCase));
+
+                    foreach (var file in filesInOption)
+                    {
+                        var relativePath = Path.GetRelativePath(modDir, file);
+                        fileMappings[relativePath] = optionName;
+                    }
+                }
+
+                configSection["Options"] = string.Join(",", optionNames);
+                iniSections["Config"] = configSection;
+
+                // Create/Update [Files] section
+                iniSections["Files"] = fileMappings;
+
+                // Write the new/updated mod.ini back to disk.
+                var writer = new StringWriter();
+                foreach (var section in iniSections)
+                {
+                    writer.WriteLine($"[{section.Key}]");
+                    foreach (var kvp in section.Value)
+                    {
+                        writer.WriteLine($"{kvp.Key}={kvp.Value}");
+                    }
+                    writer.WriteLine(); // Add a blank line for readability
+                }
+                File.WriteAllText(modIniPath, writer.ToString());
             }
         }
 
