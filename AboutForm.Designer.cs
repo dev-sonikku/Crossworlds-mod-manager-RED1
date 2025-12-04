@@ -41,8 +41,8 @@ namespace CrossworldsModManager
             this.labelInfo.Size = new System.Drawing.Size(359, 115);
             this.labelInfo.TabIndex = 1;
             this.labelInfo.Text = "Coded by RED1 in C# using .NET and Windows Forms.\r\n\r\nAcknowledgements:\r\nLocResUti" +
-    "lity by anubi47 (github.com/anubi47/LocResUtility)\r\nUnrealPak by Epic Games\r\n\r\n" +
-    "This application is not affiliated with Sega or Epic Games.";
+    "lity by anubi47 (github.com/anubi47/LocResUtility)\r\nUnrealPak by Epic Games\r\n7-Zip" +
+    " (www.7-zip.org)\r\n\r\nThis application is not affiliated with Sega or Epic Games.";
             // 
             // buttonOK
             // 

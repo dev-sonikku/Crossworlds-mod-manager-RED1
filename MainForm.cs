@@ -69,47 +69,50 @@ namespace CrossworldsModManager
         private void DetectGameInstallations()
         {
             _gameInstallations = GameRegistry.FindGameInstallations();
-
-            // If auto-detection fails, check settings for a manually set path.
-            if (_gameInstallations.Count == 0 && !string.IsNullOrWhiteSpace(SettingsManager.Settings.GameDirectory))
+        
+            // If we found a game and the settings path is empty, auto-configure it.
+            if (_gameInstallations.Any() && string.IsNullOrWhiteSpace(SettingsManager.Settings.GameDirectory))
             {
-                // We'll add it as a "Custom" platform type.
-                if (Directory.Exists(SettingsManager.Settings.GameDirectory))
-                {
-                    // We don't know if it's Steam or Epic, so AppName is null. Launching will be by executable.
-                    _gameInstallations["Custom"] = (SettingsManager.Settings.GameDirectory, null);
-                }
+                var firstInstall = _gameInstallations.First();
+                SettingsManager.Settings.GameDirectory = firstInstall.Value.Path;
+                SettingsManager.Save();
+                UpdateStatus($"Automatically set game directory to: {firstInstall.Value.Path}");
             }
-
+        
             launchPlatformDropDown.DropDownItems.Clear();
-
-            if (_gameInstallations.Count == 0)
+        
+            // Always provide options for Steam and Epic, using detected paths or falling back to the settings path.
+            var platformsToShow = new List<string> { "Steam", "Epic Games" };
+            foreach (var platformName in platformsToShow)
             {
-                launchPlatformDropDown.Text = "Game Not Found";
-                launchPlatformDropDown.Enabled = false;
-                btnSave.Enabled = false;
-                btnPlay.Enabled = false;
+                var item = new ToolStripMenuItem(platformName);
+                item.Tag = platformName;
+                item.Click += PlatformMenuItem_Click;
+                item.ForeColor = Color.White;
+                item.BackColor = Color.FromArgb(45, 45, 48);
+                launchPlatformDropDown.DropDownItems.Add(item);
             }
-            else if (_gameInstallations.Count == 1)
+        
+            // Add a "Custom" option if a game directory is set in the settings.
+            if (!string.IsNullOrWhiteSpace(SettingsManager.Settings.GameDirectory))
             {
-                var platform = _gameInstallations.First();
-                _selectedPlatform = platform.Key;
-                launchPlatformDropDown.Text = $"{platform.Key} Version";
-                launchPlatformDropDown.Enabled = false; // No other options to choose
+                var customItem = new ToolStripMenuItem("Custom");
+                customItem.Tag = "Custom";
+                customItem.Click += PlatformMenuItem_Click;
+                customItem.ForeColor = Color.White;
+                customItem.BackColor = Color.FromArgb(45, 45, 48);
+                launchPlatformDropDown.DropDownItems.Add(customItem);
             }
-            else
+        
+            // Select the first detected platform, or the first available option.
+            if (launchPlatformDropDown.DropDownItems.Count > 0)
             {
-                foreach (var platform in _gameInstallations)
-                {
-                    var item = new ToolStripMenuItem(platform.Key);
-                    item.Tag = platform.Key;
-                    item.Click += PlatformMenuItem_Click;
-                    item.ForeColor = Color.White;
-                    item.BackColor = Color.FromArgb(45, 45, 48);
-                    launchPlatformDropDown.DropDownItems.Add(item);
-                }
-                // Select the first one by default
-                PlatformMenuItem_Click(launchPlatformDropDown.DropDownItems[0], EventArgs.Empty);
+                var defaultSelection = _gameInstallations.Any()
+                    ? launchPlatformDropDown.DropDownItems.Cast<ToolStripMenuItem>().FirstOrDefault(i => i.Text == _gameInstallations.Keys.First())
+                    : launchPlatformDropDown.DropDownItems[0];
+        
+                if (defaultSelection != null)
+                    PlatformMenuItem_Click(defaultSelection, EventArgs.Empty);
             }
         }
 
@@ -117,7 +120,7 @@ namespace CrossworldsModManager
         {
             if (sender is not ToolStripMenuItem item || item.Tag is not string platform) return;
 
-            _selectedPlatform = platform;
+            _selectedPlatform = platform; // This is safe now
             launchPlatformDropDown.Text = _selectedPlatform; // This is safe now
             UpdateStatus($"Selected platform: {_selectedPlatform}");
         }
@@ -649,13 +652,19 @@ namespace CrossworldsModManager
 
         private async Task<bool> InstallModsAsync()
         {
-            if (string.IsNullOrEmpty(_selectedPlatform) || !_gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
+            string? gamePath = null;
+            if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var detectedGameInfo))
+            {
+                gamePath = detectedGameInfo.Path;
+            }
+            else gamePath = SettingsManager.Settings.GameDirectory;
+
+            if (string.IsNullOrEmpty(gamePath) || !Directory.Exists(gamePath))
             {
                 UpdateStatus("Cannot install mods: Game path not found.");
                 return false;
             }
-
-            var targetModsDir = Path.Combine(gameInfo.Path, "UNION", "Content", "Paks", "~mods");
+            var targetModsDir = Path.Combine(gamePath, "UNION", "Content", "Paks", "~mods");
 
             try
             {
