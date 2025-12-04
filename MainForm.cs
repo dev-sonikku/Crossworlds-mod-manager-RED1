@@ -779,19 +779,61 @@ namespace CrossworldsModManager
             }
         }
 
-        private void btnAddMod_Click(object sender, EventArgs e)
+        private async void btnAddMod_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) || !Directory.Exists(SettingsManager.Settings.ModsDirectory))
+            {
+                MessageBox.Show("The mods directory is not configured. Please set it in Settings before adding mods.", "Mods Directory Not Set", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             using (var ofd = new OpenFileDialog())
             {
                 ofd.Title = "Select Mod Archive";
                 ofd.Filter = "Mod Archives (*.zip, *.7z, *.rar)|*.zip;*.7z;*.rar|All files (*.*)|*.*";
                 ofd.Multiselect = true;
-
+        
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
-                    // TODO: Implement the logic to copy/extract the selected file(s)
-                    // to the _modsDirectory and then refresh the list.
-                    MessageBox.Show($"{ofd.FileNames.Length} mod(s) selected. (Not yet implemented)", "Add Mod");
+                    int successCount = 0;
+                    var modsDirectory = SettingsManager.Settings.ModsDirectory;
+                    var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                    var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
+        
+                    foreach (var file in ofd.FileNames)
+                    {
+                        try
+                        {
+                            string extension = Path.GetExtension(file).ToLowerInvariant();
+                            string modName = Path.GetFileNameWithoutExtension(file);
+                            string targetDir = Path.Combine(modsDirectory, modName);
+        
+                            if (Directory.Exists(targetDir))
+                            {
+                                var result = MessageBox.Show($"A mod named '{modName}' already exists. Do you want to overwrite it?", "Mod Exists", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                                if (result == DialogResult.No) continue;
+                                Directory.Delete(targetDir, true);
+                            }
+        
+                            Directory.CreateDirectory(targetDir);
+        
+                            if (extension == ".zip" || extension == ".7z" || extension == ".rar")
+                            {
+                                if (!File.Exists(sevenZipPath))
+                                {
+                                    MessageBox.Show($"Could not find 7zr.exe in '{toolsDir}'. Please add it to extract {extension} files.", "Extraction Tool Missing", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    break; // Stop processing further files
+                                }
+                                await ExtractWith7zAsync(sevenZipPath, file, targetDir);
+                                successCount++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Failed to install mod from '{Path.GetFileName(file)}':\n{ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                    UpdateStatus($"{successCount} of {ofd.FileNames.Length} mod(s) installed.");
                     RefreshModList();
                 }
             }
@@ -928,11 +970,6 @@ namespace CrossworldsModManager
 
             // Draw a border for separation
             e.Graphics.DrawRectangle(Pens.Black, e.Bounds);
-        }
-
-        private void installModsToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            btnSave_Click(sender, e);
         }
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1388,6 +1425,27 @@ namespace CrossworldsModManager
             }
         }
 
+        #endregion
+
+        #region Archive Extraction
+
+        private async Task ExtractWith7zAsync(string sevenZipPath, string archivePath, string destinationPath)
+        {
+            using (var process = new Process())
+            {
+                process.StartInfo = new ProcessStartInfo
+                {
+                    FileName = sevenZipPath,
+                    Arguments = $"x \"{archivePath}\" -o\"{destinationPath}\" -y",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                process.Start();
+                await process.WaitForExitAsync();
+            }
+        }
         #endregion
     }
 }

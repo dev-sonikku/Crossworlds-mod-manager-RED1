@@ -32,7 +32,6 @@ namespace CrossworldsModManager
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addModToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.installModsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -101,7 +100,6 @@ namespace CrossworldsModManager
             // 
             this.fileToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.addModToolStripMenuItem,
-            this.installModsToolStripMenuItem,
             this.toolStripSeparator1,
             this.exitToolStripMenuItem});
             this.fileToolStripMenuItem.ForeColor = System.Drawing.Color.White;
@@ -115,13 +113,6 @@ namespace CrossworldsModManager
             this.addModToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.addModToolStripMenuItem.Text = "Add Mod...";
             this.addModToolStripMenuItem.Click += new System.EventHandler(this.btnAddMod_Click);
-            // 
-            // installModsToolStripMenuItem
-            // 
-            this.installModsToolStripMenuItem.Name = "installModsToolStripMenuItem";
-            this.installModsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            this.installModsToolStripMenuItem.Text = "Install Mods";
-            this.installModsToolStripMenuItem.Click += new System.EventHandler(this.installModsToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
@@ -586,7 +577,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.MenuStrip menuStrip1;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem addModToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem installModsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
