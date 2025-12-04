@@ -26,6 +26,12 @@ namespace CrossworldsModManager
             ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
             LoadSettingsAndSetup();
 
+            // Enable drag-and-drop for reordering
+            modListView.AllowDrop = true;
+            modListView.ItemDrag += modListView_ItemDrag;
+            modListView.DragEnter += modListView_DragEnter;
+            modListView.DragDrop += modListView_DragDrop;
+
             // Create debug log window but hide it by default; user can show it via button.
             try
             {
@@ -1259,6 +1265,50 @@ namespace CrossworldsModManager
                 UpdateProfilesMenu();
                 RefreshModList();
             }
+        }
+
+        #endregion
+
+        #region Drag and Drop Reordering
+
+        private void modListView_ItemDrag(object? sender, ItemDragEventArgs e)
+        {
+            if (e.Item != null)
+            {
+                modListView.DoDragDrop(e.Item, DragDropEffects.Move);
+            }
+        }
+
+        private void modListView_DragEnter(object? sender, DragEventArgs e)
+        {
+            if (e.Data != null && e.Data.GetDataPresent(typeof(ListViewItem)))
+            {
+                e.Effect = DragDropEffects.Move;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
+        }
+
+        private void modListView_DragDrop(object? sender, DragEventArgs e)
+        {
+            ListViewItem? draggedItem = e.Data?.GetData(typeof(ListViewItem)) as ListViewItem;
+            if (draggedItem == null) return;
+
+            Point dropPoint = modListView.PointToClient(new Point(e.X, e.Y));
+            ListViewItem? targetItem = modListView.GetItemAt(dropPoint.X, dropPoint.Y);
+
+            int originalIndex = draggedItem.Index;
+            int targetIndex = (targetItem != null) ? targetItem.Index : modListView.Items.Count - 1;
+
+            if (originalIndex == targetIndex) return;
+
+            modListView.Items.RemoveAt(originalIndex);
+            modListView.Items.Insert(targetIndex, draggedItem);
+
+            draggedItem.Selected = true;
+            modListView.Focus();
         }
 
         #endregion
