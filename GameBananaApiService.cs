@@ -35,7 +35,7 @@ namespace CrossworldsModManager
         public GameBananaMedia? Media { get; set; }
 
         public string Author => Submitter?.Name ?? "Unknown";
-        public string? ThumbnailUrl => Media?.Images?.FirstOrDefault()?.BaseUrl + "/" + Media?.Images?.FirstOrDefault()?.File100;
+        public string? ThumbnailUrl => Media?.Images?.FirstOrDefault()?.BaseUrl + "/" + Media?.Images?.FirstOrDefault()?.File530;
         public string DownloadUrl => $"https://gamebanana.com/dl/{Id}";
     }
 
@@ -58,6 +58,12 @@ namespace CrossworldsModManager
 
         [JsonPropertyName("_sFile100")]
         public string File100 { get; set; } = ""; // 100x75 thumbnail
+
+        [JsonPropertyName("_sFile220")]
+        public string File220 { get; set; } = ""; // 220x165 thumbnail
+
+        [JsonPropertyName("_sFile530")]
+        public string File530 { get; set; } = ""; // 530px wide thumbnail
     }
 
     public static class GameBananaApiService

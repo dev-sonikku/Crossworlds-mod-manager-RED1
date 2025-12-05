@@ -28,17 +28,11 @@ namespace CrossworldsModManager
         {
             _logger = logger;
             InitializeComponent();
-            this.Load += async (s, e) => await LoadModsAsync();
         }
 
         private void InitializeComponent()
         {
             this.flowLayoutPanelMods = new FlowLayoutPanel();
-            this.txtSearch = new TextBox();
-            this.btnSearch = new Button();
-            this.btnPrevPage = new Button();
-            this.btnNextPage = new Button();
-            this.lblPage = new Label();
             var pnlBottom = new Panel();
             var pnlTop = new Panel();
 
@@ -46,9 +40,18 @@ namespace CrossworldsModManager
             this.Text = "Browse GameBanana Mods";
             this.BackColor = Color.FromArgb(45, 45, 48);
             this.ForeColor = Color.White;
-            this.ClientSize = new Size(840, 600);
+            this.ClientSize = new Size(960, 600);
             this.MinimumSize = new Size(640, 480);
             this.StartPosition = FormStartPosition.CenterParent;
+            this.Load += async (s, e) => await LoadModsAsync();
+            this.Resize += OnFormResized;
+
+            // Initialize controls that were previously in the constructor
+            this.txtSearch = new TextBox();
+            this.btnSearch = new Button();
+            this.btnPrevPage = new Button();
+            this.btnNextPage = new Button();
+            this.lblPage = new Label();
 
             // Top Panel (Search)
             pnlTop.Dock = DockStyle.Top;
@@ -76,11 +79,14 @@ namespace CrossworldsModManager
             pnlTop.Controls.Add(txtSearch);
             pnlTop.Controls.Add(btnSearch);
 
-            // FlowLayoutPanel
+            // FlowLayoutPanel for mods
             flowLayoutPanelMods.Dock = DockStyle.Fill;
             flowLayoutPanelMods.AutoScroll = true;
             flowLayoutPanelMods.BackColor = Color.FromArgb(37, 37, 38);
             flowLayoutPanelMods.Padding = new Padding(10);
+            flowLayoutPanelMods.Resize += OnFormResized; // Use the same handler
+
+
 
             // Bottom Panel (Pagination)
             pnlBottom.Dock = DockStyle.Bottom;
@@ -112,6 +118,29 @@ namespace CrossworldsModManager
             this.Controls.Add(flowLayoutPanelMods);
             this.Controls.Add(pnlBottom);
             this.Controls.Add(pnlTop);
+        }
+
+        private void OnFormResized(object? sender, EventArgs e)
+        {
+            UpdateTableLayout();
+        }
+
+        private void UpdateTableLayout()
+        {
+            if (flowLayoutPanelMods.Controls.Count == 0 || !(flowLayoutPanelMods.Controls[0] is ModCardControl sampleCard)) return;
+
+            int cardWidth = sampleCard.Width + sampleCard.Margin.Horizontal;
+            int containerWidth = flowLayoutPanelMods.ClientSize.Width;
+            int newColumnCount = Math.Max(1, containerWidth / cardWidth);
+
+            // Calculate the total width of the cards for the number of columns that fit
+            int totalCardWidth = newColumnCount * cardWidth;
+
+            // Calculate the horizontal padding needed to center the block of cards
+            int horizontalPadding = (containerWidth - totalCardWidth) / 2;
+
+            // Apply the padding. Ensure it's not negative.
+            flowLayoutPanelMods.Padding = new Padding(Math.Max(10, horizontalPadding), 10, Math.Max(10, horizontalPadding), 10);
         }
 
         private async Task LoadModsAsync(int page = 1, string search = "")
@@ -153,6 +182,8 @@ namespace CrossworldsModManager
                 lblPage.Text = $"Page {_currentPage}";
                 btnPrevPage.Enabled = _currentPage > 1;
                 btnNextPage.Enabled = mods?.Count > 0; // Simple check; assumes more pages if results are returned
+                
+                UpdateTableLayout(); // Adjust grid after loading
             }
             catch (Exception ex)
             {

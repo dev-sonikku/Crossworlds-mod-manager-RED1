@@ -37,9 +37,9 @@ namespace CrossworldsModManager
             // Thumbnail
             picThumbnail.Dock = DockStyle.Top;
             picThumbnail.Height = 140;
-            picThumbnail.SizeMode = PictureBoxSizeMode.Zoom;
+            picThumbnail.SizeMode = PictureBoxSizeMode.StretchImage;
             picThumbnail.BackColor = Color.FromArgb(37, 37, 38);
-            picThumbnail.BorderStyle = BorderStyle.FixedSingle;
+            picThumbnail.Padding = new Padding(1); // Use padding for a subtle border effect
 
             // Mod Name
             lblModName.Dock = DockStyle.Top;
