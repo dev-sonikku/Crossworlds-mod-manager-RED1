@@ -824,7 +824,6 @@ namespace CrossworldsModManager
                     int successCount = 0;
                     var modsDirectory = SettingsManager.Settings.ModsDirectory;
                     var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
-                    var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
         
                     foreach (var file in ofd.FileNames)
                     {
@@ -832,27 +831,35 @@ namespace CrossworldsModManager
                         {
                             string extension = Path.GetExtension(file).ToLowerInvariant();
                             string modName = Path.GetFileNameWithoutExtension(file);
-                            string targetDir = Path.Combine(modsDirectory, modName);
-        
+                    string targetDir = Path.Combine(modsDirectory, modName); 
+
                             if (Directory.Exists(targetDir))
                             {
                                 var result = MessageBox.Show($"A mod named '{modName}' already exists. Do you want to overwrite it?", "Mod Exists", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                                 if (result == DialogResult.No) continue;
                                 Directory.Delete(targetDir, true);
                             }
-        
+
                             Directory.CreateDirectory(targetDir);
         
-                            if (extension == ".zip" || extension == ".7z" || extension == ".rar")
+                            if (extension == ".rar")
                             {
-                                if (!File.Exists(sevenZipPath))
-                                {
-                                    MessageBox.Show($"Could not find 7zr.exe in '{toolsDir}'. Please add it to extract {extension} files.", "Extraction Tool Missing", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                    break; // Stop processing further files
-                                }
-                                await ExtractWith7zAsync(sevenZipPath, file, targetDir);
-                                successCount++;
+                                var unrarPath = Path.Combine(toolsDir, "UnRAR.exe");
+                                if (!File.Exists(unrarPath)) throw new FileNotFoundException("UnRAR.exe not found in Tools folder. It is required to extract .rar files.");
+                                await ExtractWithToolAsync(unrarPath, file, targetDir);
                             }
+                            else if (extension == ".zip" || extension == ".7z")
+                            {
+                                var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
+                                if (!File.Exists(sevenZipPath)) throw new FileNotFoundException("7zr.exe not found in Tools folder. It is required to extract .zip and .7z files.");
+                                await ExtractWithToolAsync(sevenZipPath, file, targetDir);
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Unsupported archive format: {extension}", "Unsupported File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                                continue;
+                            }
+                            successCount++;
                         }
                         catch (Exception ex)
                         {
@@ -1341,7 +1348,7 @@ namespace CrossworldsModManager
                 }
             });
 
-            using (var browserForm = new GameBananaBrowserForm(browserLogger))
+            using (var browserForm = new GameBananaBrowserForm(browserLogger, RefreshModList))
             {
                 browserForm.ShowDialog(this);
             }
@@ -1399,6 +1406,15 @@ namespace CrossworldsModManager
         {
             foreach (var modDir in modDirectories)
             {
+                var modIniPath = Path.Combine(modDir, "mod.ini");
+                var descIniPath = Path.Combine(modDir, "desc.ini");
+
+                // If a mod.ini already exists, we assume it's correctly configured and skip it.
+                if (File.Exists(modIniPath))
+                {
+                    continue;
+                }
+
                 var optionFolders = Directory.GetDirectories(modDir)
                     .Where(subDir => File.Exists(Path.Combine(subDir, "desc.ini")))
                     .ToList();
@@ -1407,7 +1423,6 @@ namespace CrossworldsModManager
 
                 // This mod uses the desc.ini configuration style.
                 // We need to generate/update its mod.ini.
-                var modIniPath = Path.Combine(modDir, "mod.ini");
                 var iniSections = File.Exists(modIniPath) ? IniParser.Parse(modIniPath) : new Dictionary<string, Dictionary<string, string>>();
 
                 // Ensure [Main] section exists
@@ -1416,6 +1431,20 @@ namespace CrossworldsModManager
                     iniSections["Main"] = new Dictionary<string, string>();
                 }
                 var mainSection = iniSections["Main"];
+
+                // If a root desc.ini exists, use it for the main details.
+                if (File.Exists(descIniPath))
+                {
+                    var descSections = IniParser.Parse(descIniPath);
+                    if (descSections.TryGetValue("Desc", out var descSection))
+                    {
+                        if (!mainSection.ContainsKey("Name")) mainSection["Name"] = descSection.GetValueOrDefault("Title", Path.GetFileName(modDir));
+                        if (!mainSection.ContainsKey("Author")) mainSection["Author"] = descSection.GetValueOrDefault("Author", "Unknown");
+                        if (!mainSection.ContainsKey("Description")) mainSection["Description"] = descSection.GetValueOrDefault("Description", "No description provided.");
+                    }
+                }
+
+                // Fill in any missing main details with defaults.
                 if (!mainSection.ContainsKey("Name")) mainSection["Name"] = Path.GetFileName(modDir);
                 if (!mainSection.ContainsKey("Author")) mainSection["Author"] = "Unknown";
                 if (!mainSection.ContainsKey("Version")) mainSection["Version"] = "1.0";
@@ -1472,21 +1501,40 @@ namespace CrossworldsModManager
 
         #region Archive Extraction
 
-        private async Task ExtractWith7zAsync(string sevenZipPath, string archivePath, string destinationPath)
+        private async Task ExtractWithToolAsync(string toolPath, string archivePath, string destinationPath)
         {
-            using (var process = new Process())
+            string arguments;
+            string toolName = Path.GetFileName(toolPath).ToLowerInvariant();
+
+            if (toolName == "unrar.exe")
             {
-                process.StartInfo = new ProcessStartInfo
+                arguments = $"x -o+ \"{archivePath}\" \"{destinationPath}\\\" -y";
+            }
+            else // Assumes 7zr.exe or 7z.exe
+            {
+                arguments = $"x \"{archivePath}\" -o\"{destinationPath}\" -y";
+            }
+
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
                 {
-                    FileName = sevenZipPath,
-                    Arguments = $"x \"{archivePath}\" -o\"{destinationPath}\" -y",
+                    FileName = toolPath,
+                    Arguments = arguments,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
                     CreateNoWindow = true
-                };
-                process.Start();
-                await process.WaitForExitAsync();
+                }
+            };
+            process.Start();
+            string output = await process.StandardOutput.ReadToEndAsync();
+            string error = await process.StandardError.ReadToEndAsync();
+            await process.WaitForExitAsync();
+
+            if (process.ExitCode != 0)
+            {
+                throw new Exception($"{Path.GetFileName(toolPath)} extraction failed with exit code {process.ExitCode}.\nError: {error}");
             }
         }
         #endregion

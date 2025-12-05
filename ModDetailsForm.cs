@@ -1,6 +1,9 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.IO;
+using System.IO.Compression;
 using System.Windows.Forms;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -12,6 +15,7 @@ namespace CrossworldsModManager
     {
         private readonly GameBananaMod _mod;
         private readonly IProgress<string>? _logger;
+        private readonly Action? _onModsChanged;
 
         private PictureBox picModImage = null!;
         private Label lblModName = null!;
@@ -21,11 +25,14 @@ namespace CrossworldsModManager
         private WebBrowser webDescription = null!; 
         private Button btnDownload = null!;
         private ListBox lstFiles = null!;
+        private ProgressBar prgDownload = null!;
+        private Label lblProgress = null!;
 
-        public ModDetailsForm(GameBananaMod mod, IProgress<string>? logger = null)
+        public ModDetailsForm(GameBananaMod mod, IProgress<string>? logger = null, Action? onModsChanged = null)
         {
             _mod = mod;
             _logger = logger;
+            _onModsChanged = onModsChanged;
             InitializeComponent();
             this.Load += async (s, e) => await PopulateDataAsync();
         }
@@ -41,6 +48,8 @@ namespace CrossworldsModManager
             this.webDescription = new WebBrowser(); 
             this.btnDownload = new Button();
             this.lstFiles = new ListBox();
+            this.prgDownload = new ProgressBar();
+            this.lblProgress = new Label();
 
             // Main layout panel
             TableLayoutPanel mainLayout = new TableLayoutPanel();
@@ -129,6 +138,20 @@ namespace CrossworldsModManager
             this.lstFiles.BorderStyle = BorderStyle.FixedSingle;
             this.lstFiles.IntegralHeight = false;
 
+            // lblProgress
+            this.lblProgress.Dock = DockStyle.Bottom;
+            this.lblProgress.Height = 20;
+            this.lblProgress.TextAlign = ContentAlignment.MiddleCenter;
+            this.lblProgress.Visible = false;
+            this.lblProgress.ForeColor = Color.White;
+
+            // prgDownload
+            this.prgDownload.Dock = DockStyle.Bottom;
+            this.prgDownload.Height = 10;
+            this.prgDownload.Visible = false;
+            this.prgDownload.Style = ProgressBarStyle.Continuous;
+
+
             // btnDownload
             this.btnDownload.Dock = DockStyle.Bottom;
             this.btnDownload.Text = "Download Selected File";
@@ -148,6 +171,8 @@ namespace CrossworldsModManager
             pnlDetails.Controls.Add(this.picModImage);
 
             pnlDownloadOptions.Controls.Add(this.lstFiles);
+            pnlDownloadOptions.Controls.Add(this.prgDownload);
+            pnlDownloadOptions.Controls.Add(this.lblProgress);
             pnlDownloadOptions.Controls.Add(this.btnDownload);
 
             // Add panels to main layout
@@ -166,6 +191,8 @@ namespace CrossworldsModManager
 
         private async Task PopulateDataAsync()
         {
+            if (this.IsDisposed || webDescription.IsDisposed) return;
+
             lblModName.Text = _mod.Name;
             lblAuthor.Text = $"by {_mod.Author}";
             lnkProfileUrl.Text = _mod.ProfileUrl;
@@ -180,9 +207,22 @@ namespace CrossworldsModManager
             // Asynchronously load description and file list
             try
             {
-                _logger?.Report($"Fetching details for mod '{_mod.Name}' (ID: {_mod.Id})...");
-                var modProfile = await GameBananaApiService.GetModDetailsAsync(_mod);
-                if (modProfile != null && !string.IsNullOrEmpty(modProfile.Description))
+                _logger?.Report($"Fetching details and files for mod '{_mod.Name}' (ID: {_mod.Id})...");
+
+                // Run API calls in parallel for faster loading
+                var detailsTask = GameBananaApiService.GetModDetailsAsync(_mod);
+                var downloadPageTask = GameBananaApiService.GetModDownloadPageAsync(_mod);
+                await Task.WhenAll(detailsTask, downloadPageTask);
+
+                var modProfile = await detailsTask;
+                var downloadPage = await downloadPageTask;
+
+                if (this.IsDisposed) return;
+
+                if (webDescription.IsDisposed) return;
+
+                // Populate description
+                if (modProfile?.Description != null && !string.IsNullOrEmpty(modProfile.Description))
                 {
                     lblLikeCount.Text = $"Likes: {modProfile.LikeCount:N0}"; // Update with more accurate count from profile if available
                     _logger?.Report($"Successfully fetched details. Description length: {modProfile.Description.Length} characters.");
@@ -196,8 +236,9 @@ namespace CrossworldsModManager
                     webDescription.DocumentText = "<body style='background-color:#252526; color:white; font-family:sans-serif;'>No description available for this mod.</body>";
                 }
 
-                _logger?.Report($"Fetching download page for mod '{_mod.Name}'...");
-                var downloadPage = await GameBananaApiService.GetModDownloadPageAsync(_mod);
+                if (this.IsDisposed || lstFiles.IsDisposed) return;
+
+                // Populate file list
                 if (downloadPage?.Files != null && downloadPage.Files.Any())
                 {
                     lstFiles.Items.AddRange(downloadPage.Files.ToArray());
@@ -213,6 +254,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
+                if (this.IsDisposed) return;
                 _logger?.Report($"ERROR fetching mod details: {ex.Message}");
                 webDescription.DocumentText = $"<body style='background-color:#252526; color:white; font-family:sans-serif;'>Failed to load description. See debug log for details.</body>";
                 btnDownload.Enabled = false;
@@ -220,22 +262,178 @@ namespace CrossworldsModManager
             }
         }
 
-        private void btnDownload_Click(object? sender, EventArgs e)
+        private async void btnDownload_Click(object? sender, EventArgs e)
         {
             if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
             {
                 MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-
-            // TODO: This event should trigger the download process in the MainForm or a dedicated service.
-            _logger?.Report($"Download initiated for file: {selectedFile.FileName} from {selectedFile.DownloadUrl}");
-            MessageBox.Show($"Downloading '{selectedFile.FileName}'...", "Download Initiated", MessageBoxButtons.OK, MessageBoxIcon.Information);
             
-            // We can open the URL in the browser for now as a placeholder for actual download logic
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(selectedFile.DownloadUrl) { UseShellExecute = true });
+            btnDownload.Enabled = false;
+            btnDownload.Text = "Downloading...";
+            lstFiles.Enabled = false;
 
-            this.Close();
+            prgDownload.Visible = true;
+            lblProgress.Visible = true;
+            lblProgress.Text = "Starting...";
+
+            var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CrossworldsModManager", "Downloads");
+            Directory.CreateDirectory(appDataPath);
+            var downloadedFilePath = Path.Combine(appDataPath, selectedFile.FileName);
+
+            try
+            {
+                _logger?.Report($"Starting download: {selectedFile.DownloadUrl}");
+                using (var client = new HttpClient())
+                {
+                    var response = await client.GetAsync(selectedFile.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                    response.EnsureSuccessStatusCode();
+
+                    var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+                    var totalBytesRead = 0L;
+
+                    using (var fs = new FileStream(downloadedFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                    {
+                        using (var contentStream = await response.Content.ReadAsStreamAsync())
+                        {
+                            var buffer = new byte[81920];
+                            int bytesRead;
+                            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                            {
+                                await fs.WriteAsync(buffer, 0, bytesRead);
+                                totalBytesRead += bytesRead;
+                                if (totalBytes != -1)
+                                {
+                                    var progressPercentage = (int)((totalBytesRead * 100) / totalBytes);
+                                    prgDownload.Value = progressPercentage;
+                                    lblProgress.Text = $"Downloading... {progressPercentage}%";
+                                }
+                            }
+                        }
+                    }
+                }
+                _logger?.Report($"Download complete: {downloadedFilePath}");
+
+                btnDownload.Text = "Extracting...";
+                lblProgress.Text = "Extracting...";
+                await InstallModAsync(downloadedFilePath);
+
+                MessageBox.Show($"Successfully installed '{_mod.Name}'!", "Installation Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                _onModsChanged?.Invoke(); // Trigger a refresh on the main form
+                this.Close();
+            }
+            catch (Exception ex)
+            {
+                var errorMsg = $"Failed to download or install mod: {ex.Message}";
+                _logger?.Report($"ERROR: {errorMsg}");
+                MessageBox.Show(errorMsg, "Installation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                // Re-enable controls if the form is still open
+                if (!this.IsDisposed)
+                {
+                    btnDownload.Enabled = true;
+                    btnDownload.Text = "Download Selected File";
+                    lstFiles.Enabled = true;
+                    prgDownload.Visible = false;
+                    lblProgress.Visible = false;
+                }
+
+                // Clean up the downloaded file
+                if (File.Exists(downloadedFilePath))
+                {
+                    try { File.Delete(downloadedFilePath); }
+                    catch (Exception ex) { _logger?.Report($"Could not clean up temporary file '{downloadedFilePath}': {ex.Message}"); }
+                }
+            }
+        }
+
+        private async Task InstallModAsync(string archivePath)
+        {
+            var modsDirectory = SettingsManager.Settings.ModsDirectory;
+            if (string.IsNullOrEmpty(modsDirectory)) throw new InvalidOperationException("Mods directory is not set.");
+
+            var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+            var unrarPath = Path.Combine(toolsDir, "UnRAR.exe");
+            if (!File.Exists(unrarPath)) throw new FileNotFoundException("UnRAR.exe not found in Tools folder. It is required to extract archives.");
+
+            // Use the mod's GameBanana name for the folder, sanitizing it for file system compatibility.
+            string modName = SanitizeFolderName(_mod.Name);
+            string targetDir = Path.Combine(modsDirectory, modName); 
+
+            if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
+            Directory.CreateDirectory(targetDir);
+
+            string extension = Path.GetExtension(archivePath).ToLowerInvariant();
+            
+            if (extension == ".zip")
+            {
+                _logger?.Report("Extracting .zip file using built-in method...");
+                await Task.Run(() => ZipFile.ExtractToDirectory(archivePath, targetDir, true));
+            }
+            else if (extension == ".rar")
+            {
+                _logger?.Report("Extracting .rar file using UnRAR.exe...");
+                await ExtractWithToolAsync(unrarPath, $"x -o+ \"{archivePath}\" \"{targetDir}\\\" -y", _logger);
+            }
+            else if (extension == ".7z")
+            {
+                _logger?.Report("Extracting .7z file using 7zr.exe...");
+                var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
+                if (!File.Exists(sevenZipPath)) throw new FileNotFoundException("7zr.exe not found in Tools folder. It is required to extract .zip and .7z files.");
+                await ExtractWithToolAsync(sevenZipPath, $"x \"{archivePath}\" -o\"{targetDir}\" -y", _logger);
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported archive format: {extension}");
+            }
+        }
+        
+        private static string SanitizeFolderName(string name)
+        {
+            string invalidChars = new string(Path.GetInvalidFileNameChars()) + new string(Path.GetInvalidPathChars());
+            foreach (char c in invalidChars)
+            {
+                name = name.Replace(c, '_');
+            }
+            // Trim any leading/trailing spaces or dots that might cause issues
+            return name.Trim(' ', '.');
+        }
+
+        private static async Task ExtractWithToolAsync(string toolPath, string arguments, IProgress<string>? progress)
+        {
+            progress?.Report($"Extracting with {Path.GetFileName(toolPath)}...");
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = toolPath,
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+            process.Start();
+            
+            // Start reading the output and error streams asynchronously.
+            Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+            Task<string> errorTask = process.StandardError.ReadToEndAsync();
+
+            // Wait for the process to exit completely.
+            await process.WaitForExitAsync();
+
+            // Now, await the results of the stream reading.
+            string output = await outputTask;
+            string error = await errorTask;
+
+            if (process.ExitCode != 0)
+            {
+                throw new Exception($"{Path.GetFileName(toolPath)} failed with exit code {process.ExitCode}.\nOutput: {output}\nError: {error}");
+            }
         }
     }
 }

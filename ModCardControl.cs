@@ -90,6 +90,27 @@ namespace CrossworldsModManager
             {
                 picThumbnail.LoadAsync(_mod.ThumbnailUrl);
             }
+            else if (_mod.ModelName.Equals("Sound", StringComparison.OrdinalIgnoreCase))
+            {
+                picThumbnail.Image = CreateMusicNoteImage();
+            }
+        }
+
+        private Image CreateMusicNoteImage()
+        {
+            var bmp = new Bitmap(picThumbnail.Width, picThumbnail.Height);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.Clear(picThumbnail.BackColor);
+                using (var font = new Font("Segoe UI Symbol", 60, FontStyle.Bold))
+                {
+                    const string musicNote = "🎵";
+                    var stringSize = g.MeasureString(musicNote, font);
+                    var stringLocation = new PointF((bmp.Width - stringSize.Width) / 2, (bmp.Height - stringSize.Height) / 2);
+                    g.DrawString(musicNote, font, Brushes.LightGray, stringLocation);
+                }
+            }
+            return bmp;
         }
     }
 }

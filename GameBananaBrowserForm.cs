@@ -16,6 +16,7 @@ namespace CrossworldsModManager
         private string _currentSearch = "";
         private bool _isLoading = false;
         private readonly IProgress<string>? _logger;
+        private readonly Action? _onModsChanged;
 
         private FlowLayoutPanel flowLayoutPanelMods = null!;
         private TextBox txtSearch = null!;
@@ -24,9 +25,10 @@ namespace CrossworldsModManager
         private Button btnNextPage = null!;
         private Label lblPage = null!;
 
-        public GameBananaBrowserForm(IProgress<string>? logger = null)
+        public GameBananaBrowserForm(IProgress<string>? logger = null, Action? onModsChanged = null)
         {
             _logger = logger;
+            _onModsChanged = onModsChanged;
             InitializeComponent();
         }
 
@@ -146,7 +148,12 @@ namespace CrossworldsModManager
 
         private void UpdateTableLayout()
         {
-            if (flowLayoutPanelMods.Controls.Count == 0 || !(flowLayoutPanelMods.Controls[0] is ModCardControl sampleCard)) return;
+            // Ensure there are controls and the first one is a ModCardControl before proceeding.
+            // This prevents errors during initial load or when the panel is empty.
+            if (flowLayoutPanelMods.Controls.Count == 0 || flowLayoutPanelMods.Controls[0] is not ModCardControl sampleCard)
+            {
+                return;
+            }
 
             int cardWidth = sampleCard.Width + sampleCard.Margin.Horizontal;
             int containerWidth = flowLayoutPanelMods.ClientSize.Width;
@@ -231,7 +238,7 @@ namespace CrossworldsModManager
         private void OnModDownloadClicked(GameBananaMod mod)
         {
             // Open a new form to show mod details and download options
-            using (var modDetailsForm = new ModDetailsForm(mod, _logger))
+            using (var modDetailsForm = new ModDetailsForm(mod, _logger, _onModsChanged))
             {
                 modDetailsForm.ShowDialog(this);
             }
