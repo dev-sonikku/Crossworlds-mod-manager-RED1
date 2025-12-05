@@ -61,17 +61,18 @@ namespace CrossworldsModManager
             // Search TextBox
             txtSearch.Dock = DockStyle.Fill;
             txtSearch.BackColor = Color.FromArgb(63, 63, 70);
-            txtSearch.ForeColor = Color.Gray;
+            txtSearch.ForeColor = Color.Gray; // Placeholder color
             txtSearch.BorderStyle = BorderStyle.FixedSingle;
-            txtSearch.Enabled = false;
-            txtSearch.Text = "Search is not supported by the Top Mods API.";
-            //txtSearch.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) btnSearch.PerformClick(); };
+            txtSearch.Text = "Search mods...";
+            txtSearch.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) btnSearch.PerformClick(); };
+            txtSearch.Enter += TxtSearch_Enter;
+            txtSearch.Leave += TxtSearch_Leave;
 
             // Search Button
             btnSearch.Dock = DockStyle.Right;
             btnSearch.Text = "Search";
             btnSearch.Width = 75;
-            btnSearch.Enabled = false;
+            btnSearch.Enabled = true;
             btnSearch.FlatStyle = FlatStyle.Flat;
             btnSearch.FlatAppearance.BorderColor = Color.FromArgb(80, 80, 80);
             btnSearch.Click += btnSearch_Click;
@@ -120,6 +121,24 @@ namespace CrossworldsModManager
             this.Controls.Add(pnlTop);
         }
 
+        private void TxtSearch_Enter(object? sender, EventArgs e)
+        {
+            if (txtSearch.Text == "Search mods...")
+            {
+                txtSearch.Text = "";
+                txtSearch.ForeColor = Color.White;
+            }
+        }
+
+        private void TxtSearch_Leave(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                txtSearch.Text = "Search mods...";
+                txtSearch.ForeColor = Color.Gray;
+            }
+        }
+
         private void OnFormResized(object? sender, EventArgs e)
         {
             UpdateTableLayout();
@@ -158,7 +177,7 @@ namespace CrossworldsModManager
 
             try
             {
-                var mods = await GameBananaApiService.SearchModsAsync(GameId, page);
+                var mods = await GameBananaApiService.SearchModsAsync(GameId, page, search);
                 flowLayoutPanelMods.Controls.Clear();
 
                 if (mods == null || !mods.Any())
@@ -220,7 +239,13 @@ namespace CrossworldsModManager
 
         private void btnSearch_Click(object? sender, EventArgs e)
         {
-            // Search is disabled as the /TopSubs API does not support it.
+            string searchTerm = txtSearch.Text;
+            if (searchTerm == "Search mods...")
+            {
+                searchTerm = ""; // Don't search for the placeholder text
+            }
+            // Trigger a new search with the text box content.
+            _ = LoadModsAsync(1, searchTerm);
         }
 
         private async void btnPrevPage_Click(object? sender, EventArgs e)

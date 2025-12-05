@@ -103,11 +103,17 @@ namespace CrossworldsModManager
         private static readonly HttpClient _httpClient = new HttpClient();
         private const string ApiBaseUrl = "https://gamebanana.com/apiv11";
 
-        public static async Task<List<GameBananaMod>?> SearchModsAsync(int gameId, int page = 1)
+        public static async Task<List<GameBananaMod>?> SearchModsAsync(int gameId, int page = 1, string search = "")
         {
-            // Use the /TopSubs endpoint to get the top-rated submissions.
-            // This endpoint supports pagination and sorting. We'll sort by latest.
-            var url = $"{ApiBaseUrl}/Game/{gameId}/Subfeed?_nPage={page}&_sSort=default";
+            // Use the /Subfeed endpoint to get the latest submissions.
+            // This endpoint supports pagination, sorting, and text-based searching.
+            var url = $"{ApiBaseUrl}/Game/{gameId}/Subfeed?_nPage={page}&_sSort=new";
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                // The API uses _sName for searching.
+                url += $"&_sName={System.Net.WebUtility.UrlEncode(search)}";
+            }
 
             try
             {
