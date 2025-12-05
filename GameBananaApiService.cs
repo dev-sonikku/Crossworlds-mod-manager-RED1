@@ -1,0 +1,99 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+
+namespace CrossworldsModManager
+{
+    public class GameBananaApiResponse
+    {
+        [JsonPropertyName("_aRecords")]
+        public List<GameBananaMod>? Records { get; set; }
+    }
+
+    public class GameBananaMod
+    {
+        [JsonPropertyName("_idRow")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("_sModelName")]
+        public string ModelName { get; set; } = "";
+
+        [JsonPropertyName("_sName")]
+        public string Name { get; set; } = "";
+
+        [JsonPropertyName("_sProfileUrl")]
+        public string ProfileUrl { get; set; } = "";
+
+        [JsonPropertyName("_aSubmitter")]
+        public GameBananaSubmitter? Submitter { get; set; }
+
+        [JsonPropertyName("_aPreviewMedia")]
+        public GameBananaMedia? Media { get; set; }
+
+        public string Author => Submitter?.Name ?? "Unknown";
+        public string? ThumbnailUrl => Media?.Images?.FirstOrDefault()?.BaseUrl + "/" + Media?.Images?.FirstOrDefault()?.File100;
+        public string DownloadUrl => $"https://gamebanana.com/dl/{Id}";
+    }
+
+    public class GameBananaSubmitter
+    {
+        [JsonPropertyName("_sName")]
+        public string Name { get; set; } = "";
+    }
+
+    public class GameBananaMedia
+    {
+        [JsonPropertyName("_aImages")]
+        public List<GameBananaImage>? Images { get; set; }
+    }
+
+    public class GameBananaImage
+    {
+        [JsonPropertyName("_sBaseUrl")]
+        public string BaseUrl { get; set; } = "";
+
+        [JsonPropertyName("_sFile100")]
+        public string File100 { get; set; } = ""; // 100x75 thumbnail
+    }
+
+    public static class GameBananaApiService
+    {
+        private static readonly HttpClient _httpClient = new HttpClient();
+        private const string ApiBaseUrl = "https://gamebanana.com/apiv11";
+
+        public static async Task<List<GameBananaMod>?> SearchModsAsync(int gameId, int page = 1)
+        {
+            // Use the /TopSubs endpoint to get the top-rated submissions.
+            // This endpoint supports pagination and sorting. We'll sort by latest.
+            var url = $"{ApiBaseUrl}/Game/{gameId}/Subfeed?_nPage={page}&_sSort=default";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Request to GameBanana API failed with status code {response.StatusCode}.\nURL: {url}\nResponse: {content}");
+                }
+                var apiResponse = JsonSerializer.Deserialize<GameBananaApiResponse>(content);
+
+                // Filter out non-mod submissions like WIPs, questions, etc.
+                var excludedTypes = new HashSet<string> { "Wip", "Question", "Request" };
+                var filteredRecords = apiResponse?.Records?
+                    .Where(mod => !excludedTypes.Contains(mod.ModelName, StringComparer.OrdinalIgnoreCase)).ToList();
+
+                return filteredRecords;
+            }
+            catch (Exception ex)
+            {
+                // Re-throw to be caught by the UI layer, which will display the message.
+                throw new Exception($"An error occurred while contacting the GameBanana API. Please check your internet connection. Details: {ex.Message}", ex);
+            }
+        }
+    }
+}

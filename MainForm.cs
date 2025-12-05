@@ -18,6 +18,7 @@ namespace CrossworldsModManager
         private List<ListViewItem> _allModItems = new List<ListViewItem>();
         private string? _selectedPlatform;
         private LogForm? _logForm;
+        private Button? btnBrowseMods; // Added for GameBanana browser
 
         public MainForm()
         {
@@ -38,6 +39,22 @@ namespace CrossworldsModManager
                 _logForm = new LogForm();
                 _logForm.Hide();
                 btnToggleDebugLog.Enabled = true; // Enable the button now that log exists
+
+                // Programmatically add the "Browse Mods" button below the debug log button
+                btnBrowseMods = new Button
+                {
+                    Name = "btnBrowseMods",
+                    Text = "Browse Mods...",
+                    Anchor = btnToggleDebugLog.Anchor,
+                    Location = new Point(btnToggleDebugLog.Location.X, btnToggleDebugLog.Location.Y + btnToggleDebugLog.Height + 6),
+                    Size = btnToggleDebugLog.Size,
+                    FlatStyle = btnToggleDebugLog.FlatStyle,
+                    ForeColor = btnToggleDebugLog.ForeColor,
+                    BackColor = btnToggleDebugLog.BackColor
+                };
+                btnBrowseMods.Click += btnBrowseMods_Click;
+                this.Controls.Add(btnBrowseMods);
+                btnBrowseMods.BringToFront(); // Ensure it's visible
             }
             catch
             {
@@ -1310,6 +1327,23 @@ namespace CrossworldsModManager
                 SettingsManager.Save();
                 UpdateProfilesMenu();
                 RefreshModList();
+            }
+        }
+
+        private void btnBrowseMods_Click(object? sender, EventArgs e)
+        {
+            // Create a logger that reports to our main debug log window
+            IProgress<string> browserLogger = new Progress<string>(s =>
+            {
+                if (_logForm != null && !_logForm.IsDisposed)
+                {
+                    _logForm.AppendLog($"[GB Browser] {s}");
+                }
+            });
+
+            using (var browserForm = new GameBananaBrowserForm(browserLogger))
+            {
+                browserForm.ShowDialog(this);
             }
         }
 
