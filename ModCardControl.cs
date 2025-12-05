@@ -12,6 +12,7 @@ namespace CrossworldsModManager
         private PictureBox picThumbnail = null!;
         private Label lblModName = null!;
         private Label lblAuthor = null!;
+        private Label lblLikeCount = null!;
         private Button btnDownload = null!;
 
         public ModCardControl(GameBananaMod mod)
@@ -26,6 +27,7 @@ namespace CrossworldsModManager
             this.picThumbnail = new PictureBox();
             this.lblModName = new Label();
             this.lblAuthor = new Label();
+            this.lblLikeCount = new Label();
             this.btnDownload = new Button();
 
             // UserControl
@@ -56,6 +58,13 @@ namespace CrossworldsModManager
             lblAuthor.Padding = new Padding(5, 0, 5, 5);
             lblAuthor.Height = 25;
 
+            // Like Count
+            lblLikeCount.Dock = DockStyle.Top;
+            lblLikeCount.Font = new Font("Segoe UI", 8F);
+            lblLikeCount.ForeColor = Color.LightGray;
+            lblLikeCount.Padding = new Padding(5, 0, 5, 5);
+            lblLikeCount.Height = 20;
+
             // Download Button
             btnDownload.Dock = DockStyle.Bottom;
             btnDownload.Text = "Download";
@@ -63,9 +72,10 @@ namespace CrossworldsModManager
             btnDownload.FlatStyle = FlatStyle.Flat;
             btnDownload.BackColor = Color.FromArgb(0, 122, 204);
             btnDownload.FlatAppearance.BorderSize = 0;
-            btnDownload.Click += (s, e) => DownloadClicked(_mod);
+            btnDownload.Click += (s, e) => DownloadClicked(_mod); // Keep existing click handler
 
             this.Controls.Add(btnDownload);
+            this.Controls.Add(lblLikeCount);
             this.Controls.Add(lblAuthor);
             this.Controls.Add(lblModName);
             this.Controls.Add(picThumbnail);
@@ -75,6 +85,7 @@ namespace CrossworldsModManager
         {
             lblModName.Text = _mod.Name;
             lblAuthor.Text = $"by {_mod.Author}";
+            lblLikeCount.Text = $"Likes: {_mod.LikeCount:N0}"; // Format with thousands separator
             if (!string.IsNullOrEmpty(_mod.ThumbnailUrl))
             {
                 picThumbnail.LoadAsync(_mod.ThumbnailUrl);

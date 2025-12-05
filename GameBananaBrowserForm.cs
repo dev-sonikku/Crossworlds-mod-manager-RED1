@@ -211,10 +211,11 @@ namespace CrossworldsModManager
 
         private void OnModDownloadClicked(GameBananaMod mod)
         {
-            // This is where you would trigger the download and installation logic.
-            // For now, we'll just show a message box.
-            MessageBox.Show($"Download requested for: {mod.Name}\nURL: {mod.DownloadUrl}", "Download", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            // TODO: Implement download and extraction logic, possibly by reusing code from MainForm.
+            // Open a new form to show mod details and download options
+            using (var modDetailsForm = new ModDetailsForm(mod, _logger))
+            {
+                modDetailsForm.ShowDialog(this);
+            }
         }
 
         private void btnSearch_Click(object? sender, EventArgs e)

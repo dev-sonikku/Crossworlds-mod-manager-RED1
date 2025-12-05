@@ -14,6 +14,32 @@ namespace CrossworldsModManager
         public List<GameBananaMod>? Records { get; set; }
     }
 
+    public class GameBananaModProfile
+    {
+        [JsonPropertyName("_sText")]
+        public string Description { get; set; } = ""; // The HTML content of the mod's description page
+
+        [JsonPropertyName("_nLikeCount")]
+        public int LikeCount { get; set; }
+    }
+
+    public class GameBananaDownloadPage
+    {
+        [JsonPropertyName("_aFiles")]
+        public List<GameBananaFile>? Files { get; set; }
+    }
+
+    public class GameBananaFile
+    {
+        [JsonPropertyName("_sFile")]
+        public string FileName { get; set; } = "";
+
+        [JsonPropertyName("_sDownloadUrl")]
+        public string DownloadUrl { get; set; } = "";
+
+        public override string ToString() => FileName; // For easy display in ListBox
+    }
+
     public class GameBananaMod
     {
         [JsonPropertyName("_idRow")]
@@ -25,8 +51,14 @@ namespace CrossworldsModManager
         [JsonPropertyName("_sName")]
         public string Name { get; set; } = "";
 
+        [JsonPropertyName("_sVersion")]
+        public string Version { get; set; } = "";
+
         [JsonPropertyName("_sProfileUrl")]
         public string ProfileUrl { get; set; } = "";
+
+        [JsonPropertyName("_nLikeCount")]
+        public int LikeCount { get; set; }
 
         [JsonPropertyName("_aSubmitter")]
         public GameBananaSubmitter? Submitter { get; set; }
@@ -99,6 +131,48 @@ namespace CrossworldsModManager
             {
                 // Re-throw to be caught by the UI layer, which will display the message.
                 throw new Exception($"An error occurred while contacting the GameBanana API. Please check your internet connection. Details: {ex.Message}", ex);
+            }
+        }
+
+        public static async Task<GameBananaModProfile?> GetModDetailsAsync(GameBananaMod mod)
+        {
+            var url = $"{ApiBaseUrl}/{mod.ModelName}/{mod.Id}/ProfilePage";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Request to GameBanana API failed with status code {response.StatusCode}.\nURL: {url}\nResponse: {content}");
+                }
+                return JsonSerializer.Deserialize<GameBananaModProfile>(content);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while fetching mod details. Details: {ex.Message}", ex);
+            }
+        }
+
+        public static async Task<GameBananaDownloadPage?> GetModDownloadPageAsync(GameBananaMod mod)
+        {
+            var url = $"{ApiBaseUrl}/{mod.ModelName}/{mod.Id}/DownloadPage";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Request to GameBanana API failed with status code {response.StatusCode}.\nURL: {url}\nResponse: {content}");
+                }
+                return JsonSerializer.Deserialize<GameBananaDownloadPage>(content);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while fetching download page. Details: {ex.Message}", ex);
             }
         }
     }
