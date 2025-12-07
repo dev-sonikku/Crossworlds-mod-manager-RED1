@@ -18,11 +18,13 @@ namespace CrossworldsModManager
         private List<ListViewItem> _allModItems = new List<ListViewItem>();
         private string? _selectedPlatform;
         private LogForm? _logForm;
+        private DeveloperForm? _devForm;
         private Button? btnBrowseMods; // Added for GameBanana browser
 
         public MainForm()
         {
             InitializeComponent();
+            this.Text = "Blue Star Manager - A Sonic Racing: CrossWorlds Mod Manager";
             // Apply the custom dark theme renderer for menus and tool strips
             ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
             LoadSettingsAndSetup();
@@ -81,6 +83,13 @@ namespace CrossworldsModManager
             UpdateProfilesMenu();
             // Load the list of mods when the application starts.
             RefreshModList();
+        }
+        
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            // This needs to be called after the main form is shown to position correctly.
+            ToggleDeveloperForm();
         }
 
         private void DetectGameInstallations()
@@ -729,6 +738,45 @@ namespace CrossworldsModManager
                     }
                 }
                 
+                // 4. Handle Developer Mode files
+                if (SettingsManager.Settings.DeveloperModeEnabled && _devForm is not null && !string.IsNullOrEmpty(_devForm.SelectedExportPath))
+                {
+                    var devExportSourcePath = _devForm.SelectedExportPath!;
+                    var enabledFileBases = _devForm.GetEnabledFileBaseNames();
+
+                    if (enabledFileBases.Any())
+                    {
+                        if (string.IsNullOrEmpty(SettingsManager.Settings.ModsDirectory))
+                        {
+                            UpdateStatus("Developer mode files not installed: Mods directory is not set.");
+                            return false;
+                        }
+
+                        // Create a temporary directory inside the mods folder to hold hardlinks
+                        var devModDir = Path.Combine(SettingsManager.Settings.ModsDirectory, "_DevExport");
+                        if (Directory.Exists(devModDir)) Directory.Delete(devModDir, true);
+                        Directory.CreateDirectory(devModDir);
+
+                        foreach (var baseName in enabledFileBases)
+                        {
+                            var sourceFiles = Directory.GetFiles(devExportSourcePath, $"{baseName}.*");
+                            foreach (var sourceFile in sourceFiles)
+                            {
+                                // Append _P to the filename for the game to recognize it as a pak file.
+                                var fileName = Path.GetFileNameWithoutExtension(sourceFile);
+                                var extension = Path.GetExtension(sourceFile);
+                                var destFile = Path.Combine(devModDir, $"{fileName}_P{extension}");
+                                await CreateHardLinkAsync(destFile, sourceFile);
+                            }
+                        }
+
+                        // Now, create a symbolic link from ~mods to our _DevExport folder
+                        var devLinkName = Path.Combine(targetModsDir, "000-DevExport"); // "000" prefix for highest priority
+                        await CreateSymbolicLinkAsync(devLinkName, devModDir);
+                        UpdateStatus("Installed developer export files.");
+                    }
+                }
+
                 // Wait for all link creation tasks to complete.
                 bool[] results = await Task.WhenAll(installTasks);
                 int installedCount = results.Count(success => success);
@@ -1026,6 +1074,29 @@ namespace CrossworldsModManager
                 {
                     // Reload everything to apply new settings
                     LoadSettingsAndSetup();
+                    ToggleDeveloperForm();
+                }
+            }
+        }
+
+        private void ToggleDeveloperForm()
+        {
+            if (SettingsManager.Settings.DeveloperModeEnabled)
+            {
+                if (_devForm is null || _devForm.IsDisposed)
+                {
+                    _devForm = new DeveloperForm(); // This will be resolved once DeveloperForm.cs is in the project
+                    _devForm.Show(this); // Show as non-modal, owned by MainForm
+                    // Position it to the right of the main form
+                    _devForm.Location = new Point(this.Right, this.Top);
+                }
+            }
+            else
+            {
+                if (_devForm is not null && !_devForm.IsDisposed)
+                {
+                    _devForm.Close();
+                    _devForm = null;
                 }
             }
         }

@@ -20,6 +20,7 @@ namespace CrossworldsModManager
             this.labelAppName = new System.Windows.Forms.Label();
             this.labelInfo = new System.Windows.Forms.Label();
             this.buttonOK = new System.Windows.Forms.Button();
+            this.labelIconCredit = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // labelAppName
@@ -59,6 +60,16 @@ namespace CrossworldsModManager
             this.buttonOK.Text = "OK";
             this.buttonOK.UseVisualStyleBackColor = false;
             // 
+            // labelIconCredit
+            // 
+            this.labelIconCredit.AutoSize = true;
+            this.labelIconCredit.ForeColor = System.Drawing.Color.Gainsboro;
+            this.labelIconCredit.Location = new System.Drawing.Point(13, 165);
+            this.labelIconCredit.Name = "labelIconCredit";
+            this.labelIconCredit.Size = new System.Drawing.Size(75, 13);
+            this.labelIconCredit.TabIndex = 3;
+            this.labelIconCredit.Text = "Icon by Derpy";
+            // 
             // AboutForm
             // 
             this.AcceptButton = this.buttonOK;
@@ -67,6 +78,7 @@ namespace CrossworldsModManager
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.ClientSize = new System.Drawing.Size(384, 200);
             this.Controls.Add(this.buttonOK);
+            this.Controls.Add(this.labelIconCredit);
             this.Controls.Add(this.labelInfo);
             this.Controls.Add(this.labelAppName);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -87,5 +99,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.Label labelAppName;
         private System.Windows.Forms.Label labelInfo;
         private System.Windows.Forms.Button buttonOK;
+        private System.Windows.Forms.Label labelIconCredit;
     }
 }

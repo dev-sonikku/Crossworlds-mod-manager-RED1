@@ -29,6 +29,7 @@ namespace CrossworldsModManager
             this.chkAutoClean = new System.Windows.Forms.CheckBox();
             this.chkCheckForGames = new System.Windows.Forms.CheckBox();
             this.chkAutoCloseLog = new System.Windows.Forms.CheckBox();
+            this.chkDeveloperMode = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // label1
@@ -169,11 +170,23 @@ namespace CrossworldsModManager
             this.chkAutoCloseLog.Text = "Auto-close debug log on successful save";
             this.chkAutoCloseLog.UseVisualStyleBackColor = true;
             // 
+            // chkDeveloperMode
+            // 
+            this.chkDeveloperMode.AutoSize = true;
+            this.chkDeveloperMode.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkDeveloperMode.Location = new System.Drawing.Point(102, 159);
+            this.chkDeveloperMode.Name = "chkDeveloperMode";
+            this.chkDeveloperMode.Size = new System.Drawing.Size(138, 17);
+            this.chkDeveloperMode.TabIndex = 12;
+            this.chkDeveloperMode.Text = "Enable Developer Mode";
+            this.chkDeveloperMode.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(584, 191);
+            this.Controls.Add(this.chkDeveloperMode);
             this.Controls.Add(this.chkAutoCloseLog);
             this.Controls.Add(this.chkCheckForGames);
             this.Controls.Add(this.chkAutoClean);
@@ -214,5 +227,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.CheckBox chkAutoClean;
         private System.Windows.Forms.CheckBox chkCheckForGames;
         private System.Windows.Forms.CheckBox chkAutoCloseLog;
+        private System.Windows.Forms.CheckBox chkDeveloperMode;
     }
 }
