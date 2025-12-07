@@ -141,12 +141,29 @@ namespace CrossworldsModManager
             launchPlatformDropDown.Text = _selectedPlatform; // This is safe now
             UpdateStatus($"Selected platform: {_selectedPlatform}");
         }
-
-        private void ApplyModConfiguration(ModInfo modInfo, string configurationString)
+        
+        /// <summary>
+        /// Applies mod configuration by enabling/disabling files based on selected options.
+        /// </summary>
+        /// <param name="modInfo">The mod to configure.</param>
+        /// <param name="selectedOptionIdentifiers">A list of "GroupName.OptionName" identifiers for the enabled options.</param>
+        private void ApplyModConfiguration(ModInfo modInfo, List<string> selectedOptionIdentifiers)
         {
             if (modInfo.FileGroupMappings.Count == 0) return;
 
-            var selectedOptions = configurationString?.Split(',').Select(s => s.Trim()).ToList() ?? new List<string>();
+            // A special identifier "enable" is used for simple, non-configurable mods that are checked.
+            // This block handles enabling all files for such mods.
+            if (selectedOptionIdentifiers.Contains("enable"))
+            {
+                foreach (var file in Directory.EnumerateFiles(modInfo.DirectoryPath, "*.*", SearchOption.AllDirectories))
+                {
+                    if (file.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase))
+                    {
+                        File.Move(file, file.Replace(".disabled", ""));
+                    }
+                }
+                return;
+            }
 
             // Iterate through all possible files defined in the [Files] section.
             foreach (var fileMapping in modInfo.FileGroupMappings)
@@ -170,7 +187,7 @@ namespace CrossworldsModManager
                     string ext = Path.GetExtension(filePath).ToLowerInvariant();
                     if (ext == ".ini" || ext == ".json" || ext == ".txt" || ext == ".md") continue;
 
-                    bool shouldBeEnabled = selectedOptions.Contains(group);
+                    bool shouldBeEnabled = selectedOptionIdentifiers.Contains(group);
                     string enabledPath = filePath.Replace(".disabled", "");
                     string disabledPath = enabledPath + ".disabled";
 
@@ -207,17 +224,19 @@ namespace CrossworldsModManager
             var itemsToProcess = modListView.Items.Cast<ListViewItem>().ToList();
             foreach (ListViewItem item in modListView.Items)
             {
-                if (item.Checked && item.Tag is ModInfo modInfo && modInfo.ConfigType != ModConfigType.None)
+                if (item.Checked && item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
                 {   
                     var activeProfile = GetActiveProfile();
                     if (activeProfile == null) continue;
 
                     // If a configurable mod is enabled but has no saved configuration, set the default.
-                    if (!activeProfile.ModConfigurations.ContainsKey(modInfo.Name))
+                    foreach (var group in modInfo.ConfigurationGroups)
                     {
-                        if (modInfo.ConfigOptions.Count > 0)
+                        var configKey = $"{modInfo.Name}:{group.GroupName}";
+                        if (!activeProfile.ModConfigurations.ContainsKey(configKey) && group.Options.Any())
                         {
-                            activeProfile.ModConfigurations[modInfo.Name] = modInfo.ConfigOptions[0];
+                            // Set the default option for this group
+                            activeProfile.ModConfigurations[configKey] = group.Options.First();
                             defaultsSet = true;
                         }
                     }
@@ -251,21 +270,31 @@ namespace CrossworldsModManager
                 // Then, apply the current configurations for all mods.
                 foreach (ListViewItem item in modListView.Items)
                 {
-                    if (item.Tag is ModInfo modInfo && modInfo.ConfigOptions.Count > 0)
+                    if (item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
                     {
                         // Get the saved selection for this mod.
                         var activeProfile = GetActiveProfile();
                         if (activeProfile == null) continue;
 
-                        if (activeProfile.ModConfigurations.TryGetValue(modInfo.Name, out var selectedOption))
+                        var selectedOptionIdentifiers = new List<string>();
+                        foreach (var group in modInfo.ConfigurationGroups)
                         {
-                            ApplyModConfiguration(modInfo, selectedOption);
+                            var configKey = $"{modInfo.Name}:{group.GroupName}";
+                            if (activeProfile.ModConfigurations.TryGetValue(configKey, out var selectedValue))
+                            {
+                                // For SelectMultiple, the value is comma-separated. Split it.
+                                var options = selectedValue.Split(',').Select(s => s.Trim());
+                                foreach (var option in options)
+                                {
+                                    selectedOptionIdentifiers.Add($"{group.GroupName}.{option}");
+                                }
+                            }
                         }
-                        else if (modInfo.ConfigOptions.Count > 0)
-                        {
-                            // If no setting is saved, apply the default (first) option.
-                            ApplyModConfiguration(modInfo, modInfo.ConfigOptions[0]);
-                        }
+                        ApplyModConfiguration(modInfo, selectedOptionIdentifiers);
+                    }
+                    else if (item.Tag is ModInfo modInfoWithoutConfig) // Handle non-configurable mods
+                    {
+                        ApplyModConfiguration(modInfoWithoutConfig, item.Checked ? new List<string> { "enable" } : new List<string>());
                     }
                 }
 
@@ -505,13 +534,13 @@ namespace CrossworldsModManager
             var modsDir = SettingsManager.Settings.ModsDirectory;
             var modDirectories = Directory.GetDirectories(modsDir);
 
-            ScanAndConvertModConfigs(modDirectories);
+            // Removed automatic mod.ini generation. Mod authors should provide mod.ini files manually.
 
             var activeProfile = GetActiveProfile();
             if (activeProfile == null) return;
 
             // Use saved settings
-            var enabledMods = activeProfile.EnabledMods;
+            var enabledMods = new HashSet<string>(activeProfile.EnabledMods, StringComparer.OrdinalIgnoreCase);
             var modLoadOrder = activeProfile.ModLoadOrder;
             var foundMods = new Dictionary<string, ModInfo>();
             
@@ -540,33 +569,17 @@ namespace CrossworldsModManager
                         DirectoryPath = dir
                     };
 
-                    var configKvp = iniSections.FirstOrDefault(s => s.Key.Equals("Config", StringComparison.OrdinalIgnoreCase));
-                    if (configKvp.Value != null)
+                    // New logic for multiple named [Config:GroupName] sections
+                    var configSections = iniSections.Where(s => s.Key.StartsWith("Config:", StringComparison.OrdinalIgnoreCase)).ToList();
+                    foreach (var configKvp in configSections)
                     {
-                        var configSection = configKvp.Value;
-                        string typeStr = configSection.GetValueOrDefault("Type", "SelectOne");
-                        if (Enum.TryParse<ModConfigType>(typeStr, true, out var configType))
-                        {
-                            modInfo.ConfigType = configType;
-                        }
-
-                        modInfo.ConfigDescription = configSection.GetValueOrDefault("Description", "Select an option:");
-
-                        if (modInfo.ConfigType == ModConfigType.SelectOne)
-                        {
-                            modInfo.ConfigOptions = configSection.GetValueOrDefault("Options", "").Split(',').Select(o => o.Trim()).ToList();
-                        }
+                        modInfo.ConfigurationGroups.Add(new ModConfigurationGroup(configKvp.Key, configKvp.Value));
                     }
 
                     var filesKvp = iniSections.FirstOrDefault(s => s.Key.Equals("Files", StringComparison.OrdinalIgnoreCase));
                     if (filesKvp.Value != null)
                     {
-                        var filesSection = filesKvp.Value;
-                        modInfo.FileGroupMappings = filesSection;
-                        if (modInfo.ConfigType == ModConfigType.SelectMultiple)
-                        {
-                            modInfo.ConfigOptions = filesSection.Values.Distinct().ToList();
-                        }
+                        modInfo.FileGroupMappings = filesKvp.Value;
                     }
                 }
                 else
@@ -603,7 +616,7 @@ namespace CrossworldsModManager
             UpdateStatus($"{_allModItems.Count} mod(s) found.");
         }
 
-        private ListViewItem CreateModListViewItem(ModInfo modInfo, List<string> enabledMods)
+        private ListViewItem CreateModListViewItem(ModInfo modInfo, HashSet<string> enabledMods)
         {
             var item = new ListViewItem(new[] 
                     {
@@ -611,7 +624,7 @@ namespace CrossworldsModManager
                         modInfo.Author,
                         modInfo.Version,
                         // Add text to the "Actions" column only if the mod is configurable.
-                        modInfo.ConfigType != ModConfigType.None ? "⚙️ Configure" : ""
+                        modInfo.ConfigurationGroups.Any() ? "⚙️ Configure" : ""
             }) 
             {
                 Tag = modInfo
@@ -1046,7 +1059,7 @@ namespace CrossworldsModManager
             // Check if the click was on the "Actions" column (index 3).
             if (item.SubItems.IndexOf(subItem) == 3)
             {
-                if (item.Tag is ModInfo modInfo && modInfo.ConfigType != ModConfigType.None)
+                if (item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
                 {
                     ShowModConfigForm(modInfo);
                 }
@@ -1122,7 +1135,7 @@ namespace CrossworldsModManager
             var modInfo = selectedItem.Tag as ModInfo;
 
             // Configure option
-            configureToolStripMenuItem.Enabled = modInfo?.ConfigType != ModConfigType.None;
+            configureToolStripMenuItem.Enabled = modInfo?.ConfigurationGroups.Any() ?? false;
 
             // Move Up/Down options
             moveUpToolStripMenuItem1.Enabled = selectedItem.Index > 0;
@@ -1138,8 +1151,8 @@ namespace CrossworldsModManager
 
                 if (configForm.ShowDialog(this) == DialogResult.OK)
                 {
-                    // Save the selected option to the settings file.
-                    activeProfile.ModConfigurations[modInfo.Name] = configForm.ConfigurationString ?? "";
+                    // The new config form will save configurations directly to the active profile.
+                    // We just need to save the settings file.
                     SettingsManager.Save();
                     UpdateStatus($"Configuration saved for '{modInfo.Name}'. Click Save to apply changes.");
                 }
@@ -1151,7 +1164,7 @@ namespace CrossworldsModManager
             if (modListView.SelectedItems.Count != 1) return;
             var item = modListView.SelectedItems[0];
 
-            if (item.Tag is ModInfo modInfo && modInfo.ConfigType != ModConfigType.None)
+            if (item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
             {
                 ShowModConfigForm(modInfo);
             }
@@ -1396,105 +1409,6 @@ namespace CrossworldsModManager
 
             draggedItem.Selected = true;
             modListView.Focus();
-        }
-
-        #endregion
-
-        #region Mod Config Conversion
-
-        private void ScanAndConvertModConfigs(string[] modDirectories)
-        {
-            foreach (var modDir in modDirectories)
-            {
-                var modIniPath = Path.Combine(modDir, "mod.ini");
-                var descIniPath = Path.Combine(modDir, "desc.ini");
-
-                // If a mod.ini already exists, we assume it's correctly configured and skip it.
-                if (File.Exists(modIniPath))
-                {
-                    continue;
-                }
-
-                var optionFolders = Directory.GetDirectories(modDir)
-                    .Where(subDir => File.Exists(Path.Combine(subDir, "desc.ini")))
-                    .ToList();
-
-                if (!optionFolders.Any()) continue;
-
-                // This mod uses the desc.ini configuration style.
-                // We need to generate/update its mod.ini.
-                var iniSections = File.Exists(modIniPath) ? IniParser.Parse(modIniPath) : new Dictionary<string, Dictionary<string, string>>();
-
-                // Ensure [Main] section exists
-                if (!iniSections.ContainsKey("Main"))
-                {
-                    iniSections["Main"] = new Dictionary<string, string>();
-                }
-                var mainSection = iniSections["Main"];
-
-                // If a root desc.ini exists, use it for the main details.
-                if (File.Exists(descIniPath))
-                {
-                    var descSections = IniParser.Parse(descIniPath);
-                    if (descSections.TryGetValue("Desc", out var descSection))
-                    {
-                        if (!mainSection.ContainsKey("Name")) mainSection["Name"] = descSection.GetValueOrDefault("Title", Path.GetFileName(modDir));
-                        if (!mainSection.ContainsKey("Author")) mainSection["Author"] = descSection.GetValueOrDefault("Author", "Unknown");
-                        if (!mainSection.ContainsKey("Description")) mainSection["Description"] = descSection.GetValueOrDefault("Description", "No description provided.");
-                    }
-                }
-
-                // Fill in any missing main details with defaults.
-                if (!mainSection.ContainsKey("Name")) mainSection["Name"] = Path.GetFileName(modDir);
-                if (!mainSection.ContainsKey("Author")) mainSection["Author"] = "Unknown";
-                if (!mainSection.ContainsKey("Version")) mainSection["Version"] = "1.0";
-                if (!mainSection.ContainsKey("Description")) mainSection["Description"] = "Configurable mod.";
-
-                // Create/Update [Config] section
-                var configSection = new Dictionary<string, string>
-                {
-                    ["Type"] = "SelectOne",
-                    ["Description"] = "Select an option for this mod:"
-                };
-
-                var optionNames = new List<string>();
-                var fileMappings = new Dictionary<string, string>();
-
-                foreach (var optionFolder in optionFolders)
-                {
-                    var optionName = Path.GetFileName(optionFolder);
-                    optionNames.Add(optionName);
-
-                    // Find all files in the option folder to map them.
-                    var filesInOption = Directory.GetFiles(optionFolder, "*", SearchOption.AllDirectories)
-                        .Where(f => !Path.GetFileName(f).Equals("desc.ini", StringComparison.OrdinalIgnoreCase));
-
-                    foreach (var file in filesInOption)
-                    {
-                        var relativePath = Path.GetRelativePath(modDir, file);
-                        fileMappings[relativePath] = optionName;
-                    }
-                }
-
-                configSection["Options"] = string.Join(",", optionNames);
-                iniSections["Config"] = configSection;
-
-                // Create/Update [Files] section
-                iniSections["Files"] = fileMappings;
-
-                // Write the new/updated mod.ini back to disk.
-                var writer = new StringWriter();
-                foreach (var section in iniSections)
-                {
-                    writer.WriteLine($"[{section.Key}]");
-                    foreach (var kvp in section.Value)
-                    {
-                        writer.WriteLine($"{kvp.Key}={kvp.Value}");
-                    }
-                    writer.WriteLine(); // Add a blank line for readability
-                }
-                File.WriteAllText(modIniPath, writer.ToString());
-            }
         }
 
         #endregion
