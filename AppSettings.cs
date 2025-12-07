@@ -26,5 +26,11 @@ namespace CrossworldsModManager
         public List<string>? EnabledMods { get; set; }
         public Dictionary<string, string>? ModConfigurations { get; set; }
         public List<string>? ModLoadOrder { get; set; }
+
+        public bool DeveloperModeEnabled { get; set; } = false;
+
+        // Developer Mode Settings
+        public string? DeveloperExportPath { get; set; }
+        public List<string> DeveloperEnabledFiles { get; set; } = new();
     }
 }

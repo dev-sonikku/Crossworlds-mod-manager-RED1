@@ -18,6 +18,7 @@ namespace CrossworldsModManager
             chkAutoClean.Checked = SettingsManager.Settings.AutoCleanTemporaryFiles;
             chkCheckForGames.Checked = SettingsManager.Settings.CheckForGamesOnStartup;
             chkAutoCloseLog.Checked = SettingsManager.Settings.AutoCloseLogOnSuccess;
+            chkDeveloperMode.Checked = SettingsManager.Settings.DeveloperModeEnabled;
         }
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
@@ -52,6 +53,7 @@ namespace CrossworldsModManager
             SettingsManager.Settings.AutoCleanTemporaryFiles = chkAutoClean.Checked;
             SettingsManager.Settings.CheckForGamesOnStartup = chkCheckForGames.Checked;
             SettingsManager.Settings.AutoCloseLogOnSuccess = chkAutoCloseLog.Checked;
+            SettingsManager.Settings.DeveloperModeEnabled = chkDeveloperMode.Checked;
             SettingsManager.Save();
             DialogResult = DialogResult.OK;
             Close();
