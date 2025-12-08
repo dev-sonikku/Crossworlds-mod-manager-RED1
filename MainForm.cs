@@ -25,6 +25,9 @@ namespace CrossworldsModManager
         public MainForm()
         {
             InitializeComponent();
+            // Set the form's icon from the executable's embedded icon.
+            this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
             this.Text = "Blue Star Manager - A Sonic Racing: CrossWorlds Mod Manager";
             // Apply the custom dark theme renderer for menus and tool strips
             ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
