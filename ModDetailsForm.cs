@@ -35,6 +35,9 @@ namespace CrossworldsModManager
             _logger = logger;
             _onModsChanged = onModsChanged;
             InitializeComponent();
+            // Set the form's icon from the executable's embedded icon.
+            this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
             this.Load += async (s, e) => await PopulateDataAsync();
         }
 
