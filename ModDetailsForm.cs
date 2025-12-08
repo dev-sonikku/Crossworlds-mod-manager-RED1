@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Linq;
 using System.IO;
 using System.IO.Compression;
+using SharpCompress.Archives;
 using System.Windows.Forms;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -355,40 +356,19 @@ namespace CrossworldsModManager
             var modsDirectory = SettingsManager.Settings.ModsDirectory;
             if (string.IsNullOrEmpty(modsDirectory)) throw new InvalidOperationException("Mods directory is not set.");
 
-            var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
-            var unrarPath = Path.Combine(toolsDir, "UnRAR.exe");
-            if (!File.Exists(unrarPath)) throw new FileNotFoundException("UnRAR.exe not found in Tools folder. It is required to extract archives.");
-
             // Use the mod's GameBanana name for the folder, sanitizing it for file system compatibility.
             string modName = SanitizeFolderName(_mod.Name);
             string targetDir = Path.Combine(modsDirectory, modName); 
 
             if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
             Directory.CreateDirectory(targetDir);
-
-            string extension = Path.GetExtension(archivePath).ToLowerInvariant();
             
-            if (extension == ".zip")
+            _logger?.Report($"Extracting {Path.GetFileName(archivePath)} using SharpCompress...");
+            await Task.Run(() =>
             {
-                _logger?.Report("Extracting .zip file using built-in method...");
-                await Task.Run(() => ZipFile.ExtractToDirectory(archivePath, targetDir, true));
-            }
-            else if (extension == ".rar")
-            {
-                _logger?.Report("Extracting .rar file using UnRAR.exe...");
-                await ExtractWithToolAsync(unrarPath, $"x -o+ \"{archivePath}\" \"{targetDir}\\\" -y", _logger);
-            }
-            else if (extension == ".7z")
-            {
-                _logger?.Report("Extracting .7z file using 7zr.exe...");
-                var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
-                if (!File.Exists(sevenZipPath)) throw new FileNotFoundException("7zr.exe not found in Tools folder. It is required to extract .zip and .7z files.");
-                await ExtractWithToolAsync(sevenZipPath, $"x \"{archivePath}\" -o\"{targetDir}\" -y", _logger);
-            }
-            else
-            {
-                throw new NotSupportedException($"Unsupported archive format: {extension}");
-            }
+                using var archive = ArchiveFactory.Open(archivePath);
+                archive.WriteToDirectory(targetDir, new SharpCompress.Common.ExtractionOptions { ExtractFullPath = true, Overwrite = true });
+            });
         }
         
         private static string SanitizeFolderName(string name)
@@ -400,40 +380,6 @@ namespace CrossworldsModManager
             }
             // Trim any leading/trailing spaces or dots that might cause issues
             return name.Trim(' ', '.');
-        }
-
-        private static async Task ExtractWithToolAsync(string toolPath, string arguments, IProgress<string>? progress)
-        {
-            progress?.Report($"Extracting with {Path.GetFileName(toolPath)}...");
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = toolPath,
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            
-            // Start reading the output and error streams asynchronously.
-            Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
-            Task<string> errorTask = process.StandardError.ReadToEndAsync();
-
-            // Wait for the process to exit completely.
-            await process.WaitForExitAsync();
-
-            // Now, await the results of the stream reading.
-            string output = await outputTask;
-            string error = await errorTask;
-
-            if (process.ExitCode != 0)
-            {
-                throw new Exception($"{Path.GetFileName(toolPath)} failed with exit code {process.ExitCode}.\nOutput: {output}\nError: {error}");
-            }
         }
     }
 }

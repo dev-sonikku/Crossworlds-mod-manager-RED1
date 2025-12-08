@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -17,6 +18,12 @@ namespace CrossworldsModManager
         [SupportedOSPlatform("windows")]
         public static Dictionary<string, (string Path, string? AppName)> FindGameInstallations()
         {
+            // If not on Windows, return an empty dictionary to avoid crashing.
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return new Dictionary<string, (string Path, string? AppName)>();
+            }
+
             var installations = new Dictionary<string, (string Path, string? AppName)>();
 
             // Find Steam

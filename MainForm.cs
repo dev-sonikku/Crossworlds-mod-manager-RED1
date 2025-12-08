@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Drawing;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace CrossworldsModManager
@@ -798,12 +799,26 @@ namespace CrossworldsModManager
 
         private async Task<bool> CreateSymbolicLinkAsync(string linkPath, string targetPath)
         {
+            string command;
+            string arguments;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                command = "cmd.exe";
+                arguments = $"/c mklink /J \"{linkPath}\" \"{targetPath}\"";
+            }
+            else // For Linux/macOS
+            {
+                command = "ln";
+                arguments = $"-s \"{targetPath}\" \"{linkPath}\"";
+            }
+
             using (var process = new Process())
             {
                 process.StartInfo = new ProcessStartInfo
                 {
-                        FileName = "cmd.exe",
-                        Arguments = $"/c mklink /J \"{linkPath}\" \"{targetPath}\"",
+                        FileName = command,
+                        Arguments = arguments,
                         RedirectStandardOutput = true,
                         RedirectStandardError = true,
                         UseShellExecute = false,
@@ -832,12 +847,26 @@ namespace CrossworldsModManager
                 File.Delete(linkPath);
             }
 
+            string command;
+            string arguments;
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                command = "cmd.exe";
+                arguments = $"/c mklink /H \"{linkPath}\" \"{targetPath}\"";
+            }
+            else // For Linux/macOS
+            {
+                command = "ln";
+                arguments = $"-s \"{targetPath}\" \"{linkPath}\"";
+            }
+
             using (var process = new Process())
             {
                 process.StartInfo = new ProcessStartInfo
                 {
-                    FileName = "cmd.exe",
-                    Arguments = $"/c mklink /H \"{linkPath}\" \"{targetPath}\"",
+                    FileName = command,
+                    Arguments = arguments,
                     UseShellExecute = false,
                     CreateNoWindow = true
                 };
