@@ -226,34 +226,36 @@ namespace CrossworldsModManager
 
         private void BuildSelectOneUI(Panel parentPanel, ModConfigurationGroup group)
         {
-
             var configKey = $"{_modInfo.Name}:{group.GroupName}";
             _activeProfile.ModConfigurations.TryGetValue(configKey, out var savedOption);
+            
+            var controls = new List<Control>();
+            bool selectionMade = false;
 
-            var comboBox = new ComboBox
+            foreach (string optionName in group.Options)
             {
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Location = new Point(0, 50),
-                Width = 350, // Set a more reasonable fixed width
-                Anchor = AnchorStyles.Top | AnchorStyles.Left, // Remove right anchor to prevent stretching
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(63, 63, 70),
-                ForeColor = Color.White,
-                Font = new Font(this.Font.FontFamily, 10f)
-            };
-            comboBox.Items.AddRange(group.Options.ToArray());
+                var radioButton = new RadioButton
+                {
+                    Text = optionName,
+                    Tag = optionName,
+                    Location = new Point(0, 50 + (controls.Count * 30)),
+                    AutoSize = true,
+                    ForeColor = Color.White,
+                    BackColor = Color.Transparent,
+                    Font = new Font(this.Font.FontFamily, 10f)
+                };
 
-            if (!string.IsNullOrEmpty(savedOption) && group.Options.Contains(savedOption))
-            {
-                comboBox.SelectedItem = savedOption;
+                // Check this button if it's the saved option, or if it's the first option and nothing is saved yet.
+                if (!selectionMade && (savedOption == optionName || (string.IsNullOrEmpty(savedOption) && controls.Count == 0)))
+                {
+                    radioButton.Checked = true;
+                    selectionMade = true;
+                }
+
+                parentPanel.Controls.Add(radioButton);
+                controls.Add(radioButton);
             }
-            else if (group.Options.Any())
-            {
-                comboBox.SelectedIndex = 0; // Default to first option
-            }
-
-            parentPanel.Controls.Add(comboBox);
-            _groupControls[group.GroupName] = new List<Control> { comboBox };
+            _groupControls[group.GroupName] = controls;
         }
 
         private void BuildSelectMultipleUI(Panel parentPanel, ModConfigurationGroup group)
@@ -334,9 +336,12 @@ namespace CrossworldsModManager
 
                 if (group.Type == ModConfigType.SelectOne)
                 {
-                    var comboBox = controls.OfType<ComboBox>().FirstOrDefault();
-                    if (comboBox?.SelectedItem != null)
-                        _activeProfile.ModConfigurations[configKey] = comboBox.SelectedItem?.ToString() ?? string.Empty;
+                    // Find the checked radio button in the group
+                    var checkedRadioButton = controls.OfType<RadioButton>().FirstOrDefault(rb => rb.Checked);
+                    if (checkedRadioButton != null)
+                    {
+                        _activeProfile.ModConfigurations[configKey] = checkedRadioButton.Text;
+                    }
                 }
                 else if (group.Type == ModConfigType.SelectMultiple)
                 {
