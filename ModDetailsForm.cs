@@ -28,6 +28,9 @@ namespace CrossworldsModManager
         private ListBox lstFiles = null!;
         private ProgressBar prgDownload = null!;
         private Label lblProgress = null!;
+        private TableLayoutPanel mainLayout = null!;
+
+        public string ModName => _mod.Name;
 
         public ModDetailsForm(GameBananaMod mod, IProgress<string>? logger = null, Action? onModsChanged = null)
         {
@@ -56,7 +59,7 @@ namespace CrossworldsModManager
             this.lblProgress = new Label();
 
             // Main layout panel
-            TableLayoutPanel mainLayout = new TableLayoutPanel();
+            this.mainLayout = new TableLayoutPanel();
             mainLayout.ColumnCount = 2;
             mainLayout.RowCount = 1;
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60F)); // Details on left
@@ -165,7 +168,7 @@ namespace CrossworldsModManager
             this.btnDownload.FlatAppearance.BorderSize = 0;
             this.btnDownload.ForeColor = Color.White;
             this.btnDownload.Click += btnDownload_Click;
-
+            
             // Add controls to panels
             pnlWebContainer.Controls.Add(this.webDescription); // Add browser to its container
             pnlDetails.Controls.Add(this.lnkProfileUrl);
@@ -193,6 +196,101 @@ namespace CrossworldsModManager
             this.StartPosition = FormStartPosition.CenterParent;
         }
 
+        public void SetConfirmationMode()
+        {
+            this.Text = "Confirm Mod Installation";
+            btnDownload.Text = "Install";
+            btnDownload.DialogResult = DialogResult.OK; // Will be handled by click event
+
+            // Undock the original button so we can place it in a new panel
+            btnDownload.Dock = DockStyle.None;
+            btnDownload.Anchor = AnchorStyles.Right;
+            btnDownload.Width = 100;
+
+            // Add a cancel button
+            var btnCancel = new Button
+            {
+                Name = "btnCancel",
+                Text = "Cancel",
+                Anchor = AnchorStyles.Right,
+                Width = 100,
+                Height = 40,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(63, 63, 70),
+                ForeColor = Color.White,
+                DialogResult = DialogResult.Cancel
+            };
+            btnCancel.FlatAppearance.BorderSize = 0;
+
+            // Use a FlowLayoutPanel to keep buttons next to each other at the bottom right
+            var buttonPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                FlowDirection = FlowDirection.RightToLeft,
+                Height = 50,
+                Padding = new Padding(0, 5, 0, 5)
+            };
+
+            // Capture the original parent before changing it.
+            var originalParent = btnDownload.Parent;
+
+            buttonPanel.Controls.Add(btnCancel);
+            buttonPanel.Controls.Add(btnDownload);
+
+            // Add the new button panel to the parent of the original download button
+            if (originalParent is Panel parentPanel)
+            {
+                parentPanel.Controls.Add(buttonPanel);
+                // Bring the button panel to the front to ensure it's at the very bottom
+                buttonPanel.BringToFront();
+            }
+        }
+
+        private void ShowProgressView()
+        {
+            // Hide the main details and file list panels
+            mainLayout.ColumnStyles[0].Width = 0;
+            mainLayout.ColumnStyles[1].Width = 100;
+            mainLayout.Controls[0].Visible = false; // pnlDetails
+
+            // In the right panel, hide everything except the progress indicators
+            lstFiles.Visible = false;
+            btnDownload.Visible = false;
+            // The FlowLayoutPanel with the buttons is a child of btnDownload's original parent
+            if (btnDownload.Parent is FlowLayoutPanel buttonPanel)
+            {
+                buttonPanel.Visible = false;
+            }
+        }
+
+        private void ShowCompletionView()
+        {
+            // This is called after a successful 1-Click install.
+            // It reconfigures the progress view to show a final "OK" button.
+
+            prgDownload.Visible = false;
+            lblProgress.Text = "Installation Complete!";
+            lblProgress.Font = new Font(lblProgress.Font, FontStyle.Bold);
+
+            // Create a final OK button to close the form.
+            var btnOk = new Button
+            {
+                Name = "btnOk",
+                Text = "OK",
+                DialogResult = DialogResult.OK,
+                Height = 40,
+                Dock = DockStyle.Bottom,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(0, 122, 204),
+                ForeColor = Color.White
+            };
+            btnOk.FlatAppearance.BorderSize = 0;
+
+            if (prgDownload.Parent != null)
+            {
+                prgDownload.Parent.Controls.Add(btnOk);
+            }
+        }
         private async Task PopulateDataAsync()
         {
             if (this.IsDisposed || webDescription.IsDisposed) return;
@@ -228,6 +326,7 @@ namespace CrossworldsModManager
                 // Populate description
                 if (modProfile?.Description != null && !string.IsNullOrEmpty(modProfile.Description))
                 {
+                    _mod.Name = modProfile.Name; // Update name from profile
                     lblLikeCount.Text = $"Likes: {modProfile.LikeCount:N0}"; // Update with more accurate count from profile if available
                     _logger?.Report($"Successfully fetched details. Description length: {modProfile.Description.Length} characters.");
                     // Inject some basic CSS to make the HTML content match the dark theme.
@@ -273,78 +372,49 @@ namespace CrossworldsModManager
                 MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            
-            btnDownload.Enabled = false;
-            btnDownload.Text = "Downloading...";
-            lstFiles.Enabled = false;
 
-            prgDownload.Visible = true;
-            lblProgress.Visible = true;
-            lblProgress.Text = "Starting...";
+            // For 1-Click installs, this form acts as a confirmation dialog.
+            // Clicking "Install" sets the DialogResult and closes this form.
+            // The main form will then handle launching the progress window.
+            if (this.Owner is MainForm)
+            {
+                this.DialogResult = DialogResult.OK;
+                this.Close();
+                return;
+            }
 
+            // For regular downloads from the browser, we launch the progress form directly.
+            await LaunchProgressForm(selectedFile);
+            this.DialogResult = DialogResult.OK; // Mark as successful to close the details form.
+            this.Close();
+        }
+
+        public GameBananaFile? GetSelectedFile()
+        {
+            return lstFiles.SelectedItem as GameBananaFile;
+        }
+
+        private async Task RunFullInstallProcessAsync(GameBananaFile selectedFile, ProgressForm progressForm)
+        {
             var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CrossworldsModManager", "Downloads");
             Directory.CreateDirectory(appDataPath);
             var downloadedFilePath = Path.Combine(appDataPath, selectedFile.FileName);
 
             try
             {
-                _logger?.Report($"Starting download: {selectedFile.DownloadUrl}");
-                using (var client = new HttpClient())
-                {
-                    var response = await client.GetAsync(selectedFile.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
-                    response.EnsureSuccessStatusCode();
-
-                    var totalBytes = response.Content.Headers.ContentLength ?? -1L;
-                    var totalBytesRead = 0L;
-
-                    using (var fs = new FileStream(downloadedFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                    {
-                        using (var contentStream = await response.Content.ReadAsStreamAsync())
-                        {
-                            var buffer = new byte[81920];
-                            int bytesRead;
-                            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                            {
-                                await fs.WriteAsync(buffer, 0, bytesRead);
-                                totalBytesRead += bytesRead;
-                                if (totalBytes != -1)
-                                {
-                                    var progressPercentage = (int)((totalBytesRead * 100) / totalBytes);
-                                    prgDownload.Value = progressPercentage;
-                                    lblProgress.Text = $"Downloading... {progressPercentage}%";
-                                }
-                            }
-                        }
-                    }
-                }
-                _logger?.Report($"Download complete: {downloadedFilePath}");
-
-                btnDownload.Text = "Extracting...";
-                lblProgress.Text = "Extracting...";
-                await InstallModAsync(downloadedFilePath);
-
-                MessageBox.Show($"Successfully installed '{_mod.Name}'!", "Installation Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                await DownloadFileAsync(selectedFile, downloadedFilePath, progressForm);
+                await ExtractAndInstallAsync(downloadedFilePath, progressForm);
                 _onModsChanged?.Invoke(); // Trigger a refresh on the main form
-                this.Close();
+                progressForm.ShowCompletion("Installation Complete!");
             }
             catch (Exception ex)
             {
                 var errorMsg = $"Failed to download or install mod: {ex.Message}";
                 _logger?.Report($"ERROR: {errorMsg}");
-                MessageBox.Show(errorMsg, "Installation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                progressForm.ShowCompletion($"Error: {ex.Message}");
             }
             finally
             {
-                // Re-enable controls if the form is still open
-                if (!this.IsDisposed)
-                {
-                    btnDownload.Enabled = true;
-                    btnDownload.Text = "Download Selected File";
-                    lstFiles.Enabled = true;
-                    prgDownload.Visible = false;
-                    lblProgress.Visible = false;
-                }
-
                 // Clean up the downloaded file
                 if (File.Exists(downloadedFilePath))
                 {
@@ -354,18 +424,67 @@ namespace CrossworldsModManager
             }
         }
 
-        private async Task InstallModAsync(string archivePath)
+        public async Task LaunchProgressForm(GameBananaFile fileToInstall)
+        {
+            using (var progressForm = new ProgressForm($"Installing '{_mod.Name}'..."))
+            {
+                // Run the installation process asynchronously while the form is shown modally.
+                progressForm.Shown += async (s, e) => await RunFullInstallProcessAsync(fileToInstall, progressForm);
+                progressForm.ShowDialog(this);
+            }
+        }
+
+        private async Task DownloadFileAsync(GameBananaFile selectedFile, string destinationPath, ProgressForm progressForm)
+        {
+            _logger?.Report($"Starting download: {selectedFile.DownloadUrl}");
+            progressForm.UpdateStatus("Downloading...");
+
+            using (var client = new HttpClient())
+            {
+                var response = await client.GetAsync(selectedFile.DownloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+
+                var totalBytes = response.Content.Headers.ContentLength ?? -1L;
+                var totalBytesRead = 0L;
+
+                using (var fs = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    using (var contentStream = await response.Content.ReadAsStreamAsync())
+                    {
+                        var buffer = new byte[81920];
+                        int bytesRead;
+                        while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                        {
+                            await fs.WriteAsync(buffer, 0, bytesRead);
+                            totalBytesRead += bytesRead;
+                            if (totalBytes != -1)
+                            {
+                                var progressPercentage = (int)((totalBytesRead * 100) / totalBytes);
+                                progressForm.UpdateProgress(progressPercentage);
+                                progressForm.UpdateStatus($"Downloading... {progressPercentage}%");
+                            }
+                        }
+                    }
+                }
+            }
+            _logger?.Report($"Download complete: {destinationPath}");
+        }
+
+        private async Task ExtractAndInstallAsync(string archivePath, ProgressForm progressForm)
         {
             var modsDirectory = SettingsManager.Settings.ModsDirectory;
             if (string.IsNullOrEmpty(modsDirectory)) throw new InvalidOperationException("Mods directory is not set.");
 
+            progressForm.UpdateStatus("Extracting...");
+            progressForm.UpdateProgress(100); // Keep bar full during extraction
+
             // Use the mod's GameBanana name for the folder, sanitizing it for file system compatibility.
             string modName = SanitizeFolderName(_mod.Name);
-            string targetDir = Path.Combine(modsDirectory, modName); 
+            string targetDir = Path.Combine(modsDirectory, modName);
 
             if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
             Directory.CreateDirectory(targetDir);
-            
+
             _logger?.Report($"Extracting {Path.GetFileName(archivePath)} using SharpCompress...");
             await Task.Run(() =>
             {

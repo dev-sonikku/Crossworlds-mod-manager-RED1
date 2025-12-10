@@ -1,0 +1,95 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace CrossworldsModManager
+{
+    public partial class ProgressForm : Form
+    {
+        private Label lblStatus = null!;
+        private ProgressBar progressBar = null!;
+        private Button btnOk = null!;
+
+        public ProgressForm(string title)
+        {
+            InitializeComponent();
+            this.Text = title;
+        }
+
+        private void InitializeComponent()
+        {
+            this.lblStatus = new Label();
+            this.progressBar = new ProgressBar();
+            this.btnOk = new Button();
+            this.SuspendLayout();
+
+            // Form settings
+            this.BackColor = Color.FromArgb(45, 45, 48);
+            this.ForeColor = Color.White;
+            this.ClientSize = new Size(384, 120);
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.StartPosition = FormStartPosition.CenterParent;
+            this.ControlBox = false;
+
+            // lblStatus
+            this.lblStatus.Location = new Point(12, 20);
+            this.lblStatus.Size = new Size(360, 23);
+            this.lblStatus.Text = "Initializing...";
+            this.lblStatus.TextAlign = ContentAlignment.MiddleCenter;
+
+            // progressBar
+            this.progressBar.Location = new Point(12, 50);
+            this.progressBar.Size = new Size(360, 23);
+            this.progressBar.Style = ProgressBarStyle.Continuous;
+
+            // btnOk
+            this.btnOk.DialogResult = DialogResult.OK;
+            this.btnOk.Location = new Point(150, 85);
+            this.btnOk.Size = new Size(80, 25);
+            this.btnOk.Text = "OK";
+            this.btnOk.Visible = false; // Only show when done
+            this.btnOk.FlatStyle = FlatStyle.Flat;
+            this.btnOk.BackColor = Color.FromArgb(0, 122, 204);
+            this.btnOk.ForeColor = Color.White;
+            this.btnOk.FlatAppearance.BorderSize = 0;
+
+            // Add controls
+            this.Controls.Add(this.btnOk);
+            this.Controls.Add(this.progressBar);
+            this.Controls.Add(this.lblStatus);
+            this.ResumeLayout(false);
+        }
+
+        public void UpdateProgress(int percentage)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((Action)(() => UpdateProgress(percentage)));
+                return;
+            }
+            progressBar.Value = Math.Clamp(percentage, 0, 100);
+        }
+
+        public void UpdateStatus(string status)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((Action)(() => UpdateStatus(status)));
+                return;
+            }
+            lblStatus.Text = status;
+        }
+
+        public void ShowCompletion(string finalMessage)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke((Action)(() => ShowCompletion(finalMessage)));
+                return;
+            }
+            lblStatus.Text = finalMessage;
+            progressBar.Visible = false;
+            btnOk.Visible = true;
+        }
+    }
+}

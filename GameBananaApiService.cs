@@ -19,8 +19,17 @@ namespace CrossworldsModManager
         [JsonPropertyName("_sText")]
         public string Description { get; set; } = ""; // The HTML content of the mod's description page
 
+        [JsonPropertyName("_sName")]
+        public string Name { get; set; } = "";
+
         [JsonPropertyName("_nLikeCount")]
         public int LikeCount { get; set; }
+
+        [JsonPropertyName("_aSubmitter")]
+        public GameBananaSubmitter? Submitter { get; set; }
+
+        [JsonPropertyName("_aPreviewMedia")]
+        public GameBananaMedia? Media { get; set; }
     }
 
     public class GameBananaDownloadPage
@@ -179,6 +188,41 @@ namespace CrossworldsModManager
             catch (Exception ex)
             {
                 throw new Exception($"An error occurred while fetching download page. Details: {ex.Message}", ex);
+            }
+        }
+
+        public static async Task<GameBananaMod?> GetModFromProfilePageAsync(string modType, int modId)
+        {
+            var url = $"{ApiBaseUrl}/{modType}/{modId}/ProfilePage";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(url);
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Request to GameBanana API failed with status code {response.StatusCode}.\nURL: {url}\nResponse: {content}");
+                }
+                var modProfile = JsonSerializer.Deserialize<GameBananaModProfile>(content);
+
+                if (modProfile == null) return null;
+
+                // Construct a GameBananaMod object from the profile data
+                return new GameBananaMod
+                {
+                    Id = modId,
+                    ModelName = modType,
+                    Name = modProfile.Name,
+                    LikeCount = modProfile.LikeCount,
+                    Submitter = modProfile.Submitter,
+                    Media = modProfile.Media,
+                    ProfileUrl = $"https://gamebanana.com/{modType.ToLower()}/{modId}"
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while fetching mod profile page. Details: {ex.Message}", ex);
             }
         }
     }

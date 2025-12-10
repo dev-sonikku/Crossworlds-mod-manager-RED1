@@ -13,6 +13,16 @@ namespace CrossworldsModManager
 {
     public partial class MainForm : Form
     {
+        // Struct for receiving WM_COPYDATA messages
+        [StructLayout(LayoutKind.Sequential)]
+        private struct COPYDATASTRUCT
+        {
+            public IntPtr dwData;
+            public int cbData;
+            public IntPtr lpData;
+        }
+        private const int WM_COPYDATA = 0x004A;
+
         // This is a common executable name pattern for Unreal Engine games.
         // We check for the process name without the .exe extension.
         private const string GameProcessName = "SonicRacingCrossWorldsSteam";
@@ -22,11 +32,13 @@ namespace CrossworldsModManager
         private LogForm? _logForm;
         private DeveloperForm? _devForm;
         private Button? btnBrowseMods; // Added for GameBanana browser
+        private readonly string? _oneClickUrl;
 
-        public MainForm()
+        public MainForm(string? oneClickUrl = null)
         {
             InitializeComponent();
             // Set the form's icon from the executable's embedded icon.
+            _oneClickUrl = oneClickUrl;
             this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             this.Text = "Blue Star Manager - A Sonic Racing: CrossWorlds Mod Manager";
@@ -95,6 +107,35 @@ namespace CrossworldsModManager
             base.OnShown(e);
             // This needs to be called after the main form is shown to position correctly.
             ToggleDeveloperForm();
+
+            if (!string.IsNullOrEmpty(_oneClickUrl))
+            {
+                HandleOneClickInstallAsync(_oneClickUrl);
+            }
+        }
+
+        protected override void WndProc(ref Message m)
+        {
+            // Listen for WM_COPYDATA messages from other instances
+            if (m.Msg == WM_COPYDATA)
+            {
+                try
+                {
+                    var cds = (COPYDATASTRUCT)Marshal.PtrToStructure(m.LParam, typeof(COPYDATASTRUCT))!;
+                    var url = Marshal.PtrToStringAnsi(cds.lpData);
+
+                    if (!string.IsNullOrEmpty(url))
+                    {
+                        // Handle the URL on the UI thread
+                        this.BeginInvoke((Action)(() => HandleOneClickInstallAsync(url)));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error processing WM_COPYDATA: {ex.Message}");
+                }
+            }
+            base.WndProc(ref m);
         }
 
         private void DetectGameInstallations()
@@ -1476,6 +1517,68 @@ namespace CrossworldsModManager
             }
         }
 
+        private async void HandleOneClickInstallAsync(string url)
+        {
+            try
+            {
+                // Format: bluestar:https://gamebanana.com/mmdl/DOWNLOAD_ID,TYPE,MOD_ID,ARCHIVE_TYPE
+                var parts = url.Split(',');
+                if (parts.Length < 3) throw new ArgumentException("Invalid 1-Click URL format.");
+
+                if (!int.TryParse(parts[2], out int modId))
+                {
+                    throw new ArgumentException("Could not parse Mod ID from URL.");
+                }
+
+                var modType = parts[1];
+
+                UpdateStatus($"1-Click Install: Fetching info for Mod ID {modId}...");
+
+                // Fetch the full mod details from the profile page API before showing the dialog.
+                var fullModInfo = await GameBananaApiService.GetModFromProfilePageAsync(modType, modId);
+
+                if (fullModInfo == null)
+                {
+                    throw new Exception($"Could not retrieve mod information for ID {modId}. The mod may have been removed.");
+                }
+
+                // Create a logger that reports to our main debug log window
+                IProgress<string> browserLogger = new Progress<string>(s =>
+                {
+                    if (_logForm != null && !_logForm.IsDisposed)
+                    {
+                        _logForm.AppendLog($"[1-Click] {s}");
+                    }
+                });
+
+                // Show the details form as a confirmation dialog.
+                // The form will handle fetching full details, downloading, and installing.
+                using (var detailsForm = new ModDetailsForm(fullModInfo, browserLogger, RefreshModList))
+                {
+                    detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
+                    var result = detailsForm.ShowDialog(this);
+
+                    if (result == DialogResult.OK)
+                    {
+                        // The user confirmed. Now, get the selected file and launch the progress form.
+                        if (detailsForm.GetSelectedFile() is GameBananaFile fileToInstall)
+                        {
+                            await detailsForm.LaunchProgressForm(fileToInstall); // This will now work
+                            UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
+                        }
+                    }
+                    else
+                    {
+                        UpdateStatus("1-Click Install cancelled by user.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to handle 1-Click Install link:\n\n{ex.Message}", "1-Click Install Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                UpdateStatus("1-Click Install failed.");
+            }
+        }
         #endregion
 
         #region Drag and Drop Reordering
