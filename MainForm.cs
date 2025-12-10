@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Drawing;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -941,10 +942,15 @@ namespace CrossworldsModManager
                                 if (!File.Exists(unrarPath)) throw new FileNotFoundException("UnRAR.exe not found in Tools folder. It is required to extract .rar files.");
                                 await ExtractWithToolAsync(unrarPath, file, targetDir);
                             }
-                            else if (extension == ".zip" || extension == ".7z")
+                            else if (extension == ".zip")
+                            {
+                                // Use native .NET extraction for .zip files for better reliability.
+                                await Task.Run(() => ZipFile.ExtractToDirectory(file, targetDir, true));
+                            }
+                            else if (extension == ".7z")
                             {
                                 var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
-                                if (!File.Exists(sevenZipPath)) throw new FileNotFoundException("7zr.exe not found in Tools folder. It is required to extract .zip and .7z files.");
+                                if (!File.Exists(sevenZipPath)) throw new FileNotFoundException("7zr.exe not found in Tools folder. It is required to extract .7z files.");
                                 await ExtractWithToolAsync(sevenZipPath, file, targetDir);
                             }
                             else
