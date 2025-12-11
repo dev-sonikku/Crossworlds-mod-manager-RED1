@@ -34,14 +34,16 @@ namespace CrossworldsModManager
         private Button? btnBrowseMods; // Added for GameBanana browser
         private readonly string? _oneClickUrl;
 
-        public MainForm(string? oneClickUrl = null)
+        public MainForm(string? oneClickUrl, string appVersion)
         {
             InitializeComponent();
             // Set the form's icon from the executable's embedded icon.
             _oneClickUrl = oneClickUrl;
             this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
-            this.Text = "Blue Star Manager - A Sonic Racing: CrossWorlds Mod Manager";
+            // Use the version in the title bar
+            this.Text = $"Blue Star Manager v{appVersion} - A Sonic Racing: CrossWorlds Mod Manager";
+
             // Apply the custom dark theme renderer for menus and tool strips
             ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
             LoadSettingsAndSetup();
@@ -112,6 +114,9 @@ namespace CrossworldsModManager
             {
                 HandleOneClickInstallAsync(_oneClickUrl);
             }
+
+            // Check for updates after the form is visible.
+            Program.CheckForUpdates();
         }
 
         protected override void WndProc(ref Message m)

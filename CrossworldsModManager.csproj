@@ -23,4 +23,8 @@
     <ApplicationDefinition Remove="App.xaml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="updater\**" />
+  </ItemGroup>
+
 </Project>

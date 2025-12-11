@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -10,8 +12,11 @@ namespace CrossworldsModManager
 {
     static class Program
     {
+        // Current application version.
+        public const string AppVersion = "1.0.0";
+
         // Unique GUID for the application to identify the mutex and messages.
-        private const string AppGuid = "c1a2b3d4-e5f6-7890-1234-567890abcdef";
+        private const string AppGuid = "c1a2b3d4-e5f6-7890-1234-567890abcdef"; // Please generate a new GUID for your app
         private const string ProtocolName = "bluestar";
 
         // P/Invoke for sending messages to the existing instance
@@ -53,7 +58,7 @@ namespace CrossworldsModManager
                     {
                         Application.EnableVisualStyles();
                         Application.SetCompatibleTextRenderingDefault(false);
-                        Application.Run(new MainForm(oneClickUrl));
+                        Application.Run(new MainForm(oneClickUrl, AppVersion));
                     }
                     catch (Exception ex)
                     {
@@ -123,5 +128,85 @@ namespace CrossworldsModManager
                 Debug.WriteLine($"Failed to register URL protocol: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Checks GitHub for a new release and prompts the user to update if one is found.
+        /// </summary>
+        public static async void CheckForUpdates()
+        {
+            try
+            {
+                string owner = "Red1Fouad";
+                string repo = "Crossworlds-mod-manager-RED1";
+                string latestVersionTag;
+                string downloadUrl = string.Empty;
+
+                using (var client = new HttpClient())
+                {
+                    // GitHub API requires a User-Agent header.
+                    client.DefaultRequestHeaders.Add("User-Agent", "CrossworldsModManager-Update-Check");
+
+                    // Get the latest release information
+                    var response = await client.GetStringAsync($"https://api.github.com/repos/{owner}/{repo}/releases/latest");
+                    
+                    // A simple JSON parser to avoid adding a full library dependency.
+                    // This finds the "tag_name" and the first "browser_download_url".
+                    latestVersionTag = ParseJsonValue(response, "tag_name");
+                    downloadUrl = ParseJsonValue(response, "browser_download_url");
+                }
+
+                if (string.IsNullOrEmpty(latestVersionTag) || string.IsNullOrEmpty(downloadUrl))
+                {
+                    Debug.WriteLine("Could not determine latest version or download URL from GitHub API response.");
+                    return;
+                }
+
+                // Normalize version strings (e.g., "v1.2.3" -> "1.2.3")
+                var latestVersion = new Version(latestVersionTag.TrimStart('v'));
+                var currentVersion = new Version(AppVersion);
+
+                if (latestVersion > currentVersion)
+                {
+                    var result = MessageBox.Show(
+                        $"A new version ({latestVersionTag}) is available!\nWould you like to update now?",
+                        "Update Available",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Information);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        // Launch the external updater
+                        string updaterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "updater.exe");
+                        if (File.Exists(updaterPath))
+                        {
+                            var currentProcess = Process.GetCurrentProcess();
+                            string? appPath = currentProcess.MainModule?.FileName;
+
+                            if (string.IsNullOrEmpty(appPath)) {
+                                MessageBox.Show("Could not determine the application path. Update cannot proceed.", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
+
+                            string arguments = $"--pid {currentProcess.Id} --appPath \"{appPath}\" --downloadUrl \"{downloadUrl}\"";
+                            Process.Start(updaterPath, arguments);
+                            Application.Exit();
+                        }
+                        else
+                        {
+                            MessageBox.Show($"Updater executable not found at:\n{updaterPath}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error checking for updates: {ex.Message}");
+                // Silently fail, as this is not a critical function.
+            }
+        }
+
+        // A very basic helper to extract a value from a JSON string.
+        private static string ParseJsonValue(string json, string key) =>
+            System.Text.RegularExpressions.Regex.Match(json, $"\"{key}\"\\s*:\\s*\"(.*?)\"").Groups[1].Value;
     }
 }
