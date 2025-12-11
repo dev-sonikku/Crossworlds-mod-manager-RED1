@@ -244,6 +244,12 @@ namespace CrossworldsModManager
                 // Bring the button panel to the front to ensure it's at the very bottom
                 buttonPanel.BringToFront();
             }
+
+            // For 1-Click, we already know the file, so we don't need to show the list.
+            // Remove the listbox from its parent so it no longer takes up space.
+            // The button panel will now be the only thing at the bottom of the right panel.
+            lstFiles.Parent?.Controls.Remove(lstFiles);
+            lstFiles.Dispose(); // Clean up the resource.
         }
 
         private void ShowProgressView()
@@ -367,12 +373,6 @@ namespace CrossworldsModManager
 
         private async void btnDownload_Click(object? sender, EventArgs e)
         {
-            if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
-            {
-                MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
             // For 1-Click installs, this form acts as a confirmation dialog.
             // Clicking "Install" sets the DialogResult and closes this form.
             // The main form will then handle launching the progress window.
@@ -380,6 +380,13 @@ namespace CrossworldsModManager
             {
                 this.DialogResult = DialogResult.OK;
                 this.Close();
+                return;
+            }
+
+            // This part is for regular downloads from the browser.
+            if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
+            {
+                MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -480,6 +487,14 @@ namespace CrossworldsModManager
 
             // Use the mod's GameBanana name for the folder, sanitizing it for file system compatibility.
             string modName = SanitizeFolderName(_mod.Name);
+
+            // CRITICAL SAFETY CHECK: Ensure the sanitized mod name is not empty or just whitespace.
+            // If it is, we must abort to prevent deleting the root mods directory.
+            if (string.IsNullOrWhiteSpace(modName))
+            {
+                throw new InvalidOperationException("Mod name is invalid or empty, cannot create a folder for it. Aborting installation to prevent data loss.");
+            }
+
             string targetDir = Path.Combine(modsDirectory, modName);
 
             if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);

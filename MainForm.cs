@@ -1523,8 +1523,15 @@ namespace CrossworldsModManager
             {
                 // Format: bluestar:https://gamebanana.com/mmdl/DOWNLOAD_ID,TYPE,MOD_ID,ARCHIVE_TYPE
                 var parts = url.Split(',');
-                if (parts.Length < 3) throw new ArgumentException("Invalid 1-Click URL format.");
+                if (parts.Length < 3) throw new ArgumentException("Invalid 1-Click URL format (missing commas).");
 
+                var urlPart = parts[0]; // e.g., bluestar:https://gamebanana.com/mmdl/1577381
+                var downloadIdString = urlPart.Split('/').LastOrDefault();
+                if (!int.TryParse(downloadIdString, out int downloadId))
+                {
+                    throw new ArgumentException("Could not parse Download ID from URL.");
+                }
+                
                 if (!int.TryParse(parts[2], out int modId))
                 {
                     throw new ArgumentException("Could not parse Mod ID from URL.");
@@ -1532,7 +1539,7 @@ namespace CrossworldsModManager
 
                 var modType = parts[1];
 
-                UpdateStatus($"1-Click Install: Fetching info for Mod ID {modId}...");
+                UpdateStatus($"1-Click Install: Fetching info for Mod ID {modId}, File ID {downloadId}...");
 
                 // Fetch the full mod details from the profile page API before showing the dialog.
                 var fullModInfo = await GameBananaApiService.GetModFromProfilePageAsync(modType, modId);
@@ -1541,6 +1548,19 @@ namespace CrossworldsModManager
                 {
                     throw new Exception($"Could not retrieve mod information for ID {modId}. The mod may have been removed.");
                 }
+
+                // Now, get the list of files and find the one matching our download ID.
+                var downloadPage = await GameBananaApiService.GetModDownloadPageAsync(fullModInfo);
+                var fileToInstall = downloadPage?.Files?.FirstOrDefault(f => f.FileId == downloadId);
+
+                if (fileToInstall == null)
+                {
+                    var availableIds = string.Join(", ", downloadPage?.Files?.Select(f => f.FileId.ToString()) ?? new[] { "none" });
+                    throw new Exception($"The specified file (ID: {downloadId}) could not be found for this mod. Available file IDs: {availableIds}. The file may have been updated or removed.");
+                }
+
+                // Update the status with the correct file name.
+                UpdateStatus($"Found file: {fileToInstall.FileName}");
 
                 // Create a logger that reports to our main debug log window
                 IProgress<string> browserLogger = new Progress<string>(s =>
@@ -1560,12 +1580,8 @@ namespace CrossworldsModManager
 
                     if (result == DialogResult.OK)
                     {
-                        // The user confirmed. Now, get the selected file and launch the progress form.
-                        if (detailsForm.GetSelectedFile() is GameBananaFile fileToInstall)
-                        {
-                            await detailsForm.LaunchProgressForm(fileToInstall); // This will now work
-                            UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
-                        }
+                        await detailsForm.LaunchProgressForm(fileToInstall);
+                        UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
                     }
                     else
                     {

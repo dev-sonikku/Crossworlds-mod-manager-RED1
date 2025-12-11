@@ -40,6 +40,9 @@ namespace CrossworldsModManager
 
     public class GameBananaFile
     {
+        [JsonPropertyName("_idRow")]
+        public int FileId { get; set; }
+
         [JsonPropertyName("_sFile")]
         public string FileName { get; set; } = "";
 
