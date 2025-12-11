@@ -1,6 +1,6 @@
 # Blue Star: The CrossWorlds Mod Manager
 
-**Blue Star** is a powerful mod manager for *Team Sonic Racing* on PC, designed to work seamlessly with the **CrossWorlds** overhaul mod. It provides an easy-to-use interface for players to install and manage their mods, and offers robust features for mod creators to build configurable and advanced modifications.
+**Blue Star** is a powerful mod manager for *Sonic Racing: CrossWorlds* on PC. It provides an easy-to-use interface for players to install and manage their mods, and offers robust features for mod creators to build configurable and advanced modifications.
 
 ## Features
 
