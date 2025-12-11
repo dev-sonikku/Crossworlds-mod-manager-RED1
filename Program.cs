@@ -47,12 +47,8 @@ namespace CrossworldsModManager
                 if (createdNew)
                 {
                     // This is the first instance.
-                    // Register the protocol if we were launched with a URL, just in case.
-                    if (oneClickUrl != null)
-                    {
-                        RegisterProtocol();
-                    }
-
+                    // Always register the protocol on startup to ensure it's up-to-date.
+                    RegisterProtocol();
                     try
                     {
                         Application.EnableVisualStyles();

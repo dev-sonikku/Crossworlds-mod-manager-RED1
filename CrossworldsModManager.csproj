@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+    <AssemblyName>Bluestar Manager</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
