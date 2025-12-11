@@ -19,7 +19,7 @@
 ## For Players: How to Use
 
 1. **Download**: Grab the latest release of Blue Star Manager.
-2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Team Sonic Racing* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
+2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Sonic Racing: CrossWorlds* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
 3. **Install Mods**:
     - Use the "GameBanana" tab to browse and install mods with one click.
     - Or, manually download a mod and drag-and-drop its `.zip` or folder into the manager.
