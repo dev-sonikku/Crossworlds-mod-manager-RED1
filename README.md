@@ -19,13 +19,13 @@
 ## For Players: How to Use
 
 1. **Download**: Grab the latest release of Blue Star Manager.
-2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Team Sonic Racing* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
+2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Sonic Racing: CrossWorlds* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
 3. **Install Mods**:
-    - Use the "GameBanana" tab to browse and install mods with one click.
+    - Use the "Browse Mods..." tab to browse and install mods with one click.
     - Or, manually download a mod and drag-and-drop its `.zip` or folder into the manager.
 4. **Enable/Disable**: Click the checkbox next to a mod to enable or disable it.
 5. **Configure Mods**: If a mod has a "Configure" button, you can click it to open a window with different options for that mod.
-6. **Play**: Click "Launch Game" to play with your selected mods!
+6. **Play**: Click "Play" to play with your selected mods! (Make sure you always Save before launching the game!)
 
 ---
 
@@ -85,7 +85,7 @@ The `[Files]` section maps your configuration options to the files they control.
 -   `FilePath` is the relative path to your mod file.
 -   `GroupName.OptionName` is the unique identifier for the option.
 
-> **Important:** The manager automatically handles all related UE4 pak files (`.pak`, `.ucas`, `.utoc`, `.pak.disabled`, etc.). You only need to specify the base file path once.
+> **Important:** The manager automatically handles all related UE5 pak files (`.pak`, `.ucas`, `.utoc`, `.pak.disabled`, etc.). You only need to specify the base file path once.
 
 **Example:**
 ```ini
