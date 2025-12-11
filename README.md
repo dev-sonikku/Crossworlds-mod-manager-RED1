@@ -19,14 +19,13 @@
 ## For Players: How to Use
 
 1. **Download**: Grab the latest release of Blue Star Manager.
-2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Sonic Racing: CrossWorlds* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
+2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Team Sonic Racing* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
 3. **Install Mods**:
-    - Use the "Browse Mods..." tab to browse and install mods with one click.
+    - Use the "GameBanana" tab to browse and install mods with one click.
     - Or, manually download a mod and drag-and-drop its `.zip` or folder into the manager.
 4. **Enable/Disable**: Click the checkbox next to a mod to enable or disable it.
 5. **Configure Mods**: If a mod has a "Configure" button, you can click it to open a window with different options for that mod.
-6. **Play**: Click "Play" to play with your selected mods! (Make sure you always Save before launching the game!)
-
+6. **Play**: Click "Launch Game" to play with your selected mods!
 ---
 
 ## For Mod Creators: Creating Compatible Mods
@@ -84,45 +83,71 @@ The `[Files]` section maps your configuration options to the files they control.
 
 -   `FilePath` is the relative path to your mod file.
 -   `GroupName.OptionName` is the unique identifier for the option.
-
-> **Important:** The manager automatically handles all related UE5 pak files (`.pak`, `.ucas`, `.utoc`, `.pak.disabled`, etc.). You only need to specify the base file path once.
+> **Important:** The manager automatically handles all related UE4 pak files (`.pak`, `.ucas`, `.utoc`, etc.). You only need to specify the base file path once. This also works for `.json` files used for text merging.
 
 **Example:**
 ```ini
-[Files]
-; Car color files
-Cars/MyCar_Red.pak = Color.Red
-Cars/MyCar_Blue.pak = Color.Blue
+[Config:Character]
+Type=SelectOne
+Description=Choose your character style:
+Options=Vanilla,Classic,Modern
 
-; Extra effect files
-Effects/Neon.pak = Extra Effects.Neon Underglow
-Audio/Horns/CustomHorn.pak = Extra Effects.Custom Horn
+[Files]
+; Pak files for different character models
+Models/Classic.pak = Character.Classic
+Models/Modern.pak = Character.Modern
+
+; JSON files for different character names
+Text/ClassicName.json = Character.Classic
+Text/ModernName.json = Character.Modern
 ```
 
-### 4. Text Merging with `mod.json`
+### 4. Text Merging (JSON Files)
 
-For advanced mods, you can directly edit in-game text by creating a `mod.json` file in the same directory as your `mod.ini`. This allows you to add or overwrite text entries in the game's localization tables.
+You can directly edit in-game text by creating `.json` files. This allows you to add or overwrite text entries in the game's localization tables.
 
-The `mod.json` file contains a JSON array of objects, where each object represents a single text change:
--   **Language**: The language code (e.g., `"en"`).
--   **Namespace**: The localization namespace (e.g., `"DB_CharacterName"`).
--   **Key**: The unique identifier for the text string.
--   **Value**: The new text you want to display.
+Each `.json` file contains an array of objects, where each object represents a single text change:
+- **Language**: The language code (e.g., `"en"`).
+- **Namespace**: The localization namespace (e.g., `"DB_CharacterName"`).
+- **Key**: The unique identifier for the text string.
+- **Value**: The new text you want to display.
 
-**Example `mod.json`:**
+#### Two Ways to Use Text Merging:
+
+1.  **Simple (Non-Configurable)**: For simple text changes that are always active when the mod is enabled, create a `.json` file (e.g., `mod.json`) in the root of your mod folder (next to `mod.ini`).
+
+2.  **Advanced (Configurable)**: To offer different text options (like character names that match a model swap), create multiple `.json` files and link them to options in the `[Files]` section of your `mod.ini`, as shown in the example above.
+
+**Example `ClassicName.json`:**
 ```json
 [
     {
         "Language": "en",
         "Namespace": "DB_CharacterName",
         "Key": "chara12001",
-        "Value": "RED1"
+        "Value": "Classic Character"
     },
+]
+```
+
+**Example `ModernName.json`:**
+```json
+[
     {
         "Language": "en",
-        "Namespace": "DB_RaceItem",
-        "Key": "raceitem_name_006",
-        "Value": "Teleport Ring"
+        "Namespace": "DB_CharacterName",
+        "Key": "chara12001",
+        "Value": "Modern Character"
     }
 ]
 ```
+
+---
+
+## Credits
+
+-   **RED1**: Lead Developer
+-   **UnrealPak**: Used for game asset packaging.
+-   **UAssetAPI**: Used for `.locres` file manipulation.
+
+This tool is not affiliated with SEGA or Sumo Digital.
