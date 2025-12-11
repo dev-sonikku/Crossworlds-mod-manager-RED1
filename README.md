@@ -19,7 +19,7 @@
 ## For Players: How to Use
 
 1. **Download**: Grab the latest release of Blue Star Manager.
-2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Team Sonic Racing* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
+2. **Setup**: Place the manager anywhere and run it. It will automatically detect your *Sonic Racing: CrossWorlds* installation (Steam version required). If it can't find it, you can set the game path manually in the settings.
 3. **Install Mods**:
     - Use the "GameBanana" tab to browse and install mods with one click.
     - Or, manually download a mod and drag-and-drop its `.zip` or folder into the manager.
@@ -83,7 +83,7 @@ The `[Files]` section maps your configuration options to the files they control.
 
 -   `FilePath` is the relative path to your mod file.
 -   `GroupName.OptionName` is the unique identifier for the option.
-> **Important:** The manager automatically handles all related UE4 pak files (`.pak`, `.ucas`, `.utoc`, etc.). You only need to specify the base file path once. This also works for `.json` files used for text merging.
+> **Important:** The manager automatically handles all related UE4\5 pak files (`.pak`, `.ucas`, `.utoc`, etc.). You only need to specify the base file path once. This also works for `.json` files used for text merging.
 
 **Example:**
 ```ini
@@ -93,9 +93,9 @@ Description=Choose your character style:
 Options=Vanilla,Classic,Modern
 
 [Files]
-; Pak files for different character models
-Models/Classic.pak = Character.Classic
-Models/Modern.pak = Character.Modern
+; Pak, Utoc and Ucas files for different character models. No Need to seperately add files, just add their shared filename.
+Models/Classic = Character.Classic
+Models/Modern = Character.Modern
 
 ; JSON files for different character names
 Text/ClassicName.json = Character.Classic
