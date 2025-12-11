@@ -245,7 +245,7 @@ namespace CrossworldsModManager
                 {
                     // Ignore text-based config files
                     string ext = Path.GetExtension(filePath).ToLowerInvariant();
-                    if (ext == ".ini" || ext == ".json" || ext == ".txt" || ext == ".md") continue;
+                    if (ext == ".ini" || ext == ".txt" || ext == ".md") continue;
 
                     bool shouldBeEnabled = selectedOptionIdentifiers.Contains(group);
                     string enabledPath = filePath.Replace(".disabled", "");
@@ -361,7 +361,12 @@ namespace CrossworldsModManager
                 progressBarProgress.Report(10);
                 // Check if any enabled mods have JSON files.
                 var enabledModsWithJson = modListView.Items.Cast<ListViewItem>()
-                    .Where(i => i.Checked && i.Tag is ModInfo modInfo &&
+                    .Where(i => i.Checked && i.Tag is ModInfo modInfo && // Only look at checked mods
+                               // Enumerate all .json files, but crucially, ignore any that are currently disabled.
+                               // This ensures we only merge JSON files that correspond to the user's selected configuration.
+                               Directory.EnumerateFiles(modInfo.DirectoryPath, "*.json", SearchOption.AllDirectories)
+                                   .Any(jsonPath => !jsonPath.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase))
+/*
                                 Directory.EnumerateFiles(modInfo.DirectoryPath, "*.json", SearchOption.AllDirectories)
                                     .Any(jsonPath => {
                                         if (Path.GetFileName(jsonPath).Equals("info.json", StringComparison.OrdinalIgnoreCase))
@@ -373,6 +378,7 @@ namespace CrossworldsModManager
                                         }
                                         return true; // It's not info.json, so include it.
                                     })
+*/
                     )
                     .ToList();
 
@@ -411,7 +417,11 @@ namespace CrossworldsModManager
                     // Run the full merge/pack process since there are JSON mods.
                     progressBarProgress.Report(20);
                     var installTask = InstallModsAsync();
-                    var jsonTask = LocresConverter.ProcessModJsonFilesAsync(modListView.Items.Cast<ListViewItem>().Where(i => i.Checked).Select(i => i.Tag as ModInfo).Where(m => m != null)!, progress);
+                    // Pass the list of mods that we've already determined have active JSON files.
+                    // This prevents the converter from having to re-scan all mods.
+                    var modsToProcessForJson = enabledModsWithJson.Select(i => i.Tag as ModInfo).Where(m => m != null);
+
+                    var jsonTask = LocresConverter.ProcessModJsonFilesAsync(modsToProcessForJson!, progress);
 
                     await Task.WhenAll(installTask, jsonTask);
                     progressBarProgress.Report(50);
