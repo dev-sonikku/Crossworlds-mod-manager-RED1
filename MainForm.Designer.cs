@@ -55,6 +55,7 @@ namespace CrossworldsModManager
             this.columnHeaderAuthor = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderVersion = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderActions = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeaderUpdate = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.btnSave = new System.Windows.Forms.Button();
             this.btnAddMod = new System.Windows.Forms.Button();
             this.btnRemoveMod = new System.Windows.Forms.Button();
@@ -270,7 +271,8 @@ namespace CrossworldsModManager
             this.columnHeaderName,
             this.columnHeaderAuthor,
             this.columnHeaderVersion,
-            this.columnHeaderActions});
+            this.columnHeaderActions,
+            this.columnHeaderUpdate});
             this.modListView.ForeColor = System.Drawing.Color.White;
             this.modListView.FullRowSelect = true;
             this.modListView.HideSelection = false;
@@ -305,6 +307,12 @@ namespace CrossworldsModManager
             this.columnHeaderActions.Text = "Actions";
             this.columnHeaderActions.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.columnHeaderActions.Width = 80;
+            // 
+            // columnHeaderUpdate
+            // 
+            this.columnHeaderUpdate.Text = "Update";
+            this.columnHeaderUpdate.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.columnHeaderUpdate.Width = 80;
             // 
             // btnSave
             // 
@@ -595,6 +603,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ColumnHeader columnHeaderVersion;
         #pragma warning disable 0649
         private System.Windows.Forms.ColumnHeader columnHeaderActions;
+        private System.Windows.Forms.ColumnHeader columnHeaderUpdate;
         #pragma warning restore 0649
         private System.Windows.Forms.Button btnSave;
         private System.Windows.Forms.Button btnAddMod;

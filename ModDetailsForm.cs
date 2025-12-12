@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.IO;
@@ -373,17 +374,6 @@ namespace CrossworldsModManager
 
         private async void btnDownload_Click(object? sender, EventArgs e)
         {
-            // For 1-Click installs, this form acts as a confirmation dialog.
-            // Clicking "Install" sets the DialogResult and closes this form.
-            // The main form will then handle launching the progress window.
-            if (this.Owner is MainForm)
-            {
-                this.DialogResult = DialogResult.OK;
-                this.Close();
-                return;
-            }
-
-            // This part is for regular downloads from the browser.
             if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
             {
                 MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -506,6 +496,47 @@ namespace CrossworldsModManager
                 using var archive = ArchiveFactory.Open(archivePath);
                 archive.WriteToDirectory(targetDir, new SharpCompress.Common.ExtractionOptions { ExtractFullPath = true, Overwrite = true });
             });
+
+            // After extraction, create or update the mod.ini file with GameBanana info.
+            await CreateOrUpdateModIniAsync(targetDir);
+        }
+
+        private async Task CreateOrUpdateModIniAsync(string modDirectory)
+        {
+            var iniPath = Path.Combine(modDirectory, "mod.ini");
+            var iniData = File.Exists(iniPath) ? IniParser.Parse(iniPath) : new Dictionary<string, Dictionary<string, string>>();
+
+            // Ensure [Main] section exists
+            if (!iniData.ContainsKey("Main"))
+            {
+                iniData["Main"] = new Dictionary<string, string>();
+            }
+
+            // Ensure [GameBanana] section exists
+            if (!iniData.ContainsKey("GameBanana"))
+            {
+                iniData["GameBanana"] = new Dictionary<string, string>();
+            }
+
+            // Add GameBanana metadata
+            iniData["GameBanana"]["ItemId"] = _mod.Id.ToString();
+            iniData["GameBanana"]["ItemType"] = _mod.ModelName;
+
+            // If version is missing in [Main], fetch it from the API and add it.
+            if (!iniData["Main"].ContainsKey("Version") || string.IsNullOrWhiteSpace(iniData["Main"]["Version"]))
+            {
+                var latestVersion = await GameBananaApiService.GetLatestModVersionAsync(_mod.ModelName, _mod.Id);
+                iniData["Main"]["Version"] = latestVersion ?? "1"; // Default to 1 if API fails
+            }
+
+            // If author is missing in [Main], use the one from GameBanana.
+            if (!iniData["Main"].ContainsKey("Author") || string.IsNullOrWhiteSpace(iniData["Main"]["Author"]))
+            {
+                iniData["Main"]["Author"] = _mod.Author;
+            }
+
+            // Write the updated data back to the file.
+            IniParser.Write(iniPath, iniData);
         }
         
         private static string SanitizeFolderName(string name)

@@ -89,5 +89,14 @@ namespace CrossworldsModManager
         {
             return rtbLog.Text.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
         }
+
+        /// <summary>
+        /// Gets an IProgress<string> instance that logs messages to this form.
+        /// </summary>
+        /// <returns>An IProgress<string> for logging.</returns>
+        public IProgress<string> GetLoggerProgress()
+        {
+            return new Progress<string>(AppendLog);
+        }
     }
 }

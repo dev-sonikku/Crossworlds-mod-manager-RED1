@@ -117,6 +117,9 @@ namespace CrossworldsModManager
 
             // Check for updates after the form is visible.
             Program.CheckForUpdates();
+
+            // Check for mod updates after the form is visible.
+            _ = CheckForModUpdatesAsync();
         }
 
         protected override void WndProc(ref Message m)
@@ -634,7 +637,7 @@ namespace CrossworldsModManager
                     {
                         Name = mainSection.GetValueOrDefault("Name", modFolderName),
                         Author = mainSection.GetValueOrDefault("Author", "Unknown"),
-                        Version = mainSection.GetValueOrDefault("Version", "1.0"),
+                        Version = mainSection.ContainsKey("Version") ? mainSection["Version"] : "1.0",
                         Description = mainSection.GetValueOrDefault("Description", "No description provided."),
                         DirectoryPath = dir
                     };
@@ -686,6 +689,86 @@ namespace CrossworldsModManager
             UpdateStatus($"{_allModItems.Count} mod(s) found.");
         }
 
+        private async Task CheckForModUpdatesAsync()
+        {
+            UpdateStatus("Checking for mod updates...");
+            _logForm?.AppendLog("--- Starting GameBanana Mod Update Check ---");
+            IProgress<string> logger = new Progress<string>(s =>
+            {
+                _logForm?.AppendLog(s);
+            });
+
+            var updateTasks = new List<Task>();
+
+            foreach (ListViewItem item in _allModItems)
+            {
+                if (item.Tag is not ModInfo modInfo) continue;
+
+                var iniPath = Path.Combine(modInfo.DirectoryPath, "mod.ini");
+                if (!File.Exists(iniPath))
+                {
+                    logger.Report($"[{modInfo.Name}] Skipping: mod.ini not found.");
+                    continue;
+                }
+
+                var iniData = IniParser.Parse(iniPath);
+                if (!iniData.TryGetValue("GameBanana", out var gbSection) ||
+                    !gbSection.TryGetValue("ItemId", out var itemIdStr) ||
+                    !gbSection.TryGetValue("ItemType", out var itemType))
+                {
+                    logger.Report($"[{modInfo.Name}] Skipping: [GameBanana] section with ItemId/ItemType not found in mod.ini.");
+                    continue;
+                }
+
+                if (!int.TryParse(itemIdStr, out var itemId)) continue;
+
+                // Add a task to fetch and compare the version for this mod
+                updateTasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        logger.Report($"[{modInfo.Name}] Found GameBanana info. Item: {itemType}/{itemId}. Local version: '{modInfo.Version}'.");
+                        string? latestVersionStr = await GameBananaApiService.GetLatestModVersionAsync(itemType, itemId);
+                        
+                        if (string.IsNullOrEmpty(latestVersionStr))
+                        {
+                            logger.Report($"[{modInfo.Name}] -> Could not fetch remote version from API.");
+                            return;
+                        }
+
+                        logger.Report($"[{modInfo.Name}] -> Fetched remote version: '{latestVersionStr}'.");
+
+                        if (int.TryParse(latestVersionStr, out int latestVersion) && int.TryParse(modInfo.Version, out int localVersion))
+                        {
+                            if (latestVersion > localVersion)
+                            {
+                                logger.Report($"[{modInfo.Name}] -> UPDATE AVAILABLE! (Remote: {latestVersion} > Local: {localVersion})");
+                                // We need to update the UI on the UI thread.
+                                this.Invoke((Action)(() => {
+                                    item.ForeColor = Color.LimeGreen;
+                                    // Place the "Update" action in the new "Update" column (index 4).
+                                    var updateSubItem = item.SubItems[4];
+                                    if (!updateSubItem.Text.Contains("Update"))
+                                    {
+                                        updateSubItem.Text = "🔄 Update";
+                                    }
+                                }));
+                            }
+                            else
+                            {
+                                logger.Report($"[{modInfo.Name}] -> Mod is up to date. (Remote: {latestVersion} <= Local: {localVersion})");
+                            }
+                        }
+                    }
+                    catch (Exception ex) { logger.Report($"[{modInfo.Name}] ERROR checking update: {ex.Message}"); }
+                }));
+            }
+
+            await Task.WhenAll(updateTasks);
+            UpdateStatus("Mod update check complete.");
+            _logForm?.AppendLog("--- Mod Update Check Complete ---");
+        }
+
         private ListViewItem CreateModListViewItem(ModInfo modInfo, HashSet<string> enabledMods)
         {
             var item = new ListViewItem(new[] 
@@ -694,7 +777,8 @@ namespace CrossworldsModManager
                         modInfo.Author,
                         modInfo.Version,
                         // Add text to the "Actions" column only if the mod is configurable.
-                        modInfo.ConfigurationGroups.Any() ? "⚙️ Configure" : ""
+                        modInfo.ConfigurationGroups.Any() ? "⚙️ Configure" : "",
+                        "" // Placeholder for the new Update column
             }) 
             {
                 Tag = modInfo
@@ -1221,10 +1305,19 @@ namespace CrossworldsModManager
 
             if (item == null || subItem == null) return;
 
-            // Check if the click was on the "Actions" column (index 3).
-            if (item.SubItems.IndexOf(subItem) == 3)
+            if (item.Tag is not ModInfo modInfo) return;
+
+            int columnIndex = item.SubItems.IndexOf(subItem);
+
+            // Check for a click in the "Update" column (index 4).
+            if (columnIndex == 4 && subItem.Text.Contains("Update"))
             {
-                if (item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
+                HandleModUpdateClick(modInfo);
+            }
+            // Check for a click in the "Actions" column (index 3).
+            else if (columnIndex == 3)
+            {
+                if (modInfo.ConfigurationGroups.Any() && subItem.Text.Contains("Configure"))
                 {
                     ShowModConfigForm(modInfo);
                 }
@@ -1234,6 +1327,52 @@ namespace CrossworldsModManager
         private void txtSearch_TextChanged(object sender, EventArgs e)
         {
             ApplyFilter();
+        }
+
+        private async void HandleModUpdateClick(ModInfo modInfo)
+        {
+            var result = MessageBox.Show($"An update is available for '{modInfo.Name}'.\n\nWould you like to view the update details and install it now?", "Update Mod", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            if (result == DialogResult.No) return;
+
+            try
+            {
+                // We need the ItemId and ItemType to fetch the full mod object.
+                var iniPath = Path.Combine(modInfo.DirectoryPath, "mod.ini");
+                if (!File.Exists(iniPath))
+                {
+                    MessageBox.Show("Could not find mod.ini file to get update information.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                var iniData = IniParser.Parse(iniPath);
+                if (!iniData.TryGetValue("GameBanana", out var gbSection) ||
+                    !gbSection.TryGetValue("ItemId", out var itemIdStr) ||
+                    !int.TryParse(itemIdStr, out var itemId) ||
+                    !gbSection.TryGetValue("ItemType", out var itemType))
+                {
+                    MessageBox.Show("Could not find valid GameBanana information in the mod's mod.ini file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                UpdateStatus($"Fetching update info for '{modInfo.Name}'...");
+                var gameBananaMod = await GameBananaApiService.GetModFromProfilePageAsync(itemType, itemId);
+
+                if (gameBananaMod == null)
+                {
+                    throw new Exception("Failed to retrieve mod details from GameBanana API.");
+                }
+
+                // Open the ModDetailsForm, which will handle the download/install process.
+                // This is the same behavior as clicking "Download" in the mod browser.
+                using (var modDetailsForm = new ModDetailsForm(gameBananaMod, _logForm?.GetLoggerProgress(), RefreshModList))
+                {
+                    modDetailsForm.ShowDialog(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to start update process:\n\n{ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private async void convertlocresToJsonToolStripMenuItem_Click(object sender, EventArgs e)

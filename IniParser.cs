@@ -39,5 +39,33 @@ namespace CrossworldsModManager
             }
             return data;
         }
+
+        public static void Write(string filePath, Dictionary<string, Dictionary<string, string>> data)
+        {
+            var lines = new List<string>();
+            foreach (var section in data)
+            {
+                lines.Add($"[{section.Key}]");
+                foreach (var kvp in section.Value)
+                {
+                    // Quote values that contain spaces or special characters, but not simple ones.
+                    var value = kvp.Value;
+                    if (value.Contains(" ") || value.Contains(";") || value.Contains("="))
+                    {
+                        value = $"\"{value}\"";
+                    }
+                    lines.Add($"{kvp.Key} = {value}");
+                }
+                lines.Add(""); // Add a blank line between sections
+            }
+
+            // Ensure the directory exists before writing
+            var directory = Path.GetDirectoryName(filePath);
+            if (directory != null)
+            {
+                Directory.CreateDirectory(directory);
+                File.WriteAllLines(filePath, lines);
+            }
+        }
     }
 }

@@ -228,5 +228,41 @@ namespace CrossworldsModManager
                 throw new Exception($"An error occurred while fetching mod profile page. Details: {ex.Message}", ex);
             }
         }
+
+        /// <summary>
+        /// Fetches the latest version number for a mod from the GameBanana API's update count.
+        /// </summary>
+        /// <param name="itemType">The item type (e.g., "Mod").</param>
+        /// <param name="itemId">The item ID.</param>
+        /// <returns>The latest version number as a string, or null if it cannot be fetched.</returns>
+        public static async Task<string?> GetLatestModVersionAsync(string itemType, int itemId)
+        {
+            if (string.IsNullOrEmpty(itemType) || itemId <= 0)
+            {
+                return null;
+            }
+
+            string apiUrl = $"{ApiBaseUrl}/{itemType}/{itemId}/Updates?_nPage=1&_nPerpage=1";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(apiUrl);
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Request to GameBanana API failed with status code {response.StatusCode}.\nURL: {apiUrl}\nResponse: {content}");
+                }
+
+                using var jsonDoc = JsonDocument.Parse(content);
+                // The record count is nested inside the _aMetadata object.
+                return jsonDoc.RootElement.TryGetProperty("_aMetadata", out var metadata) && 
+                       metadata.TryGetProperty("_nRecordCount", out var recordCount) ? recordCount.GetInt32().ToString() : null;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while fetching mod version. Details: {ex.Message}", ex);
+            }
+        }
     }
 }
