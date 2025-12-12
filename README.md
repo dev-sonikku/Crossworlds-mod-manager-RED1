@@ -126,7 +126,7 @@ Each `.json` file contains an array of objects, where each object represents a s
         "Namespace": "DB_CharacterName",
         "Key": "chara12001",
         "Value": "Classic Character"
-    },
+    }
 ]
 ```
 
@@ -137,7 +137,13 @@ Each `.json` file contains an array of objects, where each object represents a s
         "Language": "en",
         "Namespace": "DB_CharacterName",
         "Key": "chara12001",
-        "Value": "Modern Character"
+        "Value": "Modern Character 1"
+    },
+    {
+        "Language": "en",
+        "Namespace": "DB_CharacterName",
+        "Key": "chara12002",
+        "Value": "Modern Character 2"
     }
 ]
 ```
