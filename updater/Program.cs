@@ -97,7 +97,32 @@ namespace Updater
 
                 // 4. Extract the contents, overwriting old files
                 Console.WriteLine("\nExtracting update...");
-                ZipFile.ExtractToDirectory(downloadedZipPath, appDirectory, true);
+                // We can't use ExtractToDirectory directly because it will fail if it tries to overwrite
+                // the updater's own executable/DLLs which are currently in use.
+                // Instead, we'll iterate and extract file-by-file, skipping any that are locked.
+                using (ZipArchive archive = ZipFile.OpenRead(downloadedZipPath))
+                {
+                    foreach (ZipArchiveEntry entry in archive.Entries)
+                    {
+                        string destinationPath = Path.Combine(appDirectory, entry.FullName);
+                        
+                        // This handles empty directory entries
+                        if (string.IsNullOrEmpty(entry.Name))
+                        {
+                            Directory.CreateDirectory(destinationPath);
+                            continue;
+                        }
+
+                        try
+                        {
+                            entry.ExtractToFile(destinationPath, true);
+                        }
+                        catch (IOException ex) when (ex.Message.Contains("being used by another process"))
+                        {
+                            Console.WriteLine($" > Skipping locked file: {entry.Name}");
+                        }
+                    }
+                }
                 Console.WriteLine("Extraction complete.");
             }
             catch (Exception ex)
@@ -152,4 +177,3 @@ namespace Updater
         }
     }
 }
-
