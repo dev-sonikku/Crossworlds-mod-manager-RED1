@@ -42,7 +42,6 @@ The `[Main]` section provides information about your mod that is displayed in th
 [Main]
 Name = My Awesome Mod
 Author = Your Name
-Version = 1.1
 Description = This mod replaces the main character's car with a cool new model.
 ```
 
@@ -126,7 +125,7 @@ Each `.json` file contains an array of objects, where each object represents a s
         "Namespace": "DB_CharacterName",
         "Key": "chara12001",
         "Value": "Classic Character"
-    },
+    }
 ]
 ```
 
@@ -137,7 +136,13 @@ Each `.json` file contains an array of objects, where each object represents a s
         "Language": "en",
         "Namespace": "DB_CharacterName",
         "Key": "chara12001",
-        "Value": "Modern Character"
+        "Value": "Modern Character 1"
+    },
+    {
+        "Language": "en",
+        "Namespace": "DB_CharacterName",
+        "Key": "chara12002",
+        "Value": "Modern Character 2"
     }
 ]
 ```
