@@ -865,28 +865,30 @@ namespace CrossworldsModManager
                 }
 
                 // 3. Create new links for checked mods.
-                var enabledMods = modListView.Items.Cast<ListViewItem>().Where(i => i.Checked).ToList();
                 var installTasks = new List<Task<bool>>();
-                for (int i = 0; i < enabledMods.Count; i++)
+                // Iterate through all items in the list view to preserve the visual load order.
+                for (int i = 0; i < modListView.Items.Count; i++)
                 {
-                    var item = enabledMods[i];
-                    if (item.Tag is ModInfo modInfo)
+                    var item = modListView.Items[i];
+                    // Only create links for mods that are actually checked.
+                    if (item.Checked && item.Tag is ModInfo modInfo)
                     {
                         var modFolderName = Path.GetFileName(modInfo.DirectoryPath);
                         if (!string.IsNullOrEmpty(modFolderName))
                         {
-                            // Assign a prefix to enforce load order. Higher numbers load last and have priority.
-                            // The mod at the top of the list (i=0) gets the highest prefix.
-                            var linkName = Path.Combine(targetModsDir, $"{enabledMods.Count - 1 - i:D3}-{modFolderName}");
+                            // Assign a prefix to enforce load order. The game loads paks in alphabetical order.
+                            // By starting at 000 for the top mod, we ensure it loads first. Subsequent mods
+                            // with higher numbers will load later, overwriting any conflicting files from mods above them.
+                            var linkName = Path.Combine(targetModsDir, $"{i:D3}-{modFolderName}");
                             installTasks.Add(CreateSymbolicLinkAsync(linkName, modInfo.DirectoryPath));
                         }
                     }
                 }
                 
-                // 4. Handle Developer Mode files
+                // 4. Handle Developer Mode files (if enabled)
                 if (SettingsManager.Settings.DeveloperModeEnabled && _devForm is not null && !string.IsNullOrEmpty(_devForm.SelectedExportPath))
                 {
-                    var devExportSourcePath = _devForm.SelectedExportPath!;
+                    var devExportSourcePath = _devForm.SelectedExportPath;
                     var enabledFileBases = _devForm.GetEnabledFileBaseNames();
 
                     if (enabledFileBases.Any())
@@ -924,7 +926,7 @@ namespace CrossworldsModManager
 
                 // Wait for all link creation tasks to complete.
                 bool[] results = await Task.WhenAll(installTasks);
-                int installedCount = results.Count(success => success);
+                int installedCount = results.Count(wasSuccessful => wasSuccessful);
 
                 UpdateStatus($"Successfully installed {installedCount} of {installTasks.Count} enabled mod(s).");
 
