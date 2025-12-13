@@ -42,7 +42,6 @@ The `[Main]` section provides information about your mod that is displayed in th
 [Main]
 Name = My Awesome Mod
 Author = Your Name
-Version = 1.1
 Description = This mod replaces the main character's car with a cool new model.
 ```
 
