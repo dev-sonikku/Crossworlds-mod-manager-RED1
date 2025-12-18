@@ -81,6 +81,18 @@ namespace CrossworldsModManager
             {
                 // If creating the log window fails, ignore and continue — logging will still use Console/Debug.
             }
+
+            // Add Mod Config Maker to context menu
+            var configMakerItem = new ToolStripMenuItem("Mod Config Maker");
+            configMakerItem.ForeColor = Color.White;
+            configMakerItem.BackColor = Color.FromArgb(45, 45, 48);
+            configMakerItem.Click += ConfigMakerItem_Click;
+            
+            if (modContextMenuStrip != null)
+            {
+                modContextMenuStrip.Items.Add(new ToolStripSeparator());
+                modContextMenuStrip.Items.Add(configMakerItem);
+            }
         }
 
         private void LoadSettingsAndSetup()
@@ -1502,6 +1514,20 @@ namespace CrossworldsModManager
         private void moveDownContextMenuItem_Click(object sender, EventArgs e)
         {
             MoveSelectedItem(1);
+        }
+
+        private void ConfigMakerItem_Click(object? sender, EventArgs e)
+        {
+            if (modListView.SelectedItems.Count != 1) return;
+            var item = modListView.SelectedItems[0];
+
+            if (item.Tag is ModInfo modInfo)
+            {
+                using (var editor = new ModConfigEditor(modInfo.DirectoryPath))
+                {
+                    editor.ShowDialog(this);
+                }
+            }
         }
 
         #endregion
