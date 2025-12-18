@@ -54,6 +54,10 @@ Description = This mod replaces the main character's car with a cool new model.
 
 ### 2. Creating Configuration Options
 
+## Automatically:
+You can configure your mod by right clicking it in the list, and selecting "Mod Config Maker".
+
+## Manually:
 You can add configuration options that will appear in a "Configure" window for your mod using `[Config:GroupName]` sections. `GroupName` is a unique name for your option group (e.g., "Color", "Character").
 
 -   **Type**: `SelectOne` (radio buttons) or `SelectMultiple` (checkboxes).
