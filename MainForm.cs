@@ -132,6 +132,9 @@ namespace CrossworldsModManager
 
             // Check for mod updates after the form is visible.
             _ = CheckForModUpdatesAsync();
+
+            // Show the MegaMan promo popup
+            ShowPromoPopup();
         }
 
         protected override void WndProc(ref Message m)
@@ -1437,6 +1440,25 @@ namespace CrossworldsModManager
                 _logForm.Show(this);
                 btnToggleDebugLog.Text = "Hide Debug Log";
             }
+        }
+
+        private void ShowPromoPopup()
+        {
+            try
+            {
+                string flagPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "megaman_promo.flag");
+                if (File.Exists(flagPath)) return;
+
+                using (var promoForm = new CrossworldsModManager.MegaManPromoForm())
+                {
+                    promoForm.ShowDialog(this);
+                    if (promoForm.DoNotShowAgain)
+                    {
+                        File.WriteAllText(flagPath, "seen");
+                    }
+                }
+            }
+            catch { /* Ignore errors in promo */ }
         }
 
         #region Context Menu
