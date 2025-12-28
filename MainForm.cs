@@ -5,10 +5,13 @@ using System.IO;
 using System.Linq;
 using System.Drawing;
 using System.IO.Compression;
+using System.Net.Http;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using SharpCompress.Archives;
+using SharpCompress.Common;
 
 namespace CrossworldsModManager
 {
@@ -955,6 +958,23 @@ namespace CrossworldsModManager
                 return false;
             }
             var targetModsDir = Path.Combine(gamePath, "UNION", "Content", "Paks", "~mods");
+            var targetUe4ssModsDir = Path.Combine(gamePath, "UNION", "Binaries", "Win64", "ue4ss", "Mods");
+
+            // Check if any enabled mods require UE4SS
+            bool requiresUe4ss = false;
+            foreach (ListViewItem item in modListView.Items)
+            {
+                if (item.Checked && item.Tag is ModInfo modInfo && IsUe4ssScriptMod(modInfo.DirectoryPath))
+                {
+                    requiresUe4ss = true;
+                    break;
+                }
+            }
+
+            if (requiresUe4ss)
+            {
+                await EnsureUe4ssInstalledAsync(gamePath);
+            }
 
             // Check for exFAT file system
             bool useCopy = false;
@@ -1010,6 +1030,27 @@ namespace CrossworldsModManager
                     }
                 }
 
+                // 2b. Cleanup UE4SS mods (remove any mod managed by us from the target dir)
+                if (Directory.Exists(targetUe4ssModsDir))
+                {
+                    foreach (ListViewItem item in modListView.Items)
+                    {
+                        if (item.Tag is ModInfo modInfo && IsUe4ssScriptMod(modInfo.DirectoryPath))
+                        {
+                            var modFolderName = Path.GetFileName(modInfo.DirectoryPath);
+                            var destPath = Path.Combine(targetUe4ssModsDir, modFolderName);
+                            
+                            // If the mod is disabled (unchecked), just remove enabled.txt to disable it.
+                            // We leave the folder structure intact to avoid unnecessary IO.
+                            if (!item.Checked && Directory.Exists(destPath))
+                            {
+                                var enabledTxtPath = Path.Combine(destPath, "enabled.txt");
+                                if (File.Exists(enabledTxtPath)) File.Delete(enabledTxtPath);
+                            }
+                        }
+                    }
+                }
+
                 // 3. Create new links for checked mods.
                 var installTasks = new List<Task<bool>>();
                 // Iterate through all items in the list view to preserve the visual load order.
@@ -1022,18 +1063,27 @@ namespace CrossworldsModManager
                         var modFolderName = Path.GetFileName(modInfo.DirectoryPath);
                         if (!string.IsNullOrEmpty(modFolderName))
                         {
-                            // Assign a prefix to enforce load order. The game loads paks in alphabetical order.
-                            // By starting at 000 for the top mod, we ensure it loads first. Subsequent mods
-                            // with higher numbers will load later, overwriting any conflicting files from mods above them.
-                            var linkName = Path.Combine(targetModsDir, $"{i:D3}-{modFolderName}");
-                            
-                            if (useCopy)
+                            if (IsUe4ssScriptMod(modInfo.DirectoryPath))
                             {
-                                installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath));
+                                // Install UE4SS Script Mod (Always Copy)
+                                if (!Directory.Exists(targetUe4ssModsDir)) Directory.CreateDirectory(targetUe4ssModsDir);
+                                var destPath = Path.Combine(targetUe4ssModsDir, modFolderName);
+                                installTasks.Add(InstallUe4ssModAsync(destPath, modInfo.DirectoryPath));
                             }
                             else
                             {
-                                installTasks.Add(CreateSymbolicLinkAsync(linkName, modInfo.DirectoryPath));
+                                // Standard Mod Installation
+                                // Assign a prefix to enforce load order.
+                                var linkName = Path.Combine(targetModsDir, $"{i:D3}-{modFolderName}");
+                                
+                                if (useCopy)
+                                {
+                                    installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath));
+                                }
+                                else
+                                {
+                                    installTasks.Add(CreateSymbolicLinkAsync(linkName, modInfo.DirectoryPath));
+                                }
                             }
                         }
                     }
@@ -1101,6 +1151,65 @@ namespace CrossworldsModManager
                 MessageBox.Show($"An error occurred during mod installation: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus("Mod installation failed.");
                 return false;
+            }
+        }
+
+        private async Task EnsureUe4ssInstalledAsync(string gamePath)
+        {
+            var win64Dir = Path.Combine(gamePath, "UNION", "Binaries", "Win64");
+            var ue4ssDir = Path.Combine(win64Dir, "ue4ss");
+
+            if (Directory.Exists(ue4ssDir)) return;
+
+            var result = MessageBox.Show(
+                "One or more enabled mods require UE4SS (Unreal Engine 4 Scripting System) to function.\n\n" +
+                "It is not currently installed. Would you like to download and install it automatically now?",
+                "UE4SS Required",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result != DialogResult.Yes)
+            {
+                UpdateStatus("UE4SS installation skipped. Some mods may not work.");
+                return;
+            }
+
+            UpdateStatus("UE4SS not found. Downloading and installing...");
+            string downloadUrl = "https://gamebanana.com/dl/1534195";
+            string tempFile = Path.Combine(Path.GetTempPath(), "ue4ss_install.7z");
+
+            try
+            {
+                using (var client = new HttpClient())
+                {
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+                    var response = await client.GetAsync(downloadUrl);
+                    response.EnsureSuccessStatusCode();
+                    using (var fs = new FileStream(tempFile, FileMode.Create))
+                    {
+                        await response.Content.CopyToAsync(fs);
+                    }
+                }
+
+                UpdateStatus("Extracting UE4SS...");
+                Directory.CreateDirectory(win64Dir);
+
+                await Task.Run(() =>
+                {
+                    using (var archive = ArchiveFactory.Open(tempFile))
+                    {
+                        archive.WriteToDirectory(win64Dir, new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to install UE4SS: {ex.Message}");
+                MessageBox.Show($"Failed to automatically install UE4SS. Please install it manually.\nError: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+            finally
+            {
+                if (File.Exists(tempFile)) File.Delete(tempFile);
             }
         }
 
@@ -1183,6 +1292,36 @@ namespace CrossworldsModManager
             }
         }
         
+        private bool IsUe4ssScriptMod(string modPath)
+        {
+            try
+            {
+                var scriptsDir = Path.Combine(modPath, "Scripts");
+                return Directory.Exists(scriptsDir) && Directory.EnumerateFiles(scriptsDir, "*.lua").Any();
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<bool> InstallUe4ssModAsync(string destPath, string sourcePath)
+        {
+            bool success = await CopyDirectoryAsync(destPath, sourcePath);
+            if (success)
+            {
+                try
+                {
+                    await File.WriteAllTextAsync(Path.Combine(destPath, "enabled.txt"), "");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to create enabled.txt: {ex.Message}");
+                }
+            }
+            return success;
+        }
+
         private async Task<bool> CopyDirectoryAsync(string destDir, string sourceDir)
         {
             try
