@@ -10,6 +10,7 @@ namespace CrossworldsModManager
         public string Version { get; set; } = "1.0";
         public string Description { get; set; } = "No description provided.";
         public string DirectoryPath { get; set; } = "";
+        public bool IsLogicMod { get; set; } = false;
 
         // New properties for multi-group configuration
         public List<ModConfigurationGroup> ConfigurationGroups { get; set; } = new();

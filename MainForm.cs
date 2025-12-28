@@ -668,7 +668,8 @@ namespace CrossworldsModManager
                         Author = mainSection.GetValueOrDefault("Author", "Unknown"),
                         Version = mainSection.ContainsKey("Version") ? mainSection["Version"] : "1.0",
                         Description = mainSection.GetValueOrDefault("Description", "No description provided."),
-                        DirectoryPath = dir
+                        DirectoryPath = dir,
+                        IsLogicMod = mainSection.GetValueOrDefault("Type", "").Equals("LogicMod", StringComparison.OrdinalIgnoreCase)
                     };
 
                     // New logic for multiple named [Config:GroupName] sections
@@ -958,13 +959,14 @@ namespace CrossworldsModManager
                 return false;
             }
             var targetModsDir = Path.Combine(gamePath, "UNION", "Content", "Paks", "~mods");
+            var targetLogicModsDir = Path.Combine(gamePath, "UNION", "Content", "Paks", "LogicMods");
             var targetUe4ssModsDir = Path.Combine(gamePath, "UNION", "Binaries", "Win64", "ue4ss", "Mods");
 
             // Check if any enabled mods require UE4SS
             bool requiresUe4ss = false;
             foreach (ListViewItem item in modListView.Items)
             {
-                if (item.Checked && item.Tag is ModInfo modInfo && IsUe4ssScriptMod(modInfo.DirectoryPath))
+                if (item.Checked && item.Tag is ModInfo modInfo && (IsUe4ssScriptMod(modInfo.DirectoryPath) || modInfo.IsLogicMod))
                 {
                     requiresUe4ss = true;
                     break;
@@ -1013,6 +1015,23 @@ namespace CrossworldsModManager
             {
                 // 1. Ensure the target directory exists.
                 Directory.CreateDirectory(targetModsDir);
+
+                // 1b. Clean out old LogicMods links/folders
+                if (Directory.Exists(targetLogicModsDir))
+                {
+                    foreach (var dir in Directory.GetDirectories(targetLogicModsDir))
+                    {
+                        var dirInfo = new DirectoryInfo(dir);
+                        if ((dirInfo.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
+                        {
+                            Directory.Delete(dir);
+                        }
+                        else if (Regex.IsMatch(dirInfo.Name, @"^\d{3}-"))
+                        {
+                            Directory.Delete(dir, true);
+                        }
+                    }
+                }
 
                 // 2. Clear out old symbolic links AND copied folders created by this manager.
                 foreach (var dir in Directory.GetDirectories(targetModsDir))
@@ -1069,6 +1088,21 @@ namespace CrossworldsModManager
                                 if (!Directory.Exists(targetUe4ssModsDir)) Directory.CreateDirectory(targetUe4ssModsDir);
                                 var destPath = Path.Combine(targetUe4ssModsDir, modFolderName);
                                 installTasks.Add(InstallUe4ssModAsync(destPath, modInfo.DirectoryPath));
+                            }
+                            else if (modInfo.IsLogicMod)
+                            {
+                                // Install Logic Mod
+                                if (!Directory.Exists(targetLogicModsDir)) Directory.CreateDirectory(targetLogicModsDir);
+                                var linkName = Path.Combine(targetLogicModsDir, $"{i:D3}-{modFolderName}");
+
+                                if (useCopy)
+                                {
+                                    installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath));
+                                }
+                                else
+                                {
+                                    installTasks.Add(CreateSymbolicLinkAsync(linkName, modInfo.DirectoryPath));
+                                }
                             }
                             else
                             {
