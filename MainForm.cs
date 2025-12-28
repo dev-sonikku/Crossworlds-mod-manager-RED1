@@ -641,6 +641,13 @@ namespace CrossworldsModManager
                 if (string.IsNullOrEmpty(modFolderName)) continue;
 
                 var iniPath = Path.Combine(dir, "mod.ini");
+
+                // Check for legacy config (desc.ini) if mod.ini doesn't exist
+                if (!File.Exists(iniPath))
+                {
+                    ConvertLegacyConfig(dir);
+                }
+
                 ModInfo modInfo;
 
                 if (File.Exists(iniPath))
@@ -705,6 +712,86 @@ namespace CrossworldsModManager
 
             ApplyFilter();
             UpdateStatus($"{_allModItems.Count} mod(s) found.");
+        }
+
+        /// <summary>
+        /// Scans for legacy 'desc.ini' files and generates a mod.ini if found.
+        /// </summary>
+        private bool ConvertLegacyConfig(string modDir)
+        {
+            var descFiles = Directory.GetFiles(modDir, "desc.ini", SearchOption.AllDirectories);
+            if (descFiles.Length == 0) return false;
+
+            var iniData = new Dictionary<string, Dictionary<string, string>>();
+
+            // [Main]
+            iniData["Main"] = new Dictionary<string, string>
+            {
+                ["Name"] = Path.GetFileName(modDir),
+                ["Author"] = "Unknown",
+                ["Version"] = "1.0",
+                ["Description"] = "Auto-generated from legacy configuration."
+            };
+
+            // We'll collect options and file mappings
+            var options = new List<string>();
+            var fileMappings = new Dictionary<string, string>();
+
+            foreach (var descFile in descFiles)
+            {
+                var descData = IniParser.Parse(descFile);
+                string optionName = "";
+                
+                if (descData.TryGetValue("Description", out var descSection))
+                {
+                    if (descSection.TryGetValue("Name", out var nameVal)) optionName = nameVal;
+                }
+
+                if (string.IsNullOrWhiteSpace(optionName))
+                {
+                    optionName = Path.GetFileName(Path.GetDirectoryName(descFile)) ?? "Unknown";
+                }
+
+                // Ensure unique option names
+                if (options.Contains(optionName))
+                {
+                    int i = 2;
+                    while (options.Contains($"{optionName} {i}")) i++;
+                    optionName = $"{optionName} {i}";
+                }
+
+                options.Add(optionName);
+
+                // Map files
+                var optionDir = Path.GetDirectoryName(descFile);
+                if (optionDir != null)
+                {
+                    var files = Directory.GetFiles(optionDir);
+                    foreach (var file in files)
+                    {
+                        if (Path.GetFileName(file).Equals("desc.ini", StringComparison.OrdinalIgnoreCase)) continue;
+                        
+                        // Get relative path for the key
+                        string relativePath = Path.GetRelativePath(modDir, file);
+                        fileMappings[relativePath] = $"Configuration.{optionName}";
+                    }
+                }
+            }
+
+            // [Config:Configuration]
+            iniData["Config:Configuration"] = new Dictionary<string, string>
+            {
+                ["Type"] = "SelectOne",
+                ["Description"] = "Select a variant:",
+                ["Options"] = string.Join(",", options)
+            };
+
+            // [Files]
+            iniData["Files"] = fileMappings;
+
+            // Write mod.ini
+            IniParser.Write(Path.Combine(modDir, "mod.ini"), iniData);
+            return true;
         }
 
         private async Task CheckForModUpdatesAsync()
