@@ -18,6 +18,7 @@ namespace CrossworldsModManager
         private readonly GameBananaMod _mod;
         private readonly IProgress<string>? _logger;
         private readonly Action? _onModsChanged;
+        private bool _isConfirmationMode = false;
 
         private PictureBox picModImage = null!;
         private Label lblModName = null!;
@@ -199,6 +200,7 @@ namespace CrossworldsModManager
 
         public void SetConfirmationMode()
         {
+            _isConfirmationMode = true;
             this.Text = "Confirm Mod Installation";
             btnDownload.Text = "Install";
             btnDownload.DialogResult = DialogResult.OK; // Will be handled by click event
@@ -374,6 +376,8 @@ namespace CrossworldsModManager
 
         private async void btnDownload_Click(object? sender, EventArgs e)
         {
+            if (_isConfirmationMode) return;
+
             if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
             {
                 MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);

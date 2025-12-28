@@ -208,5 +208,64 @@ namespace CrossworldsModManager
         // A very basic helper to extract a value from a JSON string.
         private static string ParseJsonValue(string json, string key) =>
             System.Text.RegularExpressions.Regex.Match(json, $"\"{key}\"\\s*:\\s*\"(.*?)\"").Groups[1].Value;
+
+        /// <summary>
+        /// Checks for a mod.ini in all subdirectories of the given mod path.
+        /// If found, it makes that directory the root of the mod.
+        /// </summary>
+        /// <param name="modPath">The current root directory of the mod.</param>
+        public static void CheckAndSetModRoot(string modPath)
+        {
+            try
+            {
+                if (!Directory.Exists(modPath)) return;
+
+                // Search for mod.ini in subdirectories
+                var iniFiles = Directory.GetFiles(modPath, "mod.ini", SearchOption.AllDirectories);
+
+                if (iniFiles.Length > 0)
+                {
+                    string? foundIniPath = null;
+                    string fullModPath = Path.GetFullPath(modPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                    // Find the first mod.ini that is NOT in the root directory
+                    foreach (var file in iniFiles)
+                    {
+                        var dir = Path.GetDirectoryName(file);
+                        if (dir == null) continue;
+                        var fullDir = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                        if (!fullDir.Equals(fullModPath, StringComparison.OrdinalIgnoreCase))
+                        {
+                            foundIniPath = file;
+                            break;
+                        }
+                    }
+
+                    if (foundIniPath == null) return;
+
+                    string? newRoot = Path.GetDirectoryName(foundIniPath);
+
+                    // If the found path is somehow the same as modPath, return
+                    if (string.IsNullOrEmpty(newRoot) || newRoot.Equals(modPath, StringComparison.OrdinalIgnoreCase)) return;
+
+                    Debug.WriteLine($"Found mod.ini in subdirectory: {newRoot}. Promoting to root.");
+
+                    // Move the new root to a temporary sibling folder to avoid volume issues
+                    string tempPath = modPath + "_temp_" + Guid.NewGuid().ToString();
+                    Directory.Move(newRoot, tempPath);
+
+                    // Delete the original mod folder structure (which contains the old hierarchy)
+                    Directory.Delete(modPath, true);
+
+                    // Rename the temp folder to the original mod path name
+                    Directory.Move(tempPath, modPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error normalizing mod directory: {ex.Message}");
+            }
+        }
     }
 }

@@ -634,6 +634,9 @@ namespace CrossworldsModManager
             
             foreach (var dir in modDirectories) // First, find all available mods
             {
+                // Check for nested mod.ini and promote to root if found
+                Program.CheckAndSetModRoot(dir);
+
                 var modFolderName = Path.GetFileName(dir);
                 if (string.IsNullOrEmpty(modFolderName)) continue;
 
