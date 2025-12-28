@@ -80,7 +80,7 @@ namespace CrossworldsModManager
             _lstGroups = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _lstGroups.SelectedIndexChanged += (s, e) => UpdateRightPanel();
             
-            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 60, Padding = new Padding(0, 5, 0, 0) };
+            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 90, Padding = new Padding(0, 5, 0, 0) };
             
             // Group Buttons Layout
             var btnAddGroup = CreateButton("Add Group", (s, e) => AddGroup());
@@ -90,6 +90,9 @@ namespace CrossworldsModManager
             var btnSave = CreateButton("Save && Close", (s, e) => SaveConfig());
             btnSave.BackColor = Color.FromArgb(0, 122, 204);
 
+            var btnClean = CreateButton("Clean .disabled", (s, e) => CleanDisabledFiles());
+            btnClean.Dock = DockStyle.Bottom;
+
             var flowGroupActions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30, FlowDirection = FlowDirection.LeftToRight, Padding = new Padding(0) };
             flowGroupActions.Controls.Add(btnAddGroup);
             flowGroupActions.Controls.Add(btnRemoveGroup);
@@ -98,6 +101,7 @@ namespace CrossworldsModManager
 
             pnlGroupButtons.Controls.Add(btnSave); // Dock Bottom
             btnSave.Dock = DockStyle.Bottom;
+            pnlGroupButtons.Controls.Add(btnClean); // Dock Bottom (above Save)
             pnlGroupButtons.Controls.Add(flowGroupActions); // Dock Top
 
             pnlLeft.Controls.Add(_lstGroups);
@@ -498,6 +502,30 @@ namespace CrossworldsModManager
             if (e.Data?.GetData(DataFormats.FileDrop) is string[] files)
             {
                 AddFilesToOption(opt, files);
+            }
+        }
+
+        private void CleanDisabledFiles()
+        {
+            if (MessageBox.Show("This will rename all '*.disabled' files in the mod folder back to their original names.\n\nUse this before publishing your mod to ensure all files are active.\n\nProceed?", "Clean Disabled Files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                return;
+
+            try
+            {
+                int count = 0;
+                var files = Directory.GetFiles(_modPath, "*.disabled", SearchOption.AllDirectories);
+                foreach (var file in files)
+                {
+                    string newName = file.Substring(0, file.Length - ".disabled".Length);
+                    if (File.Exists(newName)) File.Delete(newName);
+                    File.Move(file, newName);
+                    count++;
+                }
+                MessageBox.Show($"Cleaned {count} file(s).", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error cleaning files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
