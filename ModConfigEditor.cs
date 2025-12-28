@@ -61,87 +61,99 @@ namespace CrossworldsModManager
 
         private void InitializeComponent()
         {
-            this.Text = "Mod Configuration Editor";
-            this.Size = new Size(800, 550);
+            this.Text = "Mod Config Maker";
+            this.Size = new Size(900, 600);
             this.StartPosition = FormStartPosition.CenterParent;
             this.Font = SystemFonts.MessageBoxFont;
+            this.BackColor = Color.FromArgb(45, 45, 48);
+            this.ForeColor = Color.White;
 
-            var splitContainer = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1 };
+            var splitContainer = new SplitContainer { Dock = DockStyle.Fill, FixedPanel = FixedPanel.Panel1, BackColor = Color.FromArgb(45, 45, 48) };
             this.Controls.Add(splitContainer);
-            splitContainer.SplitterDistance = 220;
+            splitContainer.SplitterDistance = 250;
 
             // --- Left Panel (Groups List) ---
-            var pnlLeft = new Panel { Dock = DockStyle.Fill, Padding = new Padding(5) };
+            var pnlLeft = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10) };
             splitContainer.Panel1.Controls.Add(pnlLeft);
 
-            var lblGroups = new Label { Text = "Configuration Groups", Dock = DockStyle.Top, Height = 25, Font = new Font(this.Font, FontStyle.Bold) };
-            _lstGroups = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
+            var lblGroups = new Label { Text = "Configuration Groups", Dock = DockStyle.Top, Height = 25, Font = new Font(this.Font, FontStyle.Bold), ForeColor = Color.White };
+            _lstGroups = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _lstGroups.SelectedIndexChanged += (s, e) => UpdateRightPanel();
             
-            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 35, Padding = new Padding(0, 5, 0, 0) };
-            var btnAddGroup = new Button { Text = "+", Width = 35, Dock = DockStyle.Left };
-            btnAddGroup.Click += (s, e) => AddGroup();
-            var btnRemoveGroup = new Button { Text = "-", Width = 35, Dock = DockStyle.Left };
-            btnRemoveGroup.Click += (s, e) => RemoveGroup();
-            var btnSave = new Button { Text = "Save && Close", Dock = DockStyle.Right, Width = 100 };
-            btnSave.Click += (s, e) => SaveConfig();
+            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 60, Padding = new Padding(0, 5, 0, 0) };
+            
+            // Group Buttons Layout
+            var btnAddGroup = CreateButton("Add Group", (s, e) => AddGroup());
+            var btnRemoveGroup = CreateButton("Remove", (s, e) => RemoveGroup());
+            var btnUpGroup = CreateButton("▲", (s, e) => MoveGroup(-1), 30);
+            var btnDownGroup = CreateButton("▼", (s, e) => MoveGroup(1), 30);
+            var btnSave = CreateButton("Save && Close", (s, e) => SaveConfig());
+            btnSave.BackColor = Color.FromArgb(0, 122, 204);
 
-            pnlGroupButtons.Controls.Add(btnSave);
-            pnlGroupButtons.Controls.Add(btnRemoveGroup);
-            pnlGroupButtons.Controls.Add(btnAddGroup);
+            var flowGroupActions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30, FlowDirection = FlowDirection.LeftToRight, Padding = new Padding(0) };
+            flowGroupActions.Controls.Add(btnAddGroup);
+            flowGroupActions.Controls.Add(btnRemoveGroup);
+            flowGroupActions.Controls.Add(btnUpGroup);
+            flowGroupActions.Controls.Add(btnDownGroup);
+
+            pnlGroupButtons.Controls.Add(btnSave); // Dock Bottom
+            btnSave.Dock = DockStyle.Bottom;
+            pnlGroupButtons.Controls.Add(flowGroupActions); // Dock Top
 
             pnlLeft.Controls.Add(_lstGroups);
-            pnlLeft.Controls.Add(lblGroups);
             pnlLeft.Controls.Add(pnlGroupButtons);
+            pnlLeft.Controls.Add(lblGroups);
 
             // --- Right Panel (Details) ---
             _pnlRight = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10), Visible = false };
             splitContainer.Panel2.Controls.Add(_pnlRight);
 
             // 1. Group Properties (Top)
-            var grpProps = new GroupBox { Text = "Group Properties", Dock = DockStyle.Top, Height = 120 };
-            
-            var lblName = new Label { Text = "Name:", Location = new Point(15, 25), AutoSize = true };
-            _txtGroupName = new TextBox { Location = new Point(90, 22), Width = 200 };
+            var grpProps = new GroupBox { Text = "Group Properties", Dock = DockStyle.Top, Height = 130, ForeColor = Color.White };
+            var layoutProps = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3, Padding = new Padding(5) };
+            layoutProps.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            layoutProps.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+            var lblName = new Label { Text = "Name:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro };
+            _txtGroupName = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _txtGroupName.TextChanged += (s, e) => { 
                 if (_lstGroups.SelectedItem is ConfigGroup g) { 
                     g.Name = _txtGroupName.Text; 
+                    // Refresh list display
+                     int idx = _lstGroups.SelectedIndex;
+                    _lstGroups.Items[idx] = g; 
                 } 
             };
-            _txtGroupName.Leave += (s, e) => {
-                if (_lstGroups.SelectedIndex != -1) {
-                    // Refresh ListBox text when focus leaves the textbox
-                    _lstGroups.Items[_lstGroups.SelectedIndex] = _lstGroups.Items[_lstGroups.SelectedIndex];
-                }
-            };
 
-            var lblType = new Label { Text = "Type:", Location = new Point(15, 55), AutoSize = true };
-            _cmbGroupType = new ComboBox { Location = new Point(90, 52), Width = 150, DropDownStyle = ComboBoxStyle.DropDownList };
+            var lblType = new Label { Text = "Type:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro };
+            _cmbGroupType = new ComboBox { Dock = DockStyle.Fill, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
             _cmbGroupType.Items.AddRange(new object[] { "SelectOne", "SelectMultiple" });
             _cmbGroupType.SelectedIndexChanged += (s, e) => { if (_lstGroups.SelectedItem is ConfigGroup g) g.Type = _cmbGroupType.SelectedItem?.ToString() ?? "SelectOne"; };
 
-            var lblDesc = new Label { Text = "Description:", Location = new Point(15, 85), AutoSize = true };
-            _txtGroupDesc = new TextBox { Location = new Point(90, 82), Width = 350 };
+            var lblDesc = new Label { Text = "Description:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro };
+            _txtGroupDesc = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _txtGroupDesc.TextChanged += (s, e) => { if (_lstGroups.SelectedItem is ConfigGroup g) g.Description = _txtGroupDesc.Text; };
 
-            grpProps.Controls.AddRange(new Control[] { lblName, _txtGroupName, lblType, _cmbGroupType, lblDesc, _txtGroupDesc });
+            layoutProps.Controls.Add(lblName, 0, 0); layoutProps.Controls.Add(_txtGroupName, 1, 0);
+            layoutProps.Controls.Add(lblType, 0, 1); layoutProps.Controls.Add(_cmbGroupType, 1, 1);
+            layoutProps.Controls.Add(lblDesc, 0, 2); layoutProps.Controls.Add(_txtGroupDesc, 1, 2);
+            grpProps.Controls.Add(layoutProps);
 
             // 2. Splitter for Options and Files
-            var splitRight = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 200 };
+            var splitRight = new SplitContainer { Dock = DockStyle.Fill, Orientation = Orientation.Horizontal, SplitterDistance = 200, BackColor = Color.FromArgb(45, 45, 48) };
             
             // 3. Options List (Middle)
-            var pnlOptions = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 5, 0, 0) };
-            var lblOptHeader = new Label { Text = "Options (e.g. Vanilla, Modded)", Dock = DockStyle.Top, Height = 20, Font = new Font(this.Font, FontStyle.Bold) };
-            _lstOptions = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
+            var pnlOptions = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 0) };
+            var lblOptHeader = new Label { Text = "Options", Dock = DockStyle.Top, Height = 20, Font = new Font(this.Font, FontStyle.Bold), ForeColor = Color.White };
+            _lstOptions = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _lstOptions.SelectedIndexChanged += (s, e) => UpdateFilesList();
 
-            var pnlOptButtons = new Panel { Dock = DockStyle.Bottom, Height = 30 };
-            var btnAddOpt = new Button { Text = "Add Option", Width = 80, Dock = DockStyle.Left };
-            btnAddOpt.Click += (s, e) => AddOption();
-            var btnRemOpt = new Button { Text = "Remove", Width = 80, Dock = DockStyle.Left };
-            btnRemOpt.Click += (s, e) => RemoveOption();
-            pnlOptButtons.Controls.Add(btnRemOpt);
-            pnlOptButtons.Controls.Add(btnAddOpt);
+            var pnlOptButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 30, FlowDirection = FlowDirection.LeftToRight };
+            pnlOptButtons.Controls.Add(CreateButton("Add", (s, e) => AddOption(), 60));
+            pnlOptButtons.Controls.Add(CreateButton("Rename", (s, e) => RenameOption(), 70));
+            pnlOptButtons.Controls.Add(CreateButton("Remove", (s, e) => RemoveOption(), 70));
+            pnlOptButtons.Controls.Add(CreateButton("▲", (s, e) => MoveOption(-1), 30));
+            pnlOptButtons.Controls.Add(CreateButton("▼", (s, e) => MoveOption(1), 30));
 
             pnlOptions.Controls.Add(_lstOptions);
             pnlOptions.Controls.Add(pnlOptButtons);
@@ -149,17 +161,16 @@ namespace CrossworldsModManager
             splitRight.Panel1.Controls.Add(pnlOptions);
 
             // 4. Files List (Bottom)
-            var pnlFiles = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 5, 0, 0) };
-            var lblFileHeader = new Label { Text = "Files for Selected Option", Dock = DockStyle.Top, Height = 20, Font = new Font(this.Font, FontStyle.Bold) };
-            _lstFiles = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false };
+            var pnlFiles = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 10, 0, 0) };
+            var lblFileHeader = new Label { Text = "Files (Drag && Drop Supported)", Dock = DockStyle.Top, Height = 20, Font = new Font(this.Font, FontStyle.Bold), ForeColor = Color.White };
+            _lstFiles = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, AllowDrop = true, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            _lstFiles.DragEnter += _lstFiles_DragEnter;
+            _lstFiles.DragDrop += _lstFiles_DragDrop;
+            _lstFiles.KeyDown += _lstFiles_KeyDown;
             
-            var pnlFileButtons = new Panel { Dock = DockStyle.Bottom, Height = 30 };
-            var btnAddFile = new Button { Text = "Add Files", Width = 80, Dock = DockStyle.Left };
-            btnAddFile.Click += BtnAddFile_Click;
-            var btnRemFile = new Button { Text = "Remove", Width = 80, Dock = DockStyle.Left };
-            btnRemFile.Click += (s, e) => RemoveFile();
-            pnlFileButtons.Controls.Add(btnRemFile);
-            pnlFileButtons.Controls.Add(btnAddFile);
+            var pnlFileButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 30, FlowDirection = FlowDirection.LeftToRight };
+            pnlFileButtons.Controls.Add(CreateButton("Add Files...", BtnAddFile_Click, 90));
+            pnlFileButtons.Controls.Add(CreateButton("Remove", (s, e) => RemoveFile(), 70));
 
             pnlFiles.Controls.Add(_lstFiles);
             pnlFiles.Controls.Add(pnlFileButtons);
@@ -169,6 +180,23 @@ namespace CrossworldsModManager
             // Add to Right Panel (Order matters for Docking: Fill first, then Top)
             _pnlRight.Controls.Add(splitRight);
             _pnlRight.Controls.Add(grpProps);
+        }
+
+        private Button CreateButton(string text, EventHandler onClick, int width = 80)
+        {
+            var btn = new Button
+            {
+                Text = text,
+                Width = width,
+                Height = 25,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.FromArgb(63, 63, 70),
+                ForeColor = Color.White,
+                Margin = new Padding(0, 0, 5, 0)
+            };
+            btn.FlatAppearance.BorderSize = 0;
+            btn.Click += onClick;
+            return btn;
         }
 
         private void LoadConfig()
@@ -238,13 +266,13 @@ namespace CrossworldsModManager
                 {
                     var file = kvp.Key;
                     var pointer = kvp.Value; // Group.Option
-                    var ptrParts = pointer.Split('.');
-                    if (ptrParts.Length == 2)
+                    
+                    // Find the group that matches the start of the pointer
+                    var group = _config.Groups.FirstOrDefault(g => pointer.StartsWith(g.Name + ".", StringComparison.OrdinalIgnoreCase));
+                    if (group != null)
                     {
-                        var gName = ptrParts[0];
-                        var oName = ptrParts[1];
-                        var group = _config.Groups.FirstOrDefault(g => g.Name.Equals(gName, StringComparison.OrdinalIgnoreCase));
-                        var opt = group?.Options.FirstOrDefault(o => o.Name.Equals(oName, StringComparison.OrdinalIgnoreCase));
+                        var optionName = pointer.Substring(group.Name.Length + 1);
+                        var opt = group.Options.FirstOrDefault(o => o.Name.Equals(optionName, StringComparison.OrdinalIgnoreCase));
                         opt?.Files.Add(file);
                     }
                 }
@@ -299,7 +327,10 @@ namespace CrossworldsModManager
 
         private void AddGroup()
         {
-            var newGrp = new ConfigGroup { Name = "NewGroup" };
+            string name = Prompt.ShowDialog("Enter Group Name:", "New Group", "NewGroup");
+            if (string.IsNullOrWhiteSpace(name)) return;
+            
+            var newGrp = new ConfigGroup { Name = name };
             _config.Groups.Add(newGrp);
             _lstGroups.Items.Add(newGrp);
             _lstGroups.SelectedItem = newGrp;
@@ -309,17 +340,34 @@ namespace CrossworldsModManager
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp)
             {
-                _config.Groups.Remove(grp);
-                _lstGroups.Items.Remove(grp);
-                UpdateRightPanel();
+                if (MessageBox.Show($"Delete group '{grp.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    _config.Groups.Remove(grp);
+                    _lstGroups.Items.Remove(grp);
+                    UpdateRightPanel();
+                }
             }
+        }
+
+        private void MoveGroup(int direction)
+        {
+            if (_lstGroups.SelectedItem is not ConfigGroup grp) return;
+            int idx = _config.Groups.IndexOf(grp);
+            int newIdx = idx + direction;
+            if (newIdx < 0 || newIdx >= _config.Groups.Count) return;
+
+            _config.Groups.RemoveAt(idx);
+            _config.Groups.Insert(newIdx, grp);
+            
+            RefreshGroupList();
+            _lstGroups.SelectedItem = grp;
         }
 
         private void AddOption()
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp)
             {
-                string name = Microsoft.VisualBasic.Interaction.InputBox("Enter Option Name:", "New Option", "NewOption");
+                string name = Prompt.ShowDialog("Enter Option Name:", "New Option", "NewOption");
                 if (string.IsNullOrWhiteSpace(name)) return;
 
                 var newOpt = new ConfigOption { Name = name };
@@ -329,14 +377,47 @@ namespace CrossworldsModManager
             }
         }
 
+        private void RenameOption()
+        {
+            if (_lstOptions.SelectedItem is ConfigOption opt)
+            {
+                string name = Prompt.ShowDialog("Enter new name:", "Rename Option", opt.Name);
+                if (!string.IsNullOrWhiteSpace(name))
+                {
+                    opt.Name = name;
+                    // Refresh list item text
+                    int idx = _lstOptions.SelectedIndex;
+                    _lstOptions.Items[idx] = opt;
+                }
+            }
+        }
+
         private void RemoveOption()
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp && _lstOptions.SelectedItem is ConfigOption opt)
             {
-                grp.Options.Remove(opt);
-                _lstOptions.Items.Remove(opt);
-                UpdateFilesList();
+                if (MessageBox.Show($"Delete option '{opt.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                {
+                    grp.Options.Remove(opt);
+                    _lstOptions.Items.Remove(opt);
+                    UpdateFilesList();
+                }
             }
+        }
+
+        private void MoveOption(int direction)
+        {
+            if (_lstGroups.SelectedItem is not ConfigGroup grp || _lstOptions.SelectedItem is not ConfigOption opt) return;
+            int idx = grp.Options.IndexOf(opt);
+            int newIdx = idx + direction;
+            if (newIdx < 0 || newIdx >= grp.Options.Count) return;
+
+            grp.Options.RemoveAt(idx);
+            grp.Options.Insert(newIdx, opt);
+
+            _lstOptions.Items.Clear();
+            foreach (var o in grp.Options) _lstOptions.Items.Add(o);
+            _lstOptions.SelectedItem = opt;
         }
 
         private void BtnAddFile_Click(object? sender, EventArgs e)
@@ -347,44 +428,76 @@ namespace CrossworldsModManager
             {
                 ofd.Multiselect = true;
                 ofd.Filter = "Mod Files|*.pak;*.utoc;*.ucas;*.json|All Files|*.*";
+                // Start in the mod directory if possible
+                if (Directory.Exists(_modPath)) ofd.InitialDirectory = _modPath;
+
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
-                    foreach (var file in ofd.FileNames)
-                    {
-                        string ext = Path.GetExtension(file).ToLowerInvariant();
-                        string nameToRegister;
+                    AddFilesToOption(opt, ofd.FileNames);
+                }
+            }
+        }
 
-                        // Logic: JSON keeps extension, PAK/UTOC/UCAS strips extension
-                        if (ext == ".json")
-                        {
-                            nameToRegister = Path.GetFileName(file);
-                        }
-                        else if (ext == ".pak" || ext == ".utoc" || ext == ".ucas")
-                        {
-                            nameToRegister = Path.GetFileNameWithoutExtension(file);
-                        }
-                        else
-                        {
-                            // Fallback for other files
-                            nameToRegister = Path.GetFileName(file);
-                        }
+        private void AddFilesToOption(ConfigOption opt, string[] filePaths)
+        {
+            foreach (var file in filePaths)
+            {
+                // We want the path relative to the mod folder if possible
+                string relativePath = file;
+                if (file.StartsWith(_modPath, StringComparison.OrdinalIgnoreCase))
+                {
+                    relativePath = Path.GetRelativePath(_modPath, file);
+                }
+                else
+                {
+                    // If it's outside, we might just use the filename, but warn?
+                    // For now, just use filename as fallback or relative if inside.
+                    // Actually, mod.ini expects files inside the mod folder.
+                    // If the user selects a file outside, we should probably copy it or just use the name and assume they will move it.
+                    // Let's just use the filename if it's not in the path, assuming it's in the root of the mod.
+                    relativePath = Path.GetFileName(file);
+                }
 
-                        if (!opt.Files.Contains(nameToRegister))
-                        {
-                            opt.Files.Add(nameToRegister);
-                            _lstFiles.Items.Add(nameToRegister);
-                        }
-                    }
+                if (!opt.Files.Contains(relativePath))
+                {
+                    opt.Files.Add(relativePath);
+                    _lstFiles.Items.Add(relativePath);
                 }
             }
         }
 
         private void RemoveFile()
         {
-            if (_lstOptions.SelectedItem is ConfigOption opt && _lstFiles.SelectedItem is string file)
+            if (_lstOptions.SelectedItem is ConfigOption opt)
             {
-                opt.Files.Remove(file);
-                _lstFiles.Items.Remove(file);
+                var selectedFiles = _lstFiles.SelectedItems.Cast<string>().ToList();
+                foreach (var file in selectedFiles)
+                {
+                    opt.Files.Remove(file);
+                    _lstFiles.Items.Remove(file);
+                }
+            }
+        }
+
+        private void _lstFiles_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete) RemoveFile();
+        }
+
+        private void _lstFiles_DragEnter(object? sender, DragEventArgs e)
+        {
+            if (e.Data != null && e.Data.GetDataPresent(DataFormats.FileDrop))
+                e.Effect = DragDropEffects.Copy;
+            else
+                e.Effect = DragDropEffects.None;
+        }
+
+        private void _lstFiles_DragDrop(object? sender, DragEventArgs e)
+        {
+            if (!(_lstOptions.SelectedItem is ConfigOption opt)) return;
+            if (e.Data?.GetData(DataFormats.FileDrop) is string[] files)
+            {
+                AddFilesToOption(opt, files);
             }
         }
 
