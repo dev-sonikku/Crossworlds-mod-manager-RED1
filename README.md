@@ -51,6 +51,7 @@ Description = This mod replaces the main character's car with a cool new model.
 -   **Author**: Your name or alias.
 -   **Version**: The version number of your mod.
 -   **Description**: A short description of what your mod does.
+-   **Type**: (Optional) Set this to `LogicMod` if your mod is a UE4SS Logic Mod.
 
 > **Note:** If you don't provide a `mod.ini`, the manager will use the mod's folder name as its name and won't show any other details.
 
