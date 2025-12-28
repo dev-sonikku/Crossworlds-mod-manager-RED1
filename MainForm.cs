@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO.Compression;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace CrossworldsModManager
@@ -955,17 +956,57 @@ namespace CrossworldsModManager
             }
             var targetModsDir = Path.Combine(gamePath, "UNION", "Content", "Paks", "~mods");
 
+            // Check for exFAT file system
+            bool useCopy = false;
+            try
+            {
+                if (!Directory.Exists(targetModsDir)) Directory.CreateDirectory(targetModsDir);
+                var driveInfo = new DriveInfo(Path.GetPathRoot(targetModsDir) ?? targetModsDir);
+                
+                if (string.Equals(driveInfo.DriveFormat, "exFAT", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!SettingsManager.Settings.SuppressExFatWarning)
+                    {
+                        using (var warning = new ExFatWarningForm())
+                        {
+                            if (warning.ShowDialog(this) != DialogResult.OK)
+                            {
+                                UpdateStatus("Installation cancelled.");
+                                return false;
+                            }
+                            if (warning.DoNotShowAgain)
+                            {
+                                SettingsManager.Settings.SuppressExFatWarning = true;
+                                SettingsManager.Save();
+                            }
+                        }
+                    }
+                    useCopy = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error checking drive format: {ex.Message}");
+            }
+
             try
             {
                 // 1. Ensure the target directory exists.
                 Directory.CreateDirectory(targetModsDir);
 
-                // 2. Clear out old symbolic links created by this manager.
+                // 2. Clear out old symbolic links AND copied folders created by this manager.
                 foreach (var dir in Directory.GetDirectories(targetModsDir))
                 {
-                    if ((File.GetAttributes(dir) & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
+                    var dirInfo = new DirectoryInfo(dir);
+                    // Check for symlink
+                    if ((dirInfo.Attributes & FileAttributes.ReparsePoint) == FileAttributes.ReparsePoint)
                     {
                         Directory.Delete(dir);
+                    }
+                    // Check for copied folder pattern (000-ModName)
+                    else if (Regex.IsMatch(dirInfo.Name, @"^\d{3}-"))
+                    {
+                        Directory.Delete(dir, true);
                     }
                 }
 
@@ -985,7 +1026,15 @@ namespace CrossworldsModManager
                             // By starting at 000 for the top mod, we ensure it loads first. Subsequent mods
                             // with higher numbers will load later, overwriting any conflicting files from mods above them.
                             var linkName = Path.Combine(targetModsDir, $"{i:D3}-{modFolderName}");
-                            installTasks.Add(CreateSymbolicLinkAsync(linkName, modInfo.DirectoryPath));
+                            
+                            if (useCopy)
+                            {
+                                installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath));
+                            }
+                            else
+                            {
+                                installTasks.Add(CreateSymbolicLinkAsync(linkName, modInfo.DirectoryPath));
+                            }
                         }
                     }
                 }
@@ -1024,7 +1073,14 @@ namespace CrossworldsModManager
 
                         // Now, create a symbolic link from ~mods to our _DevExport folder
                         var devLinkName = Path.Combine(targetModsDir, "000-DevExport"); // "000" prefix for highest priority
-                        await CreateSymbolicLinkAsync(devLinkName, devModDir);
+                        if (useCopy)
+                        {
+                            await CopyDirectoryAsync(devLinkName, devModDir);
+                        }
+                        else
+                        {
+                            await CreateSymbolicLinkAsync(devLinkName, devModDir);
+                        }
                         UpdateStatus("Installed developer export files.");
                     }
                 }
@@ -1127,6 +1183,41 @@ namespace CrossworldsModManager
             }
         }
         
+        private async Task<bool> CopyDirectoryAsync(string destDir, string sourceDir)
+        {
+            try
+            {
+                await Task.Run(() =>
+                {
+                    if (Directory.Exists(destDir)) Directory.Delete(destDir, true);
+                    Directory.CreateDirectory(destDir);
+                    CopyDirRecursive(sourceDir, destDir);
+                });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Copy failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private void CopyDirRecursive(string sourceDir, string destDir)
+        {
+            var dir = new DirectoryInfo(sourceDir);
+            if (!dir.Exists) throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+
+            foreach (FileInfo file in dir.GetFiles())
+                file.CopyTo(Path.Combine(destDir, file.Name), true);
+
+            foreach (DirectoryInfo subDir in dir.GetDirectories())
+            {
+                string newDestDir = Path.Combine(destDir, subDir.Name);
+                Directory.CreateDirectory(newDestDir);
+                CopyDirRecursive(subDir.FullName, newDestDir);
+            }
+        }
+
         private void PromptForModsDirectory()
         {
             MessageBox.Show("Welcome! Please select a folder to store your mods.", "First-Time Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);

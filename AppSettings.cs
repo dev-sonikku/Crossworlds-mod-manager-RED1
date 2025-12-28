@@ -32,5 +32,6 @@ namespace CrossworldsModManager
         // Developer Mode Settings
         public string? DeveloperExportPath { get; set; }
         public List<string> DeveloperEnabledFiles { get; set; } = new();
+        public bool SuppressExFatWarning { get; set; } = false;
     }
 }

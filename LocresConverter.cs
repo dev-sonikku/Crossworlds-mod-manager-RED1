@@ -269,8 +269,7 @@ namespace CrossworldsModManager
                 var mergedJsonFiles = Directory.GetFiles(ToolsDir, "Game_*.json");
                 if (mergedJsonFiles.Length == 0)
                 {
-                    MessageBox.Show("No merged 'Game_*.json' files found in the Tools folder to pack.", "No Files Found", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    progress?.Report("No merged JSON files found.");
+                    progress?.Report("No merged 'Game_*.json' files found in the Tools folder to pack.");
                     return;
                 }
 
