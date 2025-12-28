@@ -1,5 +1,7 @@
 <img width="175" height="216" alt="icon" src="https://github.com/user-attachments/assets/57e9ec12-f8e1-4cc3-9cfb-507b96da6315" />
 
+# ***THIS MOD MANAGER DOES NOT WORK ON exFAT DRIVES! MAKE SURE THE GAME IS ON NTFS DRIVE BEFORE USING THIS MOD MANAGER!!!!***
+
 # Blue Star Manager: The CrossWorlds Mod Manager
 
 **Blue Star Manager** is a powerful mod manager for *Sonic Racing: CrossWorlds* on PC. It provides an easy-to-use interface for players to install and manage their mods, and offers robust features for mod creators to build configurable and advanced modifications.
