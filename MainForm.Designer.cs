@@ -40,6 +40,9 @@ namespace CrossworldsModManager
             this.locresToolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.convertlocresToJsonToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.convertJsonToLocresToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.enableAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.disableAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.organizeAlphabeticallyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.profilesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.newProfileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -71,6 +74,8 @@ namespace CrossworldsModManager
             this.configureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toggleEnabledToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.moveToTopToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.moveToBottomToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.moveUpToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.moveDownToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -131,6 +136,9 @@ namespace CrossworldsModManager
             // 
             this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.settingsToolStripMenuItem,
+            this.enableAllToolStripMenuItem,
+            this.disableAllToolStripMenuItem,
+            this.organizeAlphabeticallyToolStripMenuItem,
             this.toolStripSeparator2,
             this.locresToolsToolStripMenuItem});
             this.toolsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
@@ -172,6 +180,30 @@ namespace CrossworldsModManager
             this.convertJsonToLocresToolStripMenuItem.Size = new System.Drawing.Size(207, 22);
             this.convertJsonToLocresToolStripMenuItem.Text = "Convert .json to .locres...";
             this.convertJsonToLocresToolStripMenuItem.Click += new System.EventHandler(this.convertjsonTolocresToolStripMenuItem_Click);
+            // 
+            // enableAllToolStripMenuItem
+            // 
+            this.enableAllToolStripMenuItem.ForeColor = System.Drawing.Color.Black;
+            this.enableAllToolStripMenuItem.Name = "enableAllToolStripMenuItem";
+            this.enableAllToolStripMenuItem.Size = new System.Drawing.Size(220, 22);
+            this.enableAllToolStripMenuItem.Text = "Enable All Mods";
+            this.enableAllToolStripMenuItem.Click += new System.EventHandler(this.enableAllToolStripMenuItem_Click);
+            // 
+            // disableAllToolStripMenuItem
+            // 
+            this.disableAllToolStripMenuItem.ForeColor = System.Drawing.Color.Black;
+            this.disableAllToolStripMenuItem.Name = "disableAllToolStripMenuItem";
+            this.disableAllToolStripMenuItem.Size = new System.Drawing.Size(220, 22);
+            this.disableAllToolStripMenuItem.Text = "Disable All Mods";
+            this.disableAllToolStripMenuItem.Click += new System.EventHandler(this.disableAllToolStripMenuItem_Click);
+            // 
+            // organizeAlphabeticallyToolStripMenuItem
+            // 
+            this.organizeAlphabeticallyToolStripMenuItem.ForeColor = System.Drawing.Color.Black;
+            this.organizeAlphabeticallyToolStripMenuItem.Name = "organizeAlphabeticallyToolStripMenuItem";
+            this.organizeAlphabeticallyToolStripMenuItem.Size = new System.Drawing.Size(220, 22);
+            this.organizeAlphabeticallyToolStripMenuItem.Text = "Organize Alphabetically";
+            this.organizeAlphabeticallyToolStripMenuItem.Click += new System.EventHandler(this.organizeAlphabeticallyToolStripMenuItem_Click);
             // 
             // profilesToolStripMenuItem
             // 
@@ -480,6 +512,8 @@ namespace CrossworldsModManager
             this.openFolderToolStripMenuItem,
             this.toggleEnabledToolStripMenuItem,
             this.toolStripSeparator5,
+            this.moveToTopToolStripMenuItem,
+            this.moveToBottomToolStripMenuItem,
             this.deleteToolStripMenuItem,
             this.toolStripSeparator4,
             this.moveUpToolStripMenuItem1,
@@ -511,6 +545,22 @@ namespace CrossworldsModManager
             this.toggleEnabledToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.toggleEnabledToolStripMenuItem.Text = "Enable/Disable";
             this.toggleEnabledToolStripMenuItem.Click += new System.EventHandler(this.toggleEnabledToolStripMenuItem_Click);
+            // 
+            // moveToTopToolStripMenuItem
+            // 
+            this.moveToTopToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.moveToTopToolStripMenuItem.Name = "moveToTopToolStripMenuItem";
+            this.moveToTopToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.moveToTopToolStripMenuItem.Text = "Move to Top";
+            this.moveToTopToolStripMenuItem.Click += new System.EventHandler(this.moveToTopContextMenuItem_Click);
+            // 
+            // moveToBottomToolStripMenuItem
+            // 
+            this.moveToBottomToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.moveToBottomToolStripMenuItem.Name = "moveToBottomToolStripMenuItem";
+            this.moveToBottomToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.moveToBottomToolStripMenuItem.Text = "Move to Bottom";
+            this.moveToBottomToolStripMenuItem.Click += new System.EventHandler(this.moveToBottomContextMenuItem_Click);
             // 
             // toolStripSeparator4
             // 
@@ -589,6 +639,9 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toolsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem settingsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem enableAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem disableAllToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem organizeAlphabeticallyToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem locresToolsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem convertlocresToJsonToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem convertJsonToLocresToolStripMenuItem;
@@ -626,6 +679,8 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripMenuItem configureToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openFolderToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toggleEnabledToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem moveToTopToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem moveToBottomToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator4;
         private System.Windows.Forms.ToolStripMenuItem moveUpToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem moveDownToolStripMenuItem1;

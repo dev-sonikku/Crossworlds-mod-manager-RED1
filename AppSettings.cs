@@ -26,6 +26,10 @@ namespace CrossworldsModManager
         // Default is false (automatic backups enabled).
         public bool DoNotBackupModsAutomatically { get; set; } = false;
 
+        // If true, the app will NOT show confirmation when enabling/disabling all mods.
+        // Default is false (show confirmation).
+        public bool DoNotConfirmEnableDisable { get; set; } = false;
+
         // Deprecated properties for migration
         public List<string>? EnabledMods { get; set; }
         public Dictionary<string, string>? ModConfigurations { get; set; }

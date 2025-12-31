@@ -24,6 +24,11 @@ namespace CrossworldsModManager
             {
                 cb.Checked = SettingsManager.Settings.DoNotBackupModsAutomatically;
             }
+            var doNotConfirmChk = this.Controls.Find("chkDoNotConfirmEnableDisable", true);
+            if (doNotConfirmChk.Length > 0 && doNotConfirmChk[0] is CheckBox cb2)
+            {
+                cb2.Checked = SettingsManager.Settings.DoNotConfirmEnableDisable;
+            }
         }
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
@@ -63,6 +68,11 @@ namespace CrossworldsModManager
             if (doNotBackupChk2.Length > 0 && doNotBackupChk2[0] is CheckBox cb2)
             {
                 SettingsManager.Settings.DoNotBackupModsAutomatically = cb2.Checked;
+            }
+            var doNotConfirmChk2 = this.Controls.Find("chkDoNotConfirmEnableDisable", true);
+            if (doNotConfirmChk2.Length > 0 && doNotConfirmChk2[0] is CheckBox cb3)
+            {
+                SettingsManager.Settings.DoNotConfirmEnableDisable = cb3.Checked;
             }
             SettingsManager.Save();
             DialogResult = DialogResult.OK;

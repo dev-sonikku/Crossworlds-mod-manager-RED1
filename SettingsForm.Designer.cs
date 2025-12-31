@@ -193,6 +193,18 @@ namespace CrossworldsModManager
             this.chkDoNotBackup.Text = "Do not backup mods automatically";
             this.chkDoNotBackup.UseVisualStyleBackColor = true;
             // 
+            // chkDoNotConfirmEnableDisable
+            // 
+            this.chkDoNotConfirmEnableDisable = new System.Windows.Forms.CheckBox();
+            this.chkDoNotConfirmEnableDisable.AutoSize = true;
+            this.chkDoNotConfirmEnableDisable.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkDoNotConfirmEnableDisable.Location = new System.Drawing.Point(102, 205);
+            this.chkDoNotConfirmEnableDisable.Name = "chkDoNotConfirmEnableDisable";
+            this.chkDoNotConfirmEnableDisable.Size = new System.Drawing.Size(255, 17);
+            this.chkDoNotConfirmEnableDisable.TabIndex = 14;
+            this.chkDoNotConfirmEnableDisable.Text = "Do not ask for confirmation when enabling/disabling all";
+            this.chkDoNotConfirmEnableDisable.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -200,6 +212,7 @@ namespace CrossworldsModManager
             this.ClientSize = new System.Drawing.Size(584, 230);
             this.Controls.Add(this.chkDeveloperMode);
             this.Controls.Add(this.chkDoNotBackup);
+            this.Controls.Add(this.chkDoNotConfirmEnableDisable);
             this.Controls.Add(this.chkAutoCloseLog);
             this.Controls.Add(this.chkCheckForGames);
             this.Controls.Add(this.chkAutoClean);
@@ -242,5 +255,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.CheckBox chkAutoCloseLog;
         private System.Windows.Forms.CheckBox chkDeveloperMode;
         private System.Windows.Forms.CheckBox chkDoNotBackup;
+        private System.Windows.Forms.CheckBox chkDoNotConfirmEnableDisable;
     }
 }

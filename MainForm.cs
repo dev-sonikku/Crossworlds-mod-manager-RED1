@@ -38,6 +38,8 @@ namespace CrossworldsModManager
         private Button? btnBrowseMods; // Added for GameBanana browser
         private Button? btnBackupMods; // Added for Mod Backup
         private Button? btnRestoreMods; // Added for Mod Restore
+        private Button? btnEnableAll;
+        private Button? btnDisableAll;
         private readonly string? _oneClickUrl;
 
         public MainForm(string? oneClickUrl, string appVersion)
@@ -115,6 +117,8 @@ namespace CrossworldsModManager
                 btnRestoreMods.Click += btnRestoreMods_Click;
                 this.Controls.Add(btnRestoreMods);
                 btnRestoreMods.BringToFront();
+
+                // Enable/Disable All moved to Tools menu to reduce UI clutter.
             }
             catch
             {
@@ -137,6 +141,21 @@ namespace CrossworldsModManager
                 modContextMenuStrip.Items.Add(new ToolStripSeparator());
                 modContextMenuStrip.Items.Add(configMakerItem);
                 modContextMenuStrip.Items.Add(normalizeRootItem);
+            }
+
+            // Make top-level menus change color when their dropdown is opened/closed
+            try
+            {
+                fileToolStripMenuItem.DropDownOpened += ParentMenu_DropDownOpened;
+                fileToolStripMenuItem.DropDownClosed += ParentMenu_DropDownClosed;
+                toolsToolStripMenuItem.DropDownOpened += ParentMenu_DropDownOpened;
+                toolsToolStripMenuItem.DropDownClosed += ParentMenu_DropDownClosed;
+                profilesToolStripMenuItem.DropDownOpened += ParentMenu_DropDownOpened;
+                profilesToolStripMenuItem.DropDownClosed += ParentMenu_DropDownClosed;
+            }
+            catch
+            {
+                // Ignore if designer names differ or items not present
             }
         }
 
@@ -1805,6 +1824,22 @@ namespace CrossworldsModManager
             }
         }
 
+        private void ParentMenu_DropDownOpened(object? sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem itm)
+            {
+                itm.ForeColor = Color.Black;
+            }
+        }
+
+        private void ParentMenu_DropDownClosed(object? sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem itm)
+            {
+                itm.ForeColor = Color.White;
+            }
+        }
+
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Application.Exit();
@@ -1821,6 +1856,95 @@ namespace CrossworldsModManager
         private void UpdateStatus(string message)
         {
             toolStripStatusLabel1.Text = message;
+        }
+
+        private async void btnEnableAll_Click(object? sender, EventArgs e)
+        {
+            await ApplyEnableDisableAll(true);
+        }
+
+        private async void btnDisableAll_Click(object? sender, EventArgs e)
+        {
+            await ApplyEnableDisableAll(false);
+        }
+
+        private async Task ApplyEnableDisableAll(bool enable)
+        {
+            if (!SettingsManager.Settings.DoNotConfirmEnableDisable)
+            {
+                using var dlg = new ConfirmActionForm(enable ? "Enable all mods?" : "Disable all mods?", "Do not show this again");
+                var res = dlg.ShowDialog(this);
+                if (res != DialogResult.Yes)
+                {
+                    return;
+                }
+                if (dlg.DontShowAgain)
+                {
+                    SettingsManager.Settings.DoNotConfirmEnableDisable = true;
+                    SettingsManager.Save();
+                }
+            }
+
+            foreach (ListViewItem item in modListView.Items)
+            {
+                item.Checked = enable;
+            }
+            SaveModListState();
+            UpdateStatus(enable ? "Enabling all mods and applying changes..." : "Disabling all mods and applying changes...");
+            await InstallModsAsync();
+            UpdateStatus(enable ? "All mods enabled." : "All mods disabled.");
+        }
+
+        private void enableAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            _ = ApplyEnableDisableAll(true);
+        }
+
+        private void disableAllToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            _ = ApplyEnableDisableAll(false);
+        }
+
+        private void organizeAlphabeticallyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var items = modListView.Items.Cast<ListViewItem>().OrderBy(i => i.Text, StringComparer.InvariantCultureIgnoreCase).ToArray();
+            modListView.BeginUpdate();
+            modListView.Items.Clear();
+            modListView.Items.AddRange(items);
+            modListView.EndUpdate();
+            SaveModListState();
+            UpdateStatus("Organized mods alphabetically.");
+        }
+
+        private void moveToTopContextMenuItem_Click(object sender, EventArgs e)
+        {
+            var selected = modListView.SelectedItems.Cast<ListViewItem>().ToList();
+            if (selected.Count == 0) return;
+            // Insert selected items at top preserving their order
+            foreach (var item in selected)
+            {
+                modListView.Items.Remove(item);
+            }
+            int insertIndex = 0;
+            foreach (var item in selected)
+            {
+                modListView.Items.Insert(insertIndex++, item);
+            }
+            SaveModListState();
+            UpdateStatus($"Moved {selected.Count} mod(s) to top.");
+        }
+
+        private void moveToBottomContextMenuItem_Click(object sender, EventArgs e)
+        {
+            var selected = modListView.SelectedItems.Cast<ListViewItem>().ToList();
+            if (selected.Count == 0) return;
+            foreach (var item in selected)
+            {
+                modListView.Items.Remove(item);
+                modListView.Items.Add(item);
+            }
+            SaveModListState();
+            UpdateStatus($"Moved {selected.Count} mod(s) to bottom.");
         }
 
         private void modListView_MouseClick(object sender, MouseEventArgs e)
