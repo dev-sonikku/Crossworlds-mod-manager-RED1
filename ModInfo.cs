@@ -8,6 +8,8 @@ namespace CrossworldsModManager
         public string Name { get; set; } = "Unknown Mod";
         public string Author { get; set; } = "Unknown Author";
         public string Version { get; set; } = "1.0";
+        // GameBanana version counter (number of updates) used for update checks.
+        public string GBVersion { get; set; } = "0";
         public string Description { get; set; } = "No description provided.";
         public string DirectoryPath { get; set; } = "";
         public bool IsLogicMod { get; set; } = false;

@@ -505,7 +505,30 @@ namespace CrossworldsModManager
 
             string targetDir = Path.Combine(modsDirectory, modName);
 
-            if (Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
+            // Preserve any existing mod.ini (if present) before deleting old files.
+            string? preservedIniContent = null;
+            string? preservedIniRelativePath = null;
+
+            if (Directory.Exists(targetDir))
+            {
+                try
+                {
+                    var existingIni = Directory.GetFiles(targetDir, "mod.ini", SearchOption.AllDirectories).FirstOrDefault();
+                    if (existingIni != null)
+                    {
+                        preservedIniContent = File.ReadAllText(existingIni);
+                        preservedIniRelativePath = Path.GetRelativePath(targetDir, existingIni);
+                    }
+
+                    // Delete old contents of the folder but keep the root directory itself.
+                    DeleteDirectoryContents(targetDir);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to clear existing mod folder '{targetDir}': {ex.Message}");
+                }
+            }
+
             Directory.CreateDirectory(targetDir);
 
             _logger?.Report($"Extracting {Path.GetFileName(archivePath)} using SharpCompress...");
@@ -515,8 +538,49 @@ namespace CrossworldsModManager
                 archive.WriteToDirectory(targetDir, new SharpCompress.Common.ExtractionOptions { ExtractFullPath = true, Overwrite = true });
             });
 
-            // After extraction, create or update the mod.ini file with GameBanana info.
-            await CreateOrUpdateModIniAsync(targetDir);
+            // After extraction, check whether the extracted content already contains a mod.ini (possibly nested).
+            var extractedIni = Directory.GetFiles(targetDir, "mod.ini", SearchOption.AllDirectories).FirstOrDefault();
+
+            if (extractedIni == null && preservedIniContent != null && preservedIniRelativePath != null)
+            {
+                // Restore preserved mod.ini into the same relative location inside the extracted folder.
+                try
+                {
+                    var restorePath = Path.Combine(targetDir, preservedIniRelativePath);
+                    var restoreDir = Path.GetDirectoryName(restorePath);
+                    if (!string.IsNullOrEmpty(restoreDir) && !Directory.Exists(restoreDir)) Directory.CreateDirectory(restoreDir);
+                    File.WriteAllText(restorePath, preservedIniContent);
+                    extractedIni = restorePath;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to restore preserved mod.ini for '{targetDir}': {ex.Message}");
+                }
+            }
+
+            // Determine the directory to update/create mod.ini in: prefer the directory containing an existing mod.ini, otherwise use targetDir
+            string iniTargetDir = targetDir;
+            if (!string.IsNullOrEmpty(extractedIni))
+            {
+                var d = Path.GetDirectoryName(extractedIni);
+                if (!string.IsNullOrEmpty(d)) iniTargetDir = d;
+            }
+
+            // After extraction and possible restore, create or update the mod.ini file with GameBanana info.
+            await CreateOrUpdateModIniAsync(iniTargetDir);
+        }
+
+        private void DeleteDirectoryContents(string dir)
+        {
+            var directory = new DirectoryInfo(dir);
+            foreach (var file in directory.GetFiles())
+            {
+                try { file.IsReadOnly = false; file.Delete(); } catch { }
+            }
+            foreach (var sub in directory.GetDirectories())
+            {
+                try { sub.Delete(true); } catch { }
+            }
         }
 
         private async Task CreateOrUpdateModIniAsync(string modDirectory)
@@ -540,11 +604,25 @@ namespace CrossworldsModManager
             iniData["GameBanana"]["ItemId"] = _mod.Id.ToString();
             iniData["GameBanana"]["ItemType"] = _mod.ModelName;
 
-            // If version is missing in [Main], fetch it from the API and add it.
-            if (!iniData["Main"].ContainsKey("Version") || string.IsNullOrWhiteSpace(iniData["Main"]["Version"]))
+            // Fetch the latest GameBanana version counter and store it separately as GBVersion
+            try
             {
                 var latestVersion = await GameBananaApiService.GetLatestModVersionAsync(_mod.ModelName, _mod.Id);
-                iniData["Main"]["Version"] = latestVersion ?? "1"; // Default to 1 if API fails
+                if (!string.IsNullOrWhiteSpace(latestVersion))
+                {
+                    iniData["GameBanana"]["GBVersion"] = latestVersion;
+                }
+                else if (!iniData["GameBanana"].ContainsKey("GBVersion"))
+                {
+                    iniData["GameBanana"]["GBVersion"] = "0";
+                }
+            }
+            catch
+            {
+                if (!iniData["GameBanana"].ContainsKey("GBVersion"))
+                {
+                    iniData["GameBanana"]["GBVersion"] = "0";
+                }
             }
 
             // Set the author in [Main] to the GameBanana mod author for installs

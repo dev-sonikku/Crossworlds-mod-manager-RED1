@@ -725,13 +725,51 @@ namespace CrossworldsModManager
                 // Skip temp/trash folders or hidden folders to prevent processing backups/failed moves
                 if (Path.GetFileName(dir).StartsWith("_") || (new DirectoryInfo(dir).Attributes & FileAttributes.Hidden) != 0) continue;
 
-                // Normalization on startup is disabled to avoid unintended destructive operations.
-                // Use the context-menu command "Normalize Mod Root" to run this operation on selected mods.
+                // Non-destructive nested mod.ini detection:
+                // If a mod.ini exists in a subdirectory, treat that subdirectory as the mod root
+                // for purposes of reading mod metadata, without moving or deleting any files.
+                string modRoot = dir;
+                try
+                {
+                    var iniFiles = Directory.GetFiles(dir, "mod.ini", SearchOption.AllDirectories);
+                    if (iniFiles.Length > 0)
+                    {
+                        string fullModPath = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                        string? foundIni = null;
+                        foreach (var f in iniFiles)
+                        {
+                            var fDir = Path.GetDirectoryName(f);
+                            if (string.IsNullOrEmpty(fDir)) continue;
+                            var fullDir = Path.GetFullPath(fDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                            // prefer an ini that is not the original root
+                            if (!fullDir.Equals(fullModPath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                foundIni = f;
+                                break;
+                            }
+                        }
 
-                var modFolderName = Path.GetFileName(dir);
+                        if (foundIni != null)
+                        {
+                            var candidate = Path.GetDirectoryName(foundIni)!;
+                            // Safety: ensure candidate is inside the mod folder
+                            if (Path.GetFullPath(candidate).StartsWith(fullModPath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                modRoot = candidate;
+                                Debug.WriteLine($"Detected nested mod.ini for '{dir}', using '{modRoot}' as mod root (non-destructive).");
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Error searching for nested mod.ini under '{dir}': {ex.Message}");
+                }
+
+                var modFolderName = Path.GetFileName(modRoot);
                 if (string.IsNullOrEmpty(modFolderName)) continue;
 
-                var iniPath = Path.Combine(dir, "mod.ini");
+                var iniPath = Path.Combine(modRoot, "mod.ini");
 
                 // Check for legacy config (desc.ini) if mod.ini doesn't exist
                 if (!File.Exists(iniPath))
@@ -755,9 +793,19 @@ namespace CrossworldsModManager
                         Author = mainSection.GetValueOrDefault("Author", "Unknown"),
                         Version = mainSection.ContainsKey("Version") ? mainSection["Version"] : "1.0",
                         Description = mainSection.GetValueOrDefault("Description", "No description provided."),
-                        DirectoryPath = dir,
+                        DirectoryPath = modRoot,
                         IsLogicMod = mainSection.GetValueOrDefault("Type", "").Equals("LogicMod", StringComparison.OrdinalIgnoreCase)
                     };
+
+                    // Populate GBVersion from [GameBanana] section if available, otherwise fallback to main Version
+                    if (iniSections.TryGetValue("GameBanana", out var gbSec) && gbSec.TryGetValue("GBVersion", out var gbv))
+                    {
+                        modInfo.GBVersion = gbv;
+                    }
+                    else
+                    {
+                        modInfo.GBVersion = mainSection.ContainsKey("Version") ? mainSection["Version"] : "0";
+                    }
 
                     // New logic for multiple named [Config:GroupName] sections
                     var configSections = iniSections.Where(s => s.Key.StartsWith("Config:", StringComparison.OrdinalIgnoreCase)).ToList();
@@ -778,7 +826,7 @@ namespace CrossworldsModManager
                     modInfo = new ModInfo
                     {
                         Name = modFolderName,
-                        DirectoryPath = dir
+                        DirectoryPath = modRoot
                         // Author, Version, etc., will use default values.
                     };
                 }
@@ -924,7 +972,8 @@ namespace CrossworldsModManager
                 {
                     try
                     {
-                        logger.Report($"[{modInfo.Name}] Found GameBanana info. Item: {itemType}/{itemId}. Local version: '{modInfo.Version}'.");
+                        var localGbVersion = modInfo.GBVersion;
+                        logger.Report($"[{modInfo.Name}] Found GameBanana info. Item: {itemType}/{itemId}. Local GBVersion: '{localGbVersion}'.");
                         string? latestVersionStr = await GameBananaApiService.GetLatestModVersionAsync(itemType, itemId);
                         
                         if (string.IsNullOrEmpty(latestVersionStr))
@@ -935,11 +984,19 @@ namespace CrossworldsModManager
 
                         logger.Report($"[{modInfo.Name}] -> Fetched remote version: '{latestVersionStr}'.");
 
-                        if (int.TryParse(latestVersionStr, out int latestVersion) && int.TryParse(modInfo.Version, out int localVersion))
+                        // Compare integers: prefer GBVersion for local value, fallback to main Version if GBVersion isn't numeric
+                        if (int.TryParse(latestVersionStr, out int latestVersion))
                         {
-                            if (latestVersion > localVersion)
+                            int localGbInt = 0;
+                            if (!int.TryParse(localGbVersion, out localGbInt))
                             {
-                                logger.Report($"[{modInfo.Name}] -> UPDATE AVAILABLE! (Remote: {latestVersion} > Local: {localVersion})");
+                                // try fallback to the mod's declared Version (may be semver) -- extract integer prefix
+                                if (int.TryParse(modInfo.Version?.Split('.')[0] ?? "0", out var v)) localGbInt = v;
+                            }
+
+                            if (latestVersion > localGbInt)
+                            {
+                                logger.Report($"[{modInfo.Name}] -> UPDATE AVAILABLE! (Remote: {latestVersion} > Local(GB): {localGbInt})");
                                 // We need to update the UI on the UI thread.
                                 this.Invoke((Action)(() => {
                                     item.ForeColor = Color.LimeGreen;
@@ -953,7 +1010,7 @@ namespace CrossworldsModManager
                             }
                             else
                             {
-                                logger.Report($"[{modInfo.Name}] -> Mod is up to date. (Remote: {latestVersion} <= Local: {localVersion})");
+                                logger.Report($"[{modInfo.Name}] -> Mod is up to date. (Remote: {latestVersion} <= Local(GB): {localGbInt})");
                             }
                         }
                     }
