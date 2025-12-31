@@ -156,13 +156,18 @@ namespace CrossworldsModManager
 
             var lblName = new Label { Text = "Name:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro };
             _txtGroupName = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
-            _txtGroupName.TextChanged += (s, e) => { 
-                if (_lstGroups.SelectedItem is ConfigGroup g) { 
-                    g.Name = _txtGroupName.Text; 
-                    // Refresh list display
-                     int idx = _lstGroups.SelectedIndex;
-                    _lstGroups.Items[idx] = g; 
-                } 
+            _txtGroupName.TextChanged += (s, e) => {
+                if (_lstGroups.SelectedItem is ConfigGroup g)
+                {
+                    g.Name = _txtGroupName.Text;
+                    // Refresh list display safely
+                    int idx = _lstGroups.SelectedIndex;
+                    if (idx >= 0 && idx < _lstGroups.Items.Count)
+                    {
+                        _lstGroups.Items[idx] = g;
+                        _lstGroups.Refresh();
+                    }
+                }
             };
 
             var lblType = new Label { Text = "Type:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro };
@@ -439,9 +444,13 @@ namespace CrossworldsModManager
                 if (!string.IsNullOrWhiteSpace(name))
                 {
                     opt.Name = name;
-                    // Refresh list item text
+                    // Refresh list item text safely
                     int idx = _lstOptions.SelectedIndex;
-                    _lstOptions.Items[idx] = opt;
+                    if (idx >= 0 && idx < _lstOptions.Items.Count)
+                    {
+                        _lstOptions.Items[idx] = opt;
+                        _lstOptions.Refresh();
+                    }
                 }
             }
         }

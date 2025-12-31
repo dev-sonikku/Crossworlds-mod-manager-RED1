@@ -2178,7 +2178,43 @@ namespace CrossworldsModManager
 
             if (item.Tag is ModInfo modInfo)
             {
-                using (var editor = new ModConfigEditor(modInfo.DirectoryPath))
+                string modRoot = modInfo.DirectoryPath;
+                try
+                {
+                    // Re-run non-destructive nested detection to ensure we open the true mod root
+                    var iniFiles = Directory.GetFiles(modInfo.DirectoryPath, "mod.ini", SearchOption.AllDirectories);
+                    if (iniFiles.Length > 0)
+                    {
+                        string fullModPath = Path.GetFullPath(modInfo.DirectoryPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                        string? foundIni = null;
+                        foreach (var f in iniFiles)
+                        {
+                            var fDir = Path.GetDirectoryName(f);
+                            if (string.IsNullOrEmpty(fDir)) continue;
+                            var fullDir = Path.GetFullPath(fDir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                            if (!fullDir.Equals(fullModPath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                foundIni = f;
+                                break;
+                            }
+                        }
+
+                        if (foundIni != null)
+                        {
+                            var candidate = Path.GetDirectoryName(foundIni)!;
+                            if (Path.GetFullPath(candidate).StartsWith(fullModPath, StringComparison.OrdinalIgnoreCase))
+                            {
+                                modRoot = candidate;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"ConfigMaker: nested detection failed: {ex.Message}");
+                }
+
+                using (var editor = new ModConfigEditor(modRoot))
                 {
                     editor.ShowDialog(this);
                 }
