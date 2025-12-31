@@ -13,7 +13,7 @@ namespace CrossworldsModManager
     static class Program
     {
         // Current application version.
-        public const string AppVersion = "1.0.4";
+        public const string AppVersion = "1.0.5";
 
         // Unique GUID for the application to identify the mutex and messages.
         private const string AppGuid = "c1a2b3d4-e5f6-7890-1234-567890abcdef"; // Please generate a new GUID for your app
@@ -250,21 +250,171 @@ namespace CrossworldsModManager
                     if (string.IsNullOrEmpty(newRoot) || newRoot.Equals(modPath, StringComparison.OrdinalIgnoreCase)) return;
 
                     Debug.WriteLine($"Found mod.ini in subdirectory: {newRoot}. Promoting to root.");
+                    
+                    // Safety check: Ensure newRoot is actually inside modPath
+                    if (!Path.GetFullPath(newRoot).StartsWith(fullModPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Debug.WriteLine($"Safety check failed: {newRoot} is not inside {modPath}");
+                        return;
+                    }
 
-                    // Move the new root to a temporary sibling folder to avoid volume issues
-                    string tempPath = modPath + "_temp_" + Guid.NewGuid().ToString();
-                    Directory.Move(newRoot, tempPath);
+                    // Move the new root to a temporary location outside the mods directory
+                    // to avoid performing destructive operations inside the user's mods folder.
+                    string tempRoot = Path.Combine(Path.GetTempPath(), "CrossworldsModManager", Guid.NewGuid().ToString());
+                    try
+                    {
+                        Directory.CreateDirectory(tempRoot);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to create temp root '{tempRoot}': {ex.Message}");
+                        return;
+                    }
 
-                    // Delete the original mod folder structure (which contains the old hierarchy)
-                    Directory.Delete(modPath, true);
+                    string tempPath = Path.Combine(tempRoot, Path.GetFileName(newRoot) ?? ("mod_temp_" + Guid.NewGuid().ToString()));
+
+                    // Try to move the new root into the temp area; if that fails (cross-volume),
+                    // fall back to copying then deleting the source.
+                    try
+                    {
+                        SafeMoveDirectory(newRoot, tempPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to move or copy new root to temp: {ex.Message}");
+                        Log($"Failed to move or copy new root '{newRoot}' to temp '{tempPath}': {ex.Message}");
+                        return; // Abort
+                    }
+
+                    // Instead of moving the original folder to a sibling trash inside the mods folder,
+                    // move it to the temp root outside the mods directory. This prevents accidental
+                    // deletion of unrelated folders inside the mods directory.
+                    string trashPath = Path.Combine(tempRoot, Path.GetFileName(modPath) + "_trash_" + Guid.NewGuid().ToString());
+                    bool trashCreated = false;
+
+                    try
+                    {
+                        SafeMoveDirectory(modPath, trashPath);
+                        trashCreated = true;
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to move original folder to trash: {ex.Message}. Reverting.");
+                        Log($"Failed to move or copy original '{modPath}' to trash '{trashPath}': {ex.Message}");
+                        try { SafeMoveDirectory(tempPath, newRoot); } catch { }
+                        return;
+                    }
 
                     // Rename the temp folder to the original mod path name
-                    Directory.Move(tempPath, modPath);
+                    try
+                    {
+                        SafeMoveDirectory(tempPath, modPath);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to rename temp folder to mod path: {ex.Message}. Reverting.");
+                        Log($"Failed to move or copy temp '{tempPath}' to mod path '{modPath}': {ex.Message}");
+                        // Restore from trash
+                        if (trashCreated && Directory.Exists(trashPath))
+                        {
+                            try { SafeMoveDirectory(trashPath, modPath); SafeMoveDirectory(tempPath, newRoot); } catch { }
+                        }
+                        return;
+                    }
+
+                    // Success! Do NOT automatically delete the trash folder. Retain it in the system temp
+                    // for manual inspection/cleanup to avoid accidental mass deletion.
+                    Debug.WriteLine($"Mod root normalized. Original folder moved to: {trashPath}");
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error normalizing mod directory: {ex.Message}");
+            }
+        }
+
+        // Log file path for operations that may affect user data.
+        private static readonly string OperationLogPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "mod_ops.log");
+
+        private static void Log(string message)
+        {
+            try
+            {
+                var line = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}";
+                File.AppendAllText(OperationLogPath, line);
+                Debug.WriteLine(message);
+            }
+            catch
+            {
+                // Best effort only; don't let logging interfere with operations.
+            }
+        }
+
+        // Attempts to move a directory. If a simple move fails (e.g., across volumes),
+        // falls back to a recursive copy followed by deletion of the source.
+        private static void SafeMoveDirectory(string sourceDir, string destDir)
+        {
+            if (string.Equals(Path.GetFullPath(sourceDir).TrimEnd(Path.DirectorySeparatorChar), Path.GetFullPath(destDir).TrimEnd(Path.DirectorySeparatorChar), StringComparison.OrdinalIgnoreCase))
+                return; // same path
+
+            try
+            {
+                // Try a standard move first (fast, preserves metadata when possible).
+                Directory.Move(sourceDir, destDir);
+                Log($"Moved directory '{sourceDir}' -> '{destDir}'");
+                return;
+            }
+            catch (IOException)
+            {
+                // Fall through to copy fallback.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Fall through to copy fallback in case of permission oddities.
+            }
+
+            // Copy fallback
+            CopyDirectory(sourceDir, destDir);
+
+            // Verify destination exists, then remove source.
+            if (Directory.Exists(destDir))
+            {
+                try
+                {
+                    Directory.Delete(sourceDir, true);
+                    Log($"Copied directory '{sourceDir}' -> '{destDir}' and deleted source.");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Copied directory '{sourceDir}' -> '{destDir}', but failed to delete source: {ex.Message}");
+                    throw;
+                }
+            }
+            else
+            {
+                throw new IOException($"Destination directory '{destDir}' does not exist after copy fallback.");
+            }
+        }
+
+        private static void CopyDirectory(string sourceDir, string destDir)
+        {
+            var sourceInfo = new DirectoryInfo(sourceDir);
+            if (!sourceInfo.Exists) throw new DirectoryNotFoundException($"Source directory not found: {sourceDir}");
+
+            Directory.CreateDirectory(destDir);
+
+            // Copy files
+            foreach (var file in sourceInfo.GetFiles("*", SearchOption.TopDirectoryOnly))
+            {
+                var destFile = Path.Combine(destDir, file.Name);
+                file.CopyTo(destFile, true);
+            }
+
+            // Recursively copy subdirectories
+            foreach (var dir in sourceInfo.GetDirectories())
+            {
+                var destSubDir = Path.Combine(destDir, dir.Name);
+                CopyDirectory(dir.FullName, destSubDir);
             }
         }
     }

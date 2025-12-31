@@ -403,6 +403,20 @@ namespace CrossworldsModManager
 
             try
             {
+                // Backup mods before performing download/install (unless user disabled automatic backups)
+                try
+                {
+                    var modsDirectory = SettingsManager.Settings.ModsDirectory;
+                    if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(modsDirectory) && Directory.Exists(modsDirectory))
+                    {
+                        ModBackupManager.BackupMods(modsDirectory);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.Report($"WARNING: Failed to create backup before install: {ex.Message}");
+                }
+
                 await DownloadFileAsync(selectedFile, downloadedFilePath, progressForm);
                 await ExtractAndInstallAsync(downloadedFilePath, progressForm);
                 _onModsChanged?.Invoke(); // Trigger a refresh on the main form
@@ -533,8 +547,9 @@ namespace CrossworldsModManager
                 iniData["Main"]["Version"] = latestVersion ?? "1"; // Default to 1 if API fails
             }
 
-            // If author is missing in [Main], use the one from GameBanana.
-            if (!iniData["Main"].ContainsKey("Author") || string.IsNullOrWhiteSpace(iniData["Main"]["Author"]))
+            // Set the author in [Main] to the GameBanana mod author for installs
+            // originating from the browser or 1-Click flow.
+            if (!string.IsNullOrWhiteSpace(_mod.Author))
             {
                 iniData["Main"]["Author"] = _mod.Author;
             }

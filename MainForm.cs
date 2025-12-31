@@ -36,11 +36,14 @@ namespace CrossworldsModManager
         private LogForm? _logForm;
         private DeveloperForm? _devForm;
         private Button? btnBrowseMods; // Added for GameBanana browser
+        private Button? btnBackupMods; // Added for Mod Backup
+        private Button? btnRestoreMods; // Added for Mod Restore
         private readonly string? _oneClickUrl;
 
         public MainForm(string? oneClickUrl, string appVersion)
         {
             InitializeComponent();
+            this.Height += 10;
             // Set the form's icon from the executable's embedded icon.
             _oneClickUrl = oneClickUrl;
             this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -80,6 +83,38 @@ namespace CrossworldsModManager
                 btnBrowseMods.Click += btnBrowseMods_Click;
                 this.Controls.Add(btnBrowseMods);
                 btnBrowseMods.BringToFront(); // Ensure it's visible
+
+                // Programmatically add the "Backup Mods" button below the Browse Mods button
+                btnBackupMods = new Button
+                {
+                    Name = "btnBackupMods",
+                    Text = "Backup Mods",
+                    Anchor = btnBrowseMods.Anchor,
+                    Location = new Point(btnBrowseMods.Location.X, btnBrowseMods.Location.Y + btnBrowseMods.Height + 6),
+                    Size = btnBrowseMods.Size,
+                    FlatStyle = btnBrowseMods.FlatStyle,
+                    ForeColor = btnBrowseMods.ForeColor,
+                    BackColor = btnBrowseMods.BackColor
+                };
+                btnBackupMods.Click += btnBackupMods_Click;
+                this.Controls.Add(btnBackupMods);
+                btnBackupMods.BringToFront();
+
+                // Programmatically add the "Restore Mods" button below the Backup Mods button
+                btnRestoreMods = new Button
+                {
+                    Name = "btnRestoreMods",
+                    Text = "Restore Mods",
+                    Anchor = btnBackupMods.Anchor,
+                    Location = new Point(btnBackupMods.Location.X, btnBackupMods.Location.Y + btnBackupMods.Height + 6),
+                    Size = btnBackupMods.Size,
+                    FlatStyle = btnBackupMods.FlatStyle,
+                    ForeColor = btnBackupMods.ForeColor,
+                    BackColor = btnBackupMods.BackColor
+                };
+                btnRestoreMods.Click += btnRestoreMods_Click;
+                this.Controls.Add(btnRestoreMods);
+                btnRestoreMods.BringToFront();
             }
             catch
             {
@@ -92,11 +127,47 @@ namespace CrossworldsModManager
             configMakerItem.BackColor = Color.FromArgb(45, 45, 48);
             configMakerItem.Click += ConfigMakerItem_Click;
             
+            var normalizeRootItem = new ToolStripMenuItem("Normalize Mod Root");
+            normalizeRootItem.ForeColor = Color.White;
+            normalizeRootItem.BackColor = Color.FromArgb(45, 45, 48);
+            normalizeRootItem.Click += NormalizeRootItem_Click;
+            
             if (modContextMenuStrip != null)
             {
                 modContextMenuStrip.Items.Add(new ToolStripSeparator());
                 modContextMenuStrip.Items.Add(configMakerItem);
+                modContextMenuStrip.Items.Add(normalizeRootItem);
             }
+        }
+
+        private void NormalizeRootItem_Click(object? sender, EventArgs e)
+        {
+            var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
+            if (selectedItems.Count == 0)
+            {
+                MessageBox.Show("Please select one or more mods to normalize.", "Normalize Mod Root", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            int success = 0;
+            foreach (ListViewItem item in selectedItems)
+            {
+                if (item.Tag is ModInfo modInfo)
+                {
+                    try
+                    {
+                        Program.CheckAndSetModRoot(modInfo.DirectoryPath);
+                        success++;
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to normalize '{modInfo.Name}':\n{ex.Message}", "Normalize Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+
+            RefreshModList();
+            MessageBox.Show($"Normalization complete for {success} mod(s). Check the debug log or mod_ops.log for details.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void LoadSettingsAndSetup()
@@ -116,6 +187,19 @@ namespace CrossworldsModManager
             }
 
             UpdateProfilesMenu();
+            // Before doing anything else, create a backup of the mods directory to ModsTemp.
+            try
+            {
+                if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                {
+                    ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to create startup mods backup: {ex.Message}");
+            }
+
             // Load the list of mods when the application starts.
             RefreshModList();
         }
@@ -638,8 +722,11 @@ namespace CrossworldsModManager
             
             foreach (var dir in modDirectories) // First, find all available mods
             {
-                // Check for nested mod.ini and promote to root if found
-                Program.CheckAndSetModRoot(dir);
+                // Skip temp/trash folders or hidden folders to prevent processing backups/failed moves
+                if (Path.GetFileName(dir).StartsWith("_") || (new DirectoryInfo(dir).Attributes & FileAttributes.Hidden) != 0) continue;
+
+                // Normalization on startup is disabled to avoid unintended destructive operations.
+                // Use the context-menu command "Normalize Mod Root" to run this operation on selected mods.
 
                 var modFolderName = Path.GetFileName(dir);
                 if (string.IsNullOrEmpty(modFolderName)) continue;
@@ -1429,6 +1516,17 @@ namespace CrossworldsModManager
                     int successCount = 0;
                     var modsDirectory = SettingsManager.Settings.ModsDirectory;
                     var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+
+                    // Backup mods before adding any new mods (unless user disabled automatic backups)
+                    try
+                    {
+                        if (!SettingsManager.Settings.DoNotBackupModsAutomatically)
+                            ModBackupManager.BackupMods(modsDirectory);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to create backup before adding mods: {ex.Message}");
+                    }
         
                     foreach (var file in ofd.FileNames)
                     {
@@ -2075,6 +2173,32 @@ namespace CrossworldsModManager
             }
         }
 
+        private void btnBackupMods_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) || !Directory.Exists(SettingsManager.Settings.ModsDirectory))
+            {
+                MessageBox.Show("Mods directory is not set or does not exist.", "Backup Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+        }
+
+        private void btnRestoreMods_Click(object? sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory))
+            {
+                MessageBox.Show("Mods directory is not set.", "Restore Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (MessageBox.Show("Are you sure you want to restore mods from backup? This will overwrite existing files.", "Confirm Restore", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            {
+                ModBackupManager.RestoreModsFromBackup(SettingsManager.Settings.ModsDirectory);
+                RefreshModList();
+            }
+        }
+
         private async void HandleOneClickInstallAsync(string url)
         {
             try
@@ -2134,6 +2258,20 @@ namespace CrossworldsModManager
                 using (var detailsForm = new ModDetailsForm(fullModInfo, browserLogger, RefreshModList))
                 {
                     detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
+
+                    // Backup mods before proceeding with a 1-Click install (unless user disabled automatic backups)
+                    try
+                    {
+                        if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                        {
+                            ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Failed to create backup before 1-Click install: {ex.Message}");
+                    }
+
                     var result = detailsForm.ShowDialog(this);
 
                     if (result == DialogResult.OK)

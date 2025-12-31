@@ -30,6 +30,7 @@ namespace CrossworldsModManager
             this.chkCheckForGames = new System.Windows.Forms.CheckBox();
             this.chkAutoCloseLog = new System.Windows.Forms.CheckBox();
             this.chkDeveloperMode = new System.Windows.Forms.CheckBox();
+            this.chkDoNotBackup = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // label1
@@ -181,12 +182,24 @@ namespace CrossworldsModManager
             this.chkDeveloperMode.Text = "Enable Developer Mode";
             this.chkDeveloperMode.UseVisualStyleBackColor = true;
             // 
+            // chkDoNotBackup
+            // 
+            this.chkDoNotBackup.AutoSize = true;
+            this.chkDoNotBackup.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkDoNotBackup.Location = new System.Drawing.Point(102, 182);
+            this.chkDoNotBackup.Name = "chkDoNotBackup";
+            this.chkDoNotBackup.Size = new System.Drawing.Size(220, 17);
+            this.chkDoNotBackup.TabIndex = 13;
+            this.chkDoNotBackup.Text = "Do not backup mods automatically";
+            this.chkDoNotBackup.UseVisualStyleBackColor = true;
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 191);
+            this.ClientSize = new System.Drawing.Size(584, 230);
             this.Controls.Add(this.chkDeveloperMode);
+            this.Controls.Add(this.chkDoNotBackup);
             this.Controls.Add(this.chkAutoCloseLog);
             this.Controls.Add(this.chkCheckForGames);
             this.Controls.Add(this.chkAutoClean);
@@ -228,5 +241,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.CheckBox chkCheckForGames;
         private System.Windows.Forms.CheckBox chkAutoCloseLog;
         private System.Windows.Forms.CheckBox chkDeveloperMode;
+        private System.Windows.Forms.CheckBox chkDoNotBackup;
     }
 }

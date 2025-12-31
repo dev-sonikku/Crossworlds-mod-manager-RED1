@@ -22,6 +22,10 @@ namespace CrossworldsModManager
         public bool CheckForGamesOnStartup { get; set; } = true;
         public bool AutoCloseLogOnSuccess { get; set; } = false;
 
+        // If true, the app will NOT create automatic backups before operations.
+        // Default is false (automatic backups enabled).
+        public bool DoNotBackupModsAutomatically { get; set; } = false;
+
         // Deprecated properties for migration
         public List<string>? EnabledMods { get; set; }
         public Dictionary<string, string>? ModConfigurations { get; set; }

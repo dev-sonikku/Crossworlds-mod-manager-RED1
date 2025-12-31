@@ -33,6 +33,8 @@ namespace CrossworldsModManager
         public override string ToString() => Name;
     }
 
+    public class MainInfoPlaceholder { public override string ToString() => "[Mod Info]"; }
+
     // The Editor Form
     public class ModConfigEditor : Form
     {
@@ -49,6 +51,13 @@ namespace CrossworldsModManager
         private ListBox _lstOptions = null!;
         private ListBox _lstFiles = null!;
         private Panel _pnlRight = null!;
+        
+        // Main Info Controls
+        private Panel _pnlMainInfo = null!;
+        private TextBox _txtModName = null!;
+        private TextBox _txtModAuthor = null!;
+        private TextBox _txtModVersion = null!;
+        private TextBox _txtModDescription = null!;
 
         public ModConfigEditor(string modPath)
         {
@@ -108,9 +117,36 @@ namespace CrossworldsModManager
             pnlLeft.Controls.Add(pnlGroupButtons);
             pnlLeft.Controls.Add(lblGroups);
 
-            // --- Right Panel (Details) ---
+            // --- Right Panel (Main Info) ---
+            _pnlMainInfo = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10), Visible = false };
+            splitContainer.Panel2.Controls.Add(_pnlMainInfo);
+
+            var grpMain = new GroupBox { Text = "Mod Information", Dock = DockStyle.Top, Height = 200, ForeColor = Color.White };
+            var layoutMain = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4, Padding = new Padding(5) };
+            layoutMain.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+            layoutMain.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+            _txtModName = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            _txtModAuthor = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            _txtModVersion = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            _txtModDescription = new TextBox { Dock = DockStyle.Fill, Multiline = true, Height = 60, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+
+            layoutMain.Controls.Add(new Label { Text = "Name:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro }, 0, 0);
+            layoutMain.Controls.Add(_txtModName, 1, 0);
+            layoutMain.Controls.Add(new Label { Text = "Author:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro }, 0, 1);
+            layoutMain.Controls.Add(_txtModAuthor, 1, 1);
+            layoutMain.Controls.Add(new Label { Text = "Version:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro }, 0, 2);
+            layoutMain.Controls.Add(_txtModVersion, 1, 2);
+            layoutMain.Controls.Add(new Label { Text = "Description:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro }, 0, 3);
+            layoutMain.Controls.Add(_txtModDescription, 1, 3);
+
+            grpMain.Controls.Add(layoutMain);
+            _pnlMainInfo.Controls.Add(grpMain);
+
+            // --- Right Panel (Group Details) ---
             _pnlRight = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10), Visible = false };
             splitContainer.Panel2.Controls.Add(_pnlRight);
+            // Ensure MainInfo is on top if visible, though visibility toggling handles it.
 
             // 1. Group Properties (Top)
             var grpProps = new GroupBox { Text = "Group Properties", Dock = DockStyle.Top, Height = 130, ForeColor = Color.White };
@@ -286,6 +322,12 @@ namespace CrossworldsModManager
                 MessageBox.Show($"Error loading config: {ex.Message}");
             }
 
+            // Populate Main Info fields
+            _txtModName.Text = _config.MainSection.ContainsKey("Name") ? _config.MainSection["Name"] : new DirectoryInfo(_modPath).Name;
+            _txtModAuthor.Text = _config.MainSection.ContainsKey("Author") ? _config.MainSection["Author"] : "";
+            _txtModVersion.Text = _config.MainSection.ContainsKey("Version") ? _config.MainSection["Version"] : "1.0";
+            _txtModDescription.Text = _config.MainSection.ContainsKey("Description") ? _config.MainSection["Description"] : "";
+
             RefreshGroupList();
         }
 
@@ -296,6 +338,7 @@ namespace CrossworldsModManager
             {
                 _lstGroups.Items.Add(grp);
             }
+            _lstGroups.Items.Insert(0, new MainInfoPlaceholder());
             if (_lstGroups.Items.Count > 0) _lstGroups.SelectedIndex = 0;
         }
 
@@ -303,6 +346,7 @@ namespace CrossworldsModManager
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp)
             {
+                _pnlMainInfo.Visible = false;
                 _pnlRight.Visible = true;
                 _txtGroupName.Text = grp.Name;
                 _cmbGroupType.SelectedItem = grp.Type;
@@ -314,9 +358,15 @@ namespace CrossworldsModManager
                 if (_lstOptions.Items.Count > 0) _lstOptions.SelectedIndex = 0;
                 else _lstFiles.Items.Clear();
             }
+            else if (_lstGroups.SelectedItem is MainInfoPlaceholder)
+            {
+                _pnlRight.Visible = false;
+                _pnlMainInfo.Visible = true;
+            }
             else
             {
                 _pnlRight.Visible = false;
+                _pnlMainInfo.Visible = false;
             }
         }
 
@@ -534,19 +584,15 @@ namespace CrossworldsModManager
             var sb = new StringBuilder();
             
             // [Main]
+            _config.MainSection["Name"] = _txtModName.Text;
+            _config.MainSection["Author"] = _txtModAuthor.Text;
+            _config.MainSection["Version"] = _txtModVersion.Text;
+            _config.MainSection["Description"] = _txtModDescription.Text;
+
             sb.AppendLine("[Main]");
-            if (_config.MainSection.Count == 0)
+            foreach (var kvp in _config.MainSection)
             {
-                sb.AppendLine($"Name={new DirectoryInfo(_modPath).Name}");
-                sb.AppendLine("Author=Unknown");
-                sb.AppendLine("Version=1.0");
-            }
-            else
-            {
-                foreach (var kvp in _config.MainSection)
-                {
-                    sb.AppendLine($"{kvp.Key}={kvp.Value}");
-                }
+                sb.AppendLine($"{kvp.Key}={kvp.Value}");
             }
             sb.AppendLine();
 

@@ -19,6 +19,11 @@ namespace CrossworldsModManager
             chkCheckForGames.Checked = SettingsManager.Settings.CheckForGamesOnStartup;
             chkAutoCloseLog.Checked = SettingsManager.Settings.AutoCloseLogOnSuccess;
             chkDeveloperMode.Checked = SettingsManager.Settings.DeveloperModeEnabled;
+            var doNotBackupChk = this.Controls.Find("chkDoNotBackup", true);
+            if (doNotBackupChk.Length > 0 && doNotBackupChk[0] is CheckBox cb)
+            {
+                cb.Checked = SettingsManager.Settings.DoNotBackupModsAutomatically;
+            }
         }
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
@@ -54,6 +59,11 @@ namespace CrossworldsModManager
             SettingsManager.Settings.CheckForGamesOnStartup = chkCheckForGames.Checked;
             SettingsManager.Settings.AutoCloseLogOnSuccess = chkAutoCloseLog.Checked;
             SettingsManager.Settings.DeveloperModeEnabled = chkDeveloperMode.Checked;
+            var doNotBackupChk2 = this.Controls.Find("chkDoNotBackup", true);
+            if (doNotBackupChk2.Length > 0 && doNotBackupChk2[0] is CheckBox cb2)
+            {
+                SettingsManager.Settings.DoNotBackupModsAutomatically = cb2.Checked;
+            }
             SettingsManager.Save();
             DialogResult = DialogResult.OK;
             Close();

@@ -9,6 +9,8 @@ namespace CrossworldsModManager
         private Label lblStatus = null!;
         private ProgressBar progressBar = null!;
         private Button btnOk = null!;
+        private Button btnSkip = null!;
+        public System.Threading.CancellationTokenSource? TokenSource { get; private set; }
 
         public ProgressForm(string title)
         {
@@ -21,6 +23,7 @@ namespace CrossworldsModManager
             this.lblStatus = new Label();
             this.progressBar = new ProgressBar();
             this.btnOk = new Button();
+            this.btnSkip = new Button();
             this.SuspendLayout();
 
             // Form settings
@@ -53,8 +56,28 @@ namespace CrossworldsModManager
             this.btnOk.ForeColor = Color.White;
             this.btnOk.FlatAppearance.BorderSize = 0;
 
+            // btnSkip
+            this.btnSkip.Location = new Point(50, 85);
+            this.btnSkip.Size = new Size(80, 25);
+            this.btnSkip.Text = "Skip";
+            this.btnSkip.FlatStyle = FlatStyle.Flat;
+            this.btnSkip.BackColor = Color.FromArgb(160, 160, 160);
+            this.btnSkip.ForeColor = Color.White;
+            this.btnSkip.FlatAppearance.BorderSize = 0;
+            this.btnSkip.Click += (s, e) =>
+            {
+                try
+                {
+                    this.TokenSource?.Cancel();
+                    this.btnSkip.Enabled = false;
+                    UpdateStatus("Skipping...");
+                }
+                catch { }
+            };
+
             // Add controls
             this.Controls.Add(this.btnOk);
+            this.Controls.Add(this.btnSkip);
             this.Controls.Add(this.progressBar);
             this.Controls.Add(this.lblStatus);
             this.ResumeLayout(false);
@@ -90,6 +113,14 @@ namespace CrossworldsModManager
             lblStatus.Text = finalMessage;
             progressBar.Visible = false;
             btnOk.Visible = true;
+            btnSkip.Visible = false;
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            // Initialize cancellation token before raising Shown so callers can observe it.
+            TokenSource = new System.Threading.CancellationTokenSource();
+            base.OnShown(e);
         }
     }
 }
