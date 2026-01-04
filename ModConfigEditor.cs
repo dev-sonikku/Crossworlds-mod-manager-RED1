@@ -247,84 +247,93 @@ namespace CrossworldsModManager
         private void LoadConfig()
         {
             _config = new ModConfig();
-            if (!File.Exists(_configPath)) return;
-
-            try
+            if (File.Exists(_configPath))
             {
-                var lines = File.ReadAllLines(_configPath);
-                string currentSection = "";
-                ConfigGroup? currentGroup = null;
-                var tempFiles = new Dictionary<string, string>();
-
-                foreach (var line in lines)
+                try
                 {
-                    var trim = line.Trim();
-                    if (string.IsNullOrWhiteSpace(trim) || trim.StartsWith(";") || trim.StartsWith("#")) continue;
+                    var lines = File.ReadAllLines(_configPath);
+                    string currentSection = "";
+                    ConfigGroup? currentGroup = null;
+                    var tempFiles = new Dictionary<string, string>();
 
-                    if (trim.StartsWith("[") && trim.EndsWith("]"))
+                    foreach (var line in lines)
                     {
-                        currentSection = trim.Substring(1, trim.Length - 2);
-                        if (currentSection.StartsWith("Config:", StringComparison.OrdinalIgnoreCase))
-                        {
-                            var groupName = currentSection.Substring(7);
-                            currentGroup = new ConfigGroup { Name = groupName };
-                            _config.Groups.Add(currentGroup);
-                        }
-                        else
-                        {
-                            currentGroup = null;
-                        }
-                        continue;
-                    }
+                        var trim = line.Trim();
+                        if (string.IsNullOrWhiteSpace(trim) || trim.StartsWith(";") || trim.StartsWith("#")) continue;
 
-                    var parts = trim.Split(new[] { '=' }, 2);
-                    if (parts.Length != 2) continue;
-                    var key = parts[0].Trim();
-                    var val = parts[1].Trim();
-
-                    if (currentSection.Equals("Main", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _config.MainSection[key] = val;
-                    }
-                    else if (currentSection.Equals("Files", StringComparison.OrdinalIgnoreCase))
-                    {
-                        tempFiles[key] = val;
-                    }
-                    else if (currentGroup != null)
-                    {
-                        if (key.Equals("Type", StringComparison.OrdinalIgnoreCase)) currentGroup.Type = val;
-                        else if (key.Equals("Description", StringComparison.OrdinalIgnoreCase)) currentGroup.Description = val;
-                        else if (key.Equals("Options", StringComparison.OrdinalIgnoreCase))
+                        if (trim.StartsWith("[") && trim.EndsWith("]"))
                         {
-                            // Options=Vanilla,Grand Prix Final Laps
-                            var opts = val.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
-                            foreach (var o in opts)
+                            currentSection = trim.Substring(1, trim.Length - 2);
+                            if (currentSection.StartsWith("Config:", StringComparison.OrdinalIgnoreCase))
                             {
-                                currentGroup.Options.Add(new ConfigOption { Name = o.Trim() });
+                                var groupName = currentSection.Substring(7);
+                                currentGroup = new ConfigGroup { Name = groupName };
+                                _config.Groups.Add(currentGroup);
+                            }
+                            else
+                            {
+                                currentGroup = null;
+                            }
+                            continue;
+                        }
+
+                        var parts = trim.Split(new[] { '=' }, 2);
+                        if (parts.Length != 2) continue;
+                        var key = parts[0].Trim();
+                        var val = parts[1].Trim();
+
+                        if (currentSection.Equals("Main", StringComparison.OrdinalIgnoreCase))
+                        {
+                            _config.MainSection[key] = val;
+                        }
+                        else if (currentSection.Equals("Files", StringComparison.OrdinalIgnoreCase))
+                        {
+                            tempFiles[key] = val;
+                        }
+                        else if (currentGroup != null)
+                        {
+                            if (key.Equals("Type", StringComparison.OrdinalIgnoreCase)) currentGroup.Type = val;
+                            else if (key.Equals("Description", StringComparison.OrdinalIgnoreCase)) currentGroup.Description = val;
+                            else if (key.Equals("Options", StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Options=Vanilla,Grand Prix Final Laps
+                                var opts = val.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                                foreach (var o in opts)
+                                {
+                                    currentGroup.Options.Add(new ConfigOption { Name = o.Trim() });
+                                }
                             }
                         }
                     }
-                }
 
-                // Map files to options
-                foreach (var kvp in tempFiles)
-                {
-                    var file = kvp.Key;
-                    var pointer = kvp.Value; // Group.Option
-                    
-                    // Find the group that matches the start of the pointer
-                    var group = _config.Groups.FirstOrDefault(g => pointer.StartsWith(g.Name + ".", StringComparison.OrdinalIgnoreCase));
-                    if (group != null)
+                    // Map files to options
+                    foreach (var kvp in tempFiles)
                     {
-                        var optionName = pointer.Substring(group.Name.Length + 1);
-                        var opt = group.Options.FirstOrDefault(o => o.Name.Equals(optionName, StringComparison.OrdinalIgnoreCase));
-                        opt?.Files.Add(file);
+                        var file = kvp.Key;
+                        var pointer = kvp.Value; // Group.Option
+                        
+                        // Find the group that matches the start of the pointer
+                        var group = _config.Groups.FirstOrDefault(g => pointer.StartsWith(g.Name + ".", StringComparison.OrdinalIgnoreCase));
+                        if (group != null)
+                        {
+                            var optionName = pointer.Substring(group.Name.Length + 1);
+                            var opt = group.Options.FirstOrDefault(o => o.Name.Equals(optionName, StringComparison.OrdinalIgnoreCase));
+                            opt?.Files.Add(file);
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error loading config: {ex.Message}");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show($"Error loading config: {ex.Message}");
+                // Generate template defaults
+                _config.MainSection["Name"] = new DirectoryInfo(_modPath).Name;
+                _config.MainSection["Version"] = "1.0";
+                _config.MainSection["Author"] = "";
+                _config.MainSection["Description"] = "";
             }
 
             // Populate Main Info fields
