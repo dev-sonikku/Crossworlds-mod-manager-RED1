@@ -52,6 +52,9 @@ namespace CrossworldsModManager
             ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
             LoadSettingsAndSetup();
 
+            // Initialize details pane with default state (icon)
+            UpdateModDetails(null);
+
             // Enable drag-and-drop for reordering
             modListView.AllowDrop = true;
             modListView.ItemDrag += modListView_ItemDrag;
@@ -1759,8 +1762,8 @@ namespace CrossworldsModManager
                 if (!tabControlMain.TabPages.Contains(tabDeveloper))
                 {
                     tabControlMain.TabPages.Add(tabDeveloper);
-                    LoadDeveloperSettings();
                 }
+                LoadDeveloperSettings();
             }
             else
             {
@@ -2526,32 +2529,39 @@ namespace CrossworldsModManager
 
         private void UpdateModDetails(ModInfo? mod)
         {
+            string? thumbPath = null;
+
             if (mod == null)
             {
-                picModImage.Image = null;
                 lblModName.Text = "Select a mod";
                 lblModAuthor.Text = "";
                 lblModVersion.Text = "";
                 txtModDescription.Text = "";
-                return;
+            }
+            else
+            {
+                lblModName.Text = mod.Name;
+                lblModAuthor.Text = "By: " + mod.Author;
+                lblModVersion.Text = "Version: " + mod.Version;
+                txtModDescription.Text = mod.Description;
+
+                // Load Thumbnail
+                string[] extensions = { ".jpg", ".png", ".jpeg", ".bmp", ".gif" };
+                foreach (var ext in extensions)
+                {
+                    var p = Path.Combine(mod.DirectoryPath, "Thumb" + ext);
+                    if (File.Exists(p))
+                    {
+                        thumbPath = p;
+                        break;
+                    }
+                }
             }
 
-            lblModName.Text = mod.Name;
-            lblModAuthor.Text = "By: " + mod.Author;
-            lblModVersion.Text = "Version: " + mod.Version;
-            txtModDescription.Text = mod.Description;
-
-            // Load Thumbnail
-            string[] extensions = { ".jpg", ".png", ".jpeg", ".bmp", ".gif" };
-            string? thumbPath = null;
-            foreach (var ext in extensions)
+            if (thumbPath == null)
             {
-                var p = Path.Combine(mod.DirectoryPath, "Thumb" + ext);
-                if (File.Exists(p))
-                {
-                    thumbPath = p;
-                    break;
-                }
+                var fallbackPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "icon.png");
+                if (File.Exists(fallbackPath)) thumbPath = fallbackPath;
             }
 
             if (thumbPath != null)

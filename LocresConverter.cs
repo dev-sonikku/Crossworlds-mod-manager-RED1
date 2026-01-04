@@ -152,14 +152,14 @@ namespace CrossworldsModManager
                 return;
             }
 
-            foreach (var langCode in languagesToProcess)
+            var tasks = languagesToProcess.Select(async langCode =>
             {
                 var baseLocresPath = Path.Combine(languagesRoot, langCode, "Game.locres");
 
                 if (!File.Exists(baseLocresPath))
                 {
                     progress?.Report($"Skipping '{langCode}': Game.locres not found.");
-                    continue;
+                    return;
                 }
 
                 progress?.Report($"Processing language: {langCode}");
@@ -169,7 +169,7 @@ namespace CrossworldsModManager
                 if (!File.Exists(tempBaseJsonPath))
                 {
                     progress?.Report($"Failed to convert Game.locres for '{langCode}'.");
-                    continue;
+                    return;
                 }
 
                 var baseJson = JObject.Parse(await File.ReadAllTextAsync(tempBaseJsonPath));
@@ -213,7 +213,7 @@ namespace CrossworldsModManager
                 {
                     progress?.Report($"Could not find namespaces structure for language '{langCode}' in exported JSON.");
                     if (File.Exists(tempBaseJsonPath)) File.Delete(tempBaseJsonPath);
-                    continue;
+                    return;
                 }
 
                 // 4. Apply modifications to the base JSON for the current language
@@ -223,27 +223,29 @@ namespace CrossworldsModManager
 
                     if (namespacesObj != null)
                     {
-                        if (namespacesObj[ns] is not JArray stringEntries) continue;
-
-                        foreach (KeyValuePair<string, string> keyEntry in nsEntry.Value)
+                        if (namespacesObj[ns] is JArray stringEntries)
                         {
-                            var key = keyEntry.Key;
-                            var value = keyEntry.Value;
-                            var entryToUpdate = stringEntries.FirstOrDefault(t => t["Key"]?.ToString() == key);
-                            if (entryToUpdate != null) entryToUpdate["Value"] = value;
+                            foreach (KeyValuePair<string, string> keyEntry in nsEntry.Value)
+                            {
+                                var key = keyEntry.Key;
+                                var value = keyEntry.Value;
+                                var entryToUpdate = stringEntries.FirstOrDefault(t => t["Key"]?.ToString() == key);
+                                if (entryToUpdate != null) entryToUpdate["Value"] = value;
+                            }
                         }
                     }
                     else if (namespacesArray != null)
                     {
                         var namespaceObject = namespacesArray.FirstOrDefault(item => item["Name"]?.ToString().Equals(ns, StringComparison.OrdinalIgnoreCase) ?? false) as JObject;
-                        if (namespaceObject == null || namespaceObject["Strings"] is not JArray stringEntries) continue;
-
-                        foreach (KeyValuePair<string, string> keyEntry in nsEntry.Value)
+                        if (namespaceObject != null && namespaceObject["Strings"] is JArray stringEntries)
                         {
-                            var key = keyEntry.Key;
-                            var value = keyEntry.Value;
-                            var entryToUpdate = stringEntries.FirstOrDefault(t => t["Key"]?.ToString() == key);
-                            if (entryToUpdate != null) entryToUpdate["Value"] = value;
+                            foreach (KeyValuePair<string, string> keyEntry in nsEntry.Value)
+                            {
+                                var key = keyEntry.Key;
+                                var value = keyEntry.Value;
+                                var entryToUpdate = stringEntries.FirstOrDefault(t => t["Key"]?.ToString() == key);
+                                if (entryToUpdate != null) entryToUpdate["Value"] = value;
+                            }
                         }
                     }
                 }
@@ -254,7 +256,9 @@ namespace CrossworldsModManager
                 progress?.Report($"Saved merged JSON for {langCode}: {outputJsonPath}");
 
                 if (File.Exists(tempBaseJsonPath)) File.Delete(tempBaseJsonPath);
-            }
+            });
+
+            await Task.WhenAll(tasks);
 
             progress?.Report("Successfully merged JSON modifications for all found languages.");
         }
@@ -276,8 +280,7 @@ namespace CrossworldsModManager
                 var languagesRoot = Path.Combine(ToolsDir, "Locres", "UNION", "Content", "Localization", "Game");
                 var outputRoot = Path.Combine(ToolsDir, "LocresMod", "UNION", "Content", "Localization", "Game");
 
-                int successCount = 0;
-                foreach (var jsonPath in mergedJsonFiles)
+                var tasks = mergedJsonFiles.Select(async jsonPath =>
                 {
                     var fileName = Path.GetFileName(jsonPath); // e.g., Game_en.json
                     var langCode = fileName.Substring("Game_".Length, fileName.Length - "Game_".Length - ".json".Length);
@@ -286,7 +289,7 @@ namespace CrossworldsModManager
                     if (!File.Exists(baseLocresPath))
                     {
                         progress?.Report($"Skipping '{langCode}': Original Game.locres not found.");
-                        continue;
+                        return false;
                     }
 
                     var outputLangDir = Path.Combine(outputRoot, langCode);
@@ -296,8 +299,11 @@ namespace CrossworldsModManager
                     progress?.Report($"Packing '{langCode}'...");
                     // Use the 'import' command: import <outputPath> <targetPath> <sourcePath>
                     await RunProcessAsync(exePath, $"import \"{outputLocresPath}\" \"{baseLocresPath}\" \"{jsonPath}\" -y", progress);
-                    successCount++;
-                }
+                    return true;
+                });
+
+                var results = await Task.WhenAll(tasks);
+                int successCount = results.Count(r => r);
 
                 if (successCount > 0)
                 {
