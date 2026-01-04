@@ -789,9 +789,25 @@ namespace CrossworldsModManager
                     };
 
                     // Populate GBVersion from [GameBanana] section if available, otherwise fallback to main Version
-                    if (iniSections.TryGetValue("GameBanana", out var gbSec) && gbSec.TryGetValue("GBVersion", out var gbv))
+                    if (iniSections.TryGetValue("GameBanana", out var gbSec))
                     {
-                        modInfo.GBVersion = gbv;
+                        if (gbSec.TryGetValue("ItemId", out var itemIdValue))
+                        {
+                            modInfo.GBItemId = itemIdValue;
+                        }
+                        if (gbSec.TryGetValue("ItemType", out var itemTypeValue))
+                        {
+                            modInfo.GBItemType = itemTypeValue;
+                        }
+
+                        if (gbSec.TryGetValue("GBVersion", out var gbVersionValue))
+                        {
+                            modInfo.GBVersion = gbVersionValue;
+                        }
+                        else
+                        {
+                            modInfo.GBVersion = mainSection.ContainsKey("Version") ? mainSection["Version"] : "0";
+                        }
                     }
                     else
                     {
@@ -2580,7 +2596,7 @@ namespace CrossworldsModManager
             }
         }
 
-        private void UpdateModDetails(ModInfo? mod)
+        private async void UpdateModDetails(ModInfo? mod)
         {
             string? thumbPath = null;
 
@@ -2607,6 +2623,41 @@ namespace CrossworldsModManager
                     {
                         thumbPath = p;
                         break;
+                    }
+                }
+
+                // If no local thumbnail, try to download from GameBanana if info exists
+                if (thumbPath == null && !string.IsNullOrEmpty(mod.GBItemId) && !string.IsNullOrEmpty(mod.GBItemType) && int.TryParse(mod.GBItemId, out int itemId))
+                {
+                    if (mod.GBItemType.Equals("Sound", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var soundPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "Sound.jpg");
+                        if (File.Exists(soundPath)) thumbPath = soundPath;
+                    }
+                    else
+                    {
+                        try
+                        {
+                            AppendLog($"Thumbnail for '{mod.Name}' not found locally. Attempting to download from GameBanana...");
+                            var gbMod = await GameBananaApiService.GetModFromProfilePageAsync(mod.GBItemType, itemId);
+                            if (gbMod != null && !string.IsNullOrEmpty(gbMod.ThumbnailUrl))
+                            {
+                                using (var client = new HttpClient())
+                                {
+                                    var thumbBytes = await client.GetByteArrayAsync(gbMod.ThumbnailUrl);
+                                    string ext = Path.GetExtension(gbMod.ThumbnailUrl);
+                                    if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+                                    string newThumbPath = Path.Combine(mod.DirectoryPath, "Thumb" + ext);
+                                    await File.WriteAllBytesAsync(newThumbPath, thumbBytes);
+                                    thumbPath = newThumbPath; // Use the newly downloaded thumbnail
+                                    AppendLog($"Successfully downloaded thumbnail for '{mod.Name}'.");
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            AppendLog($"Failed to download thumbnail for '{mod.Name}': {ex.Message}");
+                        }
                     }
                 }
             }
