@@ -853,26 +853,54 @@ namespace CrossworldsModManager
             var descFiles = Directory.GetFiles(modDir, "desc.ini", SearchOption.AllDirectories);
             if (descFiles.Length == 0) return false;
 
-            var iniData = new Dictionary<string, Dictionary<string, string>>();
+            var iniPath = Path.Combine(modDir, "mod.ini");
+            var iniData = File.Exists(iniPath)
+                ? IniParser.Parse(iniPath)
+                : new Dictionary<string, Dictionary<string, string>>();
 
             // [Main]
-            iniData["Main"] = new Dictionary<string, string>
+            if (!iniData.ContainsKey("Main"))
             {
-                ["Name"] = Path.GetFileName(modDir),
-                ["Author"] = "Unknown",
-                ["Version"] = "1.0",
-                ["Description"] = "Auto-generated from legacy configuration."
-            };
+                iniData["Main"] = new Dictionary<string, string>();
+            }
+            var mainSection = iniData["Main"];
+            if (!mainSection.ContainsKey("Name")) mainSection["Name"] = Path.GetFileName(modDir);
+            if (!mainSection.ContainsKey("Author")) mainSection["Author"] = "Unknown";
+            if (!mainSection.ContainsKey("Version")) mainSection["Version"] = "1.0";
+            if (!mainSection.ContainsKey("Description")) mainSection["Description"] = "Auto-generated from legacy configuration.";
 
-            // We'll collect options and file mappings
-            var options = new List<string>();
+            // GroupName -> List of Options
+            var groups = new Dictionary<string, List<string>>();
+            // FilePath -> GroupName.OptionName
             var fileMappings = new Dictionary<string, string>();
 
             foreach (var descFile in descFiles)
             {
+                var optionDir = Path.GetDirectoryName(descFile);
+                if (optionDir == null) continue;
+
+                // Determine Group Name based on folder structure
+                string relativePath = Path.GetRelativePath(modDir, optionDir);
+                if (relativePath == "." || string.IsNullOrEmpty(relativePath)) continue;
+
+                // Default group name
+                string groupName = "Configuration";
+
+                // Check if the option is nested (Group/Option)
+                // If relativePath has directory separators, the parent folder is the group.
+                // Example: "Course 01 - Ocean View\0 Ocean View TSR version" -> Group: "Course 01 - Ocean View"
+                string groupRelPath = Path.GetDirectoryName(relativePath) ?? "";
+                if (!string.IsNullOrEmpty(groupRelPath) && groupRelPath != ".")
+                {
+                    // Use the parent folder path as the group name, replacing separators with spaces or keeping them safe
+                    groupName = groupRelPath.Replace(Path.DirectorySeparatorChar, ' ').Replace(Path.AltDirectorySeparatorChar, ' ');
+                }
+
+                // Sanitize group name for INI section safety
+                groupName = groupName.Replace("[", "(").Replace("]", ")");
+
                 var descData = IniParser.Parse(descFile);
                 string optionName = "";
-                
                 if (descData.TryGetValue("Description", out var descSection))
                 {
                     if (descSection.TryGetValue("Name", out var nameVal)) optionName = nameVal;
@@ -880,48 +908,73 @@ namespace CrossworldsModManager
 
                 if (string.IsNullOrWhiteSpace(optionName))
                 {
-                    optionName = Path.GetFileName(Path.GetDirectoryName(descFile)) ?? "Unknown";
+                    optionName = Path.GetFileName(optionDir) ?? "Unknown";
+                }
+
+                // Sanitize option name (remove commas as they break the CSV list)
+                optionName = optionName.Replace(",", "");
+
+                if (!groups.ContainsKey(groupName))
+                {
+                    groups[groupName] = new List<string>();
                 }
 
                 // Ensure unique option names
-                if (options.Contains(optionName))
+                string uniqueOptionName = optionName;
+                if (groups[groupName].Contains(uniqueOptionName))
                 {
                     int i = 2;
-                    while (options.Contains($"{optionName} {i}")) i++;
-                    optionName = $"{optionName} {i}";
+                    while (groups[groupName].Contains($"{uniqueOptionName} {i}")) i++;
+                    uniqueOptionName = $"{uniqueOptionName} {i}";
                 }
-
-                options.Add(optionName);
+                groups[groupName].Add(uniqueOptionName);
 
                 // Map files
-                var optionDir = Path.GetDirectoryName(descFile);
-                if (optionDir != null)
+                var files = Directory.GetFiles(optionDir);
+                foreach (var file in files)
                 {
-                    var files = Directory.GetFiles(optionDir);
-                    foreach (var file in files)
+                    if (Path.GetFileName(file).Equals("desc.ini", StringComparison.OrdinalIgnoreCase)) continue;
+                    
+                    string fileRelPath = Path.GetRelativePath(modDir, file);
+                    fileMappings[fileRelPath] = $"{groupName}.{uniqueOptionName}";
+                }
+            }
+
+            // Add new Config sections if they don't exist
+            foreach (var group in groups)
+            {
+                var configSectionName = $"Config:{group.Key}";
+                if (!iniData.ContainsKey(configSectionName))
+                {
+                    iniData[configSectionName] = new Dictionary<string, string>
                     {
-                        if (Path.GetFileName(file).Equals("desc.ini", StringComparison.OrdinalIgnoreCase)) continue;
-                        
-                        // Get relative path for the key
-                        string relativePath = Path.GetRelativePath(modDir, file);
-                        fileMappings[relativePath] = $"Configuration.{optionName}";
+                        ["Type"] = "SelectOne",
+                        ["Description"] = $"Select {group.Key}:",
+                        ["Options"] = string.Join(", ", group.Value)
+                    };
+                }
+            }
+
+            // Add new File mappings if they don't exist
+            if (fileMappings.Any())
+            {
+                if (!iniData.ContainsKey("Files"))
+                {
+                    iniData["Files"] = new Dictionary<string, string>();
+                }
+
+                foreach (var mapping in fileMappings)
+                {
+                    // Don't overwrite existing file mappings
+                    if (!iniData["Files"].ContainsKey(mapping.Key))
+                    {
+                        iniData["Files"][mapping.Key] = mapping.Value;
                     }
                 }
             }
 
-            // [Config:Configuration]
-            iniData["Config:Configuration"] = new Dictionary<string, string>
-            {
-                ["Type"] = "SelectOne",
-                ["Description"] = "Select a variant:",
-                ["Options"] = string.Join(",", options)
-            };
-
-            // [Files]
-            iniData["Files"] = fileMappings;
-
             // Write mod.ini
-            IniParser.Write(Path.Combine(modDir, "mod.ini"), iniData);
+            IniParser.Write(iniPath, iniData);
             return true;
         }
 

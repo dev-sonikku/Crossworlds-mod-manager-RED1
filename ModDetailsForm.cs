@@ -130,13 +130,20 @@ namespace CrossworldsModManager
             this.webDescription.MinimumSize = new System.Drawing.Size(20, 20);
             this.webDescription.IsWebBrowserContextMenuEnabled = false;
             this.webDescription.WebBrowserShortcutsEnabled = false;
+            this.webDescription.ScriptErrorsSuppressed = true;
             this.webDescription.Navigating += (s, e) =>
             {
-                var url = e.Url;
-                if (url != null && url.Scheme != "about")
+                if (s is WebBrowser wb && wb.Document != null)
                 {
-                    e.Cancel = true; // Cancel internal navigation
-                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url.ToString()) { UseShellExecute = true });
+                    try
+                    {
+                        var activeElement = wb.Document.ActiveElement;
+                        if (activeElement != null && activeElement.TagName.Equals("A", StringComparison.OrdinalIgnoreCase))
+                        {
+                            e.Cancel = true;
+                        }
+                    }
+                    catch { }
                 }
             };
 
@@ -622,7 +629,21 @@ namespace CrossworldsModManager
         private async Task CreateOrUpdateModIniAsync(string modDirectory)
         {
             var iniPath = Path.Combine(modDirectory, "mod.ini");
-            var iniData = File.Exists(iniPath) ? IniParser.Parse(iniPath) : new Dictionary<string, Dictionary<string, string>>();
+            Dictionary<string, Dictionary<string, string>> iniData;
+
+            if (File.Exists(iniPath))
+            {
+                iniData = IniParser.Parse(iniPath);
+            }
+            else
+            {
+                // mod.ini doesn't exist. Check for legacy config before creating a new one.
+                if (!ConvertLegacyConfig(modDirectory, out iniData))
+                {
+                    // Not a legacy mod, create a blank ini structure.
+                    iniData = new Dictionary<string, Dictionary<string, string>>();
+                }
+            }
 
             // Ensure [Main] section exists
             if (!iniData.ContainsKey("Main"))
@@ -670,6 +691,99 @@ namespace CrossworldsModManager
 
             // Write the updated data back to the file.
             IniParser.Write(iniPath, iniData);
+        }
+
+        private bool ConvertLegacyConfig(string modDir, out Dictionary<string, Dictionary<string, string>> iniData)
+        {
+            iniData = new Dictionary<string, Dictionary<string, string>>();
+            var descFiles = Directory.GetFiles(modDir, "desc.ini", SearchOption.AllDirectories);
+            if (descFiles.Length == 0) return false;
+
+            // [Main]
+            iniData["Main"] = new Dictionary<string, string>
+            {
+                ["Name"] = Path.GetFileName(modDir),
+                ["Author"] = "Unknown",
+                ["Version"] = "1.0",
+                ["Description"] = "Auto-generated from legacy configuration."
+            };
+
+            // GroupName -> List of Options
+            var groups = new Dictionary<string, List<string>>();
+            // FilePath -> GroupName.OptionName
+            var fileMappings = new Dictionary<string, string>();
+
+            foreach (var descFile in descFiles)
+            {
+                var optionDir = Path.GetDirectoryName(descFile);
+                if (optionDir == null) continue;
+
+                string relativePath = Path.GetRelativePath(modDir, optionDir);
+                if (relativePath == "." || string.IsNullOrEmpty(relativePath)) continue;
+
+                string groupName = "Configuration";
+                string groupRelPath = Path.GetDirectoryName(relativePath) ?? "";
+                if (!string.IsNullOrEmpty(groupRelPath) && groupRelPath != ".")
+                {
+                    groupName = groupRelPath.Replace(Path.DirectorySeparatorChar, ' ').Replace(Path.AltDirectorySeparatorChar, ' ');
+                }
+                groupName = groupName.Replace("[", "(").Replace("]", ")");
+
+                var descData = IniParser.Parse(descFile);
+                string optionName = "";
+                if (descData.TryGetValue("Description", out var descSection))
+                {
+                    if (descSection.TryGetValue("Name", out var nameVal)) optionName = nameVal;
+                }
+
+                if (string.IsNullOrWhiteSpace(optionName))
+                {
+                    optionName = Path.GetFileName(optionDir) ?? "Unknown";
+                }
+                optionName = optionName.Replace(",", "");
+
+                if (!groups.ContainsKey(groupName))
+                {
+                    groups[groupName] = new List<string>();
+                }
+
+                string uniqueOptionName = optionName;
+                if (groups[groupName].Contains(uniqueOptionName))
+                {
+                    int i = 2;
+                    while (groups[groupName].Contains($"{uniqueOptionName} {i}")) i++;
+                    uniqueOptionName = $"{uniqueOptionName} {i}";
+                }
+                groups[groupName].Add(uniqueOptionName);
+
+                var files = Directory.GetFiles(optionDir);
+                foreach (var file in files)
+                {
+                    if (Path.GetFileName(file).Equals("desc.ini", StringComparison.OrdinalIgnoreCase)) continue;
+                    
+                    string fileRelPath = Path.GetRelativePath(modDir, file);
+                    fileMappings[fileRelPath] = $"{groupName}.{uniqueOptionName}";
+                }
+            }
+
+            // Create Config sections
+            foreach (var group in groups)
+            {
+                iniData[$"Config:{group.Key}"] = new Dictionary<string, string>
+                {
+                    ["Type"] = "SelectOne",
+                    ["Description"] = $"Select {group.Key}:",
+                    ["Options"] = string.Join(", ", group.Value)
+                };
+            }
+
+            // [Files]
+            if (fileMappings.Any())
+            {
+                iniData["Files"] = fileMappings;
+            }
+            
+            return true;
         }
         
         private static string SanitizeFolderName(string name)
