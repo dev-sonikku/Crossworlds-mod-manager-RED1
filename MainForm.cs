@@ -38,8 +38,6 @@ namespace CrossworldsModManager
         private Button? btnBrowseMods; // Added for GameBanana browser
         private Button? btnBackupMods; // Added for Mod Backup
         private Button? btnRestoreMods; // Added for Mod Restore
-        private Button? btnEnableAll;
-        private Button? btnDisableAll;
         private readonly string? _oneClickUrl;
 
         public MainForm(string? oneClickUrl, string appVersion)
