@@ -41,7 +41,7 @@ namespace CrossworldsModManager
             this.ForeColor = Color.White;
             this.ClientSize = new Size(960, 540); // 16:9 aspect ratio
             this.MinimumSize = new Size(800, 450);
-            this.StartPosition = FormStartPosition.CenterParent;
+            this.StartPosition = FormStartPosition.CenterScreen;
             
             // Main SplitContainer
             _splitContainer = new SplitContainer

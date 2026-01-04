@@ -418,7 +418,41 @@ namespace CrossworldsModManager
                 }
 
                 await DownloadFileAsync(selectedFile, downloadedFilePath, progressForm);
-                await ExtractAndInstallAsync(downloadedFilePath, progressForm);
+                string installedPath = await ExtractAndInstallAsync(downloadedFilePath, progressForm);
+
+                // Check if a thumbnail already exists
+                bool thumbnailExists = false;
+                if (!string.IsNullOrEmpty(installedPath))
+                {
+                    string[] extensions = { ".jpg", ".png", ".jpeg", ".bmp", ".gif" };
+                    foreach (var ext in extensions)
+                    {
+                        if (File.Exists(Path.Combine(installedPath, "Thumb" + ext)))
+                        {
+                            thumbnailExists = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Download thumbnail if available and one doesn't already exist
+                if (!thumbnailExists && !string.IsNullOrEmpty(_mod.ThumbnailUrl) && !string.IsNullOrEmpty(installedPath))
+                {
+                    try
+                    {
+                        progressForm.UpdateStatus("Downloading thumbnail...");
+                        using (var client = new HttpClient())
+                        {
+                            var thumbBytes = await client.GetByteArrayAsync(_mod.ThumbnailUrl);
+                            string ext = Path.GetExtension(_mod.ThumbnailUrl);
+                            if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+                            string thumbPath = Path.Combine(installedPath, "Thumb" + ext);
+                            await File.WriteAllBytesAsync(thumbPath, thumbBytes);
+                        }
+                    }
+                    catch (Exception ex) { _logger?.Report($"Warning: Failed to download thumbnail: {ex.Message}"); }
+                }
+
                 _onModsChanged?.Invoke(); // Trigger a refresh on the main form
                 progressForm.ShowCompletion("Installation Complete!");
             }
@@ -485,7 +519,7 @@ namespace CrossworldsModManager
             _logger?.Report($"Download complete: {destinationPath}");
         }
 
-        private async Task ExtractAndInstallAsync(string archivePath, ProgressForm progressForm)
+        private async Task<string> ExtractAndInstallAsync(string archivePath, ProgressForm progressForm)
         {
             var modsDirectory = SettingsManager.Settings.ModsDirectory;
             if (string.IsNullOrEmpty(modsDirectory)) throw new InvalidOperationException("Mods directory is not set.");
@@ -568,6 +602,8 @@ namespace CrossworldsModManager
 
             // After extraction and possible restore, create or update the mod.ini file with GameBanana info.
             await CreateOrUpdateModIniAsync(iniTargetDir);
+            
+            return iniTargetDir;
         }
 
         private void DeleteDirectoryContents(string dir)

@@ -30,6 +30,21 @@ namespace CrossworldsModManager
         {
             this.components = new System.ComponentModel.Container();
             this.menuStrip1 = new System.Windows.Forms.MenuStrip();
+            this.pnlTopActions = new System.Windows.Forms.FlowLayoutPanel();
+            this.splitContainerRoot = new System.Windows.Forms.SplitContainer();
+            this.splitContainerMain = new System.Windows.Forms.SplitContainer();
+            this.rtbLog = new System.Windows.Forms.RichTextBox();
+            this.tabControlMain = new System.Windows.Forms.TabControl();
+            this.tabDetails = new System.Windows.Forms.TabPage();
+            this.tabDeveloper = new System.Windows.Forms.TabPage();
+            this.pnlDevTop = new System.Windows.Forms.Panel();
+            this.btnDevSelectPath = new System.Windows.Forms.Button();
+            this.btnDevRefresh = new System.Windows.Forms.Button();
+            this.lblDevPath = new System.Windows.Forms.Label();
+            this.chkListDevFiles = new System.Windows.Forms.CheckedListBox();
+            this.pnlRight = new System.Windows.Forms.Panel();
+            this.picModImage = new System.Windows.Forms.PictureBox();
+            this.pnlSearch = new System.Windows.Forms.Panel();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addModToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
@@ -55,17 +70,17 @@ namespace CrossworldsModManager
             this.launchPlatformDropDown = new System.Windows.Forms.ToolStripDropDownButton();
             this.modListView = new System.Windows.Forms.ListView();
             this.columnHeaderName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeaderAuthor = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.columnHeaderVersion = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderActions = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderUpdate = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.pnlButtons = new System.Windows.Forms.FlowLayoutPanel();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnAddMod = new System.Windows.Forms.Button();
             this.btnRemoveMod = new System.Windows.Forms.Button();
             this.btnRefresh = new System.Windows.Forms.Button();
-            this.btnMoveUp = new System.Windows.Forms.Button();
-            this.btnMoveDown = new System.Windows.Forms.Button();
-            this.labelModInfo = new System.Windows.Forms.Label();
+            this.lblModName = new System.Windows.Forms.Label();
+            this.lblModAuthor = new System.Windows.Forms.Label();
+            this.lblModVersion = new System.Windows.Forms.Label();
+            this.txtModDescription = new System.Windows.Forms.TextBox();
             this.btnPlay = new System.Windows.Forms.Button();
             this.txtSearch = new System.Windows.Forms.TextBox();
             this.labelSearch = new System.Windows.Forms.Label();
@@ -82,6 +97,22 @@ namespace CrossworldsModManager
             this.deleteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             this.menuStrip1.SuspendLayout();
+            this.pnlTopActions.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerRoot)).BeginInit();
+            this.splitContainerRoot.Panel1.SuspendLayout();
+            this.splitContainerRoot.Panel2.SuspendLayout();
+            this.splitContainerRoot.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerMain)).BeginInit();
+            this.splitContainerMain.Panel1.SuspendLayout();
+            this.splitContainerMain.Panel2.SuspendLayout();
+            this.splitContainerMain.SuspendLayout();
+            this.tabControlMain.SuspendLayout();
+            this.tabDetails.SuspendLayout();
+            this.tabDeveloper.SuspendLayout();
+            this.pnlDevTop.SuspendLayout();
+            this.pnlRight.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picModImage)).BeginInit();
+            this.pnlButtons.SuspendLayout();
             this.statusStrip1.SuspendLayout();
             this.modContextMenuStrip.SuspendLayout();
             this.SuspendLayout();
@@ -95,12 +126,68 @@ namespace CrossworldsModManager
             this.profilesToolStripMenuItem,
             this.aboutToolStripMenuItem});
             this.menuStrip1.ForeColor = System.Drawing.Color.White;
+            this.menuStrip1.Dock = System.Windows.Forms.DockStyle.Top;
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
-            this.menuStrip1.Size = new System.Drawing.Size(800, 24);
+            this.menuStrip1.Size = new System.Drawing.Size(1200, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
+            // 
+            // pnlTopActions
+            // 
+            this.pnlTopActions.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.pnlTopActions.Controls.Add(this.btnSave);
+            this.pnlTopActions.Controls.Add(this.btnPlay);
+            this.pnlTopActions.Controls.Add(this.btnRefresh);
+            this.pnlTopActions.Controls.Add(this.btnAddMod);
+            this.pnlTopActions.Controls.Add(this.btnRemoveMod);
+            this.pnlTopActions.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlTopActions.Location = new System.Drawing.Point(0, 24);
+            this.pnlTopActions.Name = "pnlTopActions";
+            this.pnlTopActions.Padding = new System.Windows.Forms.Padding(5);
+            this.pnlTopActions.Size = new System.Drawing.Size(1200, 40);
+            this.pnlTopActions.TabIndex = 15;
+            // 
+            // splitContainerRoot
+            // 
+            this.splitContainerRoot.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainerRoot.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainerRoot.Location = new System.Drawing.Point(0, 64);
+            this.splitContainerRoot.Name = "splitContainerRoot";
+            this.splitContainerRoot.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // splitContainerRoot.Panel1
+            // 
+            this.splitContainerRoot.Panel1.Controls.Add(this.splitContainerMain);
+            // 
+            // splitContainerRoot.Panel2
+            // 
+            this.splitContainerRoot.Panel2.Controls.Add(this.rtbLog);
+            this.splitContainerRoot.Panel2Collapsed = true;
+            this.splitContainerRoot.Size = new System.Drawing.Size(1200, 714);
+            this.splitContainerRoot.SplitterDistance = 603;
+            this.splitContainerRoot.TabIndex = 14;
+            // 
+            // splitContainerMain
+            // 
+            this.splitContainerMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.splitContainerMain.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainerMain.Location = new System.Drawing.Point(0, 0);
+            this.splitContainerMain.Name = "splitContainerMain";
+            // 
+            // splitContainerMain.Panel1
+            // 
+            this.splitContainerMain.Panel1.Controls.Add(this.modListView);
+            this.splitContainerMain.Panel1.Controls.Add(this.pnlSearch);
+            this.splitContainerMain.Panel1.Padding = new System.Windows.Forms.Padding(10);
+            // 
+            // splitContainerMain.Panel2
+            // 
+            this.splitContainerMain.Panel2.Controls.Add(this.tabControlMain);
+            this.splitContainerMain.Size = new System.Drawing.Size(1200, 603);
+            this.splitContainerMain.SplitterDistance = 800;
+            this.splitContainerMain.TabIndex = 0;
             // 
             // fileToolStripMenuItem
             // 
@@ -293,25 +380,21 @@ namespace CrossworldsModManager
             // 
             // modListView
             // 
-            this.modListView.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.modListView.Dock = System.Windows.Forms.DockStyle.Fill;
             this.modListView.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.modListView.CheckBoxes = true;
             this.modListView.ContextMenuStrip = this.modContextMenuStrip;
             this.modListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeaderName,
-            this.columnHeaderAuthor,
-            this.columnHeaderVersion,
             this.columnHeaderActions,
             this.columnHeaderUpdate});
             this.modListView.ForeColor = System.Drawing.Color.White;
             this.modListView.FullRowSelect = true;
             this.modListView.HideSelection = false;
             this.modListView.OwnerDraw = false; // This is already false, ensuring it stays that way.
-            this.modListView.Location = new System.Drawing.Point(12, 27);
+            this.modListView.Location = new System.Drawing.Point(10, 40);
             this.modListView.Name = "modListView";
-            this.modListView.Size = new System.Drawing.Size(615, 353);
+            this.modListView.Size = new System.Drawing.Size(430, 553);
             this.modListView.TabIndex = 2;
             this.modListView.UseCompatibleStateImageBehavior = false;
             this.modListView.View = System.Windows.Forms.View.Details;
@@ -322,17 +405,7 @@ namespace CrossworldsModManager
             // columnHeaderName
             // 
             this.columnHeaderName.Text = "Name";
-            this.columnHeaderName.Width = 300;
-            // 
-            // columnHeaderAuthor
-            // 
-            this.columnHeaderAuthor.Text = "Author";
-            this.columnHeaderAuthor.Width = 150;
-            // 
-            // columnHeaderVersion
-            // 
-            this.columnHeaderVersion.Text = "Version";
-            this.columnHeaderVersion.Width = 100;
+            this.columnHeaderName.Width = 450;
             // 
             // columnHeaderActions
             // 
@@ -346,17 +419,196 @@ namespace CrossworldsModManager
             this.columnHeaderUpdate.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.columnHeaderUpdate.Width = 80;
             // 
+            // tabControlMain
+            // 
+            this.tabControlMain.Controls.Add(this.tabDetails);
+            this.tabControlMain.Controls.Add(this.tabDeveloper);
+            this.tabControlMain.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControlMain.Location = new System.Drawing.Point(0, 0);
+            this.tabControlMain.Name = "tabControlMain";
+            this.tabControlMain.SelectedIndex = 0;
+            this.tabControlMain.Size = new System.Drawing.Size(396, 603);
+            this.tabControlMain.TabIndex = 0;
+            // 
+            // tabDetails
+            // 
+            this.tabDetails.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.tabDetails.Controls.Add(this.pnlRight);
+            this.tabDetails.Location = new System.Drawing.Point(4, 22);
+            this.tabDetails.Name = "tabDetails";
+            this.tabDetails.Padding = new System.Windows.Forms.Padding(3);
+            this.tabDetails.Size = new System.Drawing.Size(388, 577);
+            this.tabDetails.TabIndex = 0;
+            this.tabDetails.Text = "Mod Details";
+            // 
+            // tabDeveloper
+            // 
+            this.tabDeveloper.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.tabDeveloper.Controls.Add(this.chkListDevFiles);
+            this.tabDeveloper.Controls.Add(this.lblDevPath);
+            this.tabDeveloper.Controls.Add(this.pnlDevTop);
+            this.tabDeveloper.Location = new System.Drawing.Point(4, 22);
+            this.tabDeveloper.Name = "tabDeveloper";
+            this.tabDeveloper.Padding = new System.Windows.Forms.Padding(3);
+            this.tabDeveloper.Size = new System.Drawing.Size(388, 577);
+            this.tabDeveloper.TabIndex = 1;
+            this.tabDeveloper.Text = "Developer Tools";
+            // 
+            // pnlDevTop
+            // 
+            this.pnlDevTop.Controls.Add(this.btnDevRefresh);
+            this.pnlDevTop.Controls.Add(this.btnDevSelectPath);
+            this.pnlDevTop.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlDevTop.Location = new System.Drawing.Point(3, 3);
+            this.pnlDevTop.Name = "pnlDevTop";
+            this.pnlDevTop.Size = new System.Drawing.Size(382, 40);
+            this.pnlDevTop.TabIndex = 0;
+            // 
+            // btnDevSelectPath
+            // 
+            this.btnDevSelectPath.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
+            this.btnDevSelectPath.FlatAppearance.BorderSize = 0;
+            this.btnDevSelectPath.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnDevSelectPath.ForeColor = System.Drawing.Color.White;
+            this.btnDevSelectPath.Location = new System.Drawing.Point(5, 5);
+            this.btnDevSelectPath.Name = "btnDevSelectPath";
+            this.btnDevSelectPath.Size = new System.Drawing.Size(160, 25);
+            this.btnDevSelectPath.TabIndex = 0;
+            this.btnDevSelectPath.Text = "Select UE Export Path...";
+            this.btnDevSelectPath.UseVisualStyleBackColor = false;
+            this.btnDevSelectPath.Click += new System.EventHandler(this.btnDevSelectPath_Click);
+            // 
+            // btnDevRefresh
+            // 
+            this.btnDevRefresh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
+            this.btnDevRefresh.FlatAppearance.BorderSize = 0;
+            this.btnDevRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnDevRefresh.ForeColor = System.Drawing.Color.White;
+            this.btnDevRefresh.Location = new System.Drawing.Point(170, 5);
+            this.btnDevRefresh.Name = "btnDevRefresh";
+            this.btnDevRefresh.Size = new System.Drawing.Size(75, 25);
+            this.btnDevRefresh.TabIndex = 1;
+            this.btnDevRefresh.Text = "Refresh";
+            this.btnDevRefresh.UseVisualStyleBackColor = false;
+            this.btnDevRefresh.Click += new System.EventHandler(this.btnDevRefresh_Click);
+            // 
+            // lblDevPath
+            // 
+            this.lblDevPath.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.lblDevPath.ForeColor = System.Drawing.Color.Gray;
+            this.lblDevPath.Location = new System.Drawing.Point(3, 544);
+            this.lblDevPath.Name = "lblDevPath";
+            this.lblDevPath.Size = new System.Drawing.Size(382, 30);
+            this.lblDevPath.TabIndex = 1;
+            this.lblDevPath.Text = "No export path selected.";
+            this.lblDevPath.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // chkListDevFiles
+            // 
+            this.chkListDevFiles.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(37)))), ((int)(((byte)(37)))), ((int)(((byte)(38)))));
+            this.chkListDevFiles.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.chkListDevFiles.CheckOnClick = true;
+            this.chkListDevFiles.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.chkListDevFiles.ForeColor = System.Drawing.Color.White;
+            this.chkListDevFiles.FormattingEnabled = true;
+            this.chkListDevFiles.Location = new System.Drawing.Point(3, 43);
+            this.chkListDevFiles.Name = "chkListDevFiles";
+            this.chkListDevFiles.Size = new System.Drawing.Size(382, 501);
+            this.chkListDevFiles.TabIndex = 2;
+            this.chkListDevFiles.ItemCheck += new System.Windows.Forms.ItemCheckEventHandler(this.chkListDevFiles_ItemCheck);
+            // 
+            // pnlRight
+            // 
+            this.pnlRight.Controls.Add(this.pnlButtons);
+            this.pnlRight.Controls.Add(this.txtModDescription);
+            this.pnlRight.Controls.Add(this.lblModVersion);
+            this.pnlRight.Controls.Add(this.lblModAuthor);
+            this.pnlRight.Controls.Add(this.lblModName);
+            this.pnlRight.Controls.Add(this.picModImage);
+            this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlRight.Location = new System.Drawing.Point(0, 0);
+            this.pnlRight.Name = "pnlRight";
+            this.pnlRight.Padding = new System.Windows.Forms.Padding(20);
+            this.pnlRight.Size = new System.Drawing.Size(382, 571);
+            this.pnlRight.TabIndex = 0;
+            // 
+            // picModImage
+            // 
+            this.picModImage.BackColor = System.Drawing.Color.Black;
+            this.picModImage.Dock = System.Windows.Forms.DockStyle.Top;
+            this.picModImage.Location = new System.Drawing.Point(20, 20);
+            this.picModImage.Name = "picModImage";
+            this.picModImage.Size = new System.Drawing.Size(706, 250);
+            this.picModImage.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
+            this.picModImage.TabIndex = 0;
+            this.picModImage.TabStop = false;
+            // 
+            // lblModName
+            // 
+            this.lblModName.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblModName.Font = new System.Drawing.Font("Segoe UI", 16F, System.Drawing.FontStyle.Bold);
+            this.lblModName.ForeColor = System.Drawing.Color.White;
+            this.lblModName.Location = new System.Drawing.Point(20, 417);
+            this.lblModName.Name = "lblModName";
+            this.lblModName.Size = new System.Drawing.Size(706, 40);
+            this.lblModName.TabIndex = 1;
+            this.lblModName.Text = "Select a mod";
+            this.lblModName.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // lblModAuthor
+            // 
+            this.lblModAuthor.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblModAuthor.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblModAuthor.ForeColor = System.Drawing.Color.LightGray;
+            this.lblModAuthor.Location = new System.Drawing.Point(20, 457);
+            this.lblModAuthor.Name = "lblModAuthor";
+            this.lblModAuthor.Size = new System.Drawing.Size(706, 25);
+            this.lblModAuthor.TabIndex = 2;
+            // 
+            // lblModVersion
+            // 
+            this.lblModVersion.Dock = System.Windows.Forms.DockStyle.Top;
+            this.lblModVersion.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.lblModVersion.ForeColor = System.Drawing.Color.LightGray;
+            this.lblModVersion.Location = new System.Drawing.Point(20, 482);
+            this.lblModVersion.Name = "lblModVersion";
+            this.lblModVersion.Size = new System.Drawing.Size(706, 25);
+            this.lblModVersion.TabIndex = 3;
+            // 
+            // txtModDescription
+            // 
+            this.txtModDescription.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
+            this.txtModDescription.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.txtModDescription.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.txtModDescription.ForeColor = System.Drawing.Color.Gainsboro;
+            this.txtModDescription.Location = new System.Drawing.Point(20, 507);
+            this.txtModDescription.Multiline = true;
+            this.txtModDescription.Name = "txtModDescription";
+            this.txtModDescription.ReadOnly = true;
+            this.txtModDescription.Size = new System.Drawing.Size(706, 56);
+            this.txtModDescription.TabIndex = 4;
+            // 
+            // pnlButtons
+            // 
+            this.pnlButtons.AutoSize = true;
+            this.pnlButtons.Controls.Add(this.btnToggleDebugLog);
+            this.pnlButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlButtons.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
+            this.pnlButtons.Location = new System.Drawing.Point(20, 563);
+            this.pnlButtons.Name = "pnlButtons";
+            this.pnlButtons.Size = new System.Drawing.Size(706, 20);
+            this.pnlButtons.TabIndex = 5;
+            // 
             // btnSave
             // 
-            this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnSave.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(122)))), ((int)(((byte)(204)))));
             this.btnSave.FlatAppearance.BorderSize = 0;
             this.btnSave.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSave.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnSave.ForeColor = System.Drawing.Color.White;
-            this.btnSave.Location = new System.Drawing.Point(633, 27);
+            this.btnSave.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(75, 40);
+            this.btnSave.Size = new System.Drawing.Size(80, 30);
             this.btnSave.TabIndex = 3;
             this.btnSave.Text = "💾 Save";
             this.btnSave.UseVisualStyleBackColor = false;
@@ -364,144 +616,119 @@ namespace CrossworldsModManager
             // 
             // btnAddMod
             // 
-            this.btnAddMod.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnAddMod.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
             this.btnAddMod.FlatAppearance.BorderSize = 0;
             this.btnAddMod.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAddMod.ForeColor = System.Drawing.Color.White;
-            this.btnAddMod.Location = new System.Drawing.Point(633, 73);
+            this.btnAddMod.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
             this.btnAddMod.Name = "btnAddMod";
-            this.btnAddMod.Size = new System.Drawing.Size(155, 23);
+            this.btnAddMod.Size = new System.Drawing.Size(80, 30);
             this.btnAddMod.TabIndex = 4;
-            this.btnAddMod.Text = "➕ Add Mod";
+            this.btnAddMod.Text = "➕ Add";
             this.btnAddMod.UseVisualStyleBackColor = false;
             this.btnAddMod.Click += new System.EventHandler(this.btnAddMod_Click);
             // 
             // btnRemoveMod
             // 
-            this.btnRemoveMod.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnRemoveMod.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
             this.btnRemoveMod.FlatAppearance.BorderSize = 0;
             this.btnRemoveMod.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnRemoveMod.ForeColor = System.Drawing.Color.White;
-            this.btnRemoveMod.Location = new System.Drawing.Point(633, 102);
+            this.btnRemoveMod.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
             this.btnRemoveMod.Name = "btnRemoveMod";
-            this.btnRemoveMod.Size = new System.Drawing.Size(155, 23);
+            this.btnRemoveMod.Size = new System.Drawing.Size(80, 30);
             this.btnRemoveMod.TabIndex = 5;
-            this.btnRemoveMod.Text = "➖ Remove Mod";
+            this.btnRemoveMod.Text = "➖ Remove";
             this.btnRemoveMod.UseVisualStyleBackColor = false;
             this.btnRemoveMod.Click += new System.EventHandler(this.btnRemoveMod_Click);
             // 
             // btnRefresh
             // 
-            this.btnRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnRefresh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
             this.btnRefresh.FlatAppearance.BorderSize = 0;
             this.btnRefresh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnRefresh.ForeColor = System.Drawing.Color.White;
-            this.btnRefresh.Location = new System.Drawing.Point(633, 131);
+            this.btnRefresh.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
             this.btnRefresh.Name = "btnRefresh";
-            this.btnRefresh.Size = new System.Drawing.Size(155, 23);
+            this.btnRefresh.Size = new System.Drawing.Size(80, 30);
             this.btnRefresh.TabIndex = 6;
             this.btnRefresh.Text = "🔄 Refresh";
             this.btnRefresh.UseVisualStyleBackColor = false;
             this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
             // 
-            // btnMoveUp
-            // 
-            this.btnMoveUp.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnMoveUp.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
-            this.btnMoveUp.FlatAppearance.BorderSize = 0;
-            this.btnMoveUp.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnMoveUp.ForeColor = System.Drawing.Color.White;
-            this.btnMoveUp.Location = new System.Drawing.Point(633, 178);
-            this.btnMoveUp.Name = "btnMoveUp";
-            this.btnMoveUp.Size = new System.Drawing.Size(155, 23);
-            this.btnMoveUp.TabIndex = 7;
-            this.btnMoveUp.Text = "🔼 Move Up";
-            this.btnMoveUp.UseVisualStyleBackColor = false;
-            this.btnMoveUp.Click += new System.EventHandler(this.btnMoveUp_Click);
-            // 
-            // btnMoveDown
-            // 
-            this.btnMoveDown.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnMoveDown.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
-            this.btnMoveDown.FlatAppearance.BorderSize = 0;
-            this.btnMoveDown.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
-            this.btnMoveDown.ForeColor = System.Drawing.Color.White;
-            this.btnMoveDown.Location = new System.Drawing.Point(633, 207);
-            this.btnMoveDown.Name = "btnMoveDown";
-            this.btnMoveDown.Size = new System.Drawing.Size(155, 23);
-            this.btnMoveDown.TabIndex = 8;
-            this.btnMoveDown.Text = "🔽 Move Down";
-            this.btnMoveDown.UseVisualStyleBackColor = false;
-            this.btnMoveDown.Click += new System.EventHandler(this.btnMoveDown_Click);
-            // 
-            // labelModInfo
-            // 
-            this.labelModInfo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.labelModInfo.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
-            this.labelModInfo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.labelModInfo.ForeColor = System.Drawing.Color.Gainsboro;
-            this.labelModInfo.Location = new System.Drawing.Point(12, 383);
-            this.labelModInfo.Name = "labelModInfo";
-            this.labelModInfo.Size = new System.Drawing.Size(776, 36);
-            this.labelModInfo.TabIndex = 9;
-            this.labelModInfo.Text = "Select a mod to see its description.";
-            this.labelModInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            // 
             // btnPlay
             // 
-            this.btnPlay.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnPlay.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(137)))), ((int)(((byte)(45)))));
             this.btnPlay.FlatAppearance.BorderSize = 0;
             this.btnPlay.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnPlay.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnPlay.ForeColor = System.Drawing.Color.White;
-            this.btnPlay.Location = new System.Drawing.Point(714, 27);
+            this.btnPlay.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
             this.btnPlay.Name = "btnPlay";
-            this.btnPlay.Size = new System.Drawing.Size(74, 40);
+            this.btnPlay.Size = new System.Drawing.Size(80, 30);
             this.btnPlay.TabIndex = 10;
             this.btnPlay.Text = "▶ Play";
             this.btnPlay.UseVisualStyleBackColor = false;
             this.btnPlay.Click += new System.EventHandler(this.btnPlay_Click);
             // 
+            // pnlSearch
+            // 
+            this.pnlSearch.Controls.Add(this.txtSearch);
+            this.pnlSearch.Controls.Add(this.labelSearch);
+            this.pnlSearch.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlSearch.Location = new System.Drawing.Point(10, 10);
+            this.pnlSearch.Name = "pnlSearch";
+            this.pnlSearch.Size = new System.Drawing.Size(430, 22);
+            this.pnlSearch.TabIndex = 11;
+            // 
             // txtSearch
             // 
-            this.txtSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtSearch.Dock = System.Windows.Forms.DockStyle.Fill;
             this.txtSearch.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.txtSearch.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.txtSearch.ForeColor = System.Drawing.Color.White;
-            this.txtSearch.Location = new System.Drawing.Point(633, 255);
+            this.txtSearch.Location = new System.Drawing.Point(55, 0);
             this.txtSearch.Name = "txtSearch";
-            this.txtSearch.Size = new System.Drawing.Size(155, 20);
-            this.txtSearch.TabIndex = 11;
+            this.txtSearch.Size = new System.Drawing.Size(375, 20);
+            this.txtSearch.TabIndex = 0;
             this.txtSearch.TextChanged += new System.EventHandler(this.txtSearch_TextChanged);
             // 
             // labelSearch
             // 
-            this.labelSearch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.labelSearch.Dock = System.Windows.Forms.DockStyle.Left;
             this.labelSearch.AutoSize = true;
             this.labelSearch.ForeColor = System.Drawing.Color.Gainsboro;
-            this.labelSearch.Location = new System.Drawing.Point(630, 239);
+            this.labelSearch.Location = new System.Drawing.Point(0, 0);
             this.labelSearch.Name = "labelSearch";
             this.labelSearch.Size = new System.Drawing.Size(44, 13);
-            this.labelSearch.TabIndex = 12;
+            this.labelSearch.TabIndex = 1;
             this.labelSearch.Text = "Search:";
+            this.labelSearch.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.labelSearch.Padding = new System.Windows.Forms.Padding(0, 3, 5, 0);
+            // 
+            // rtbLog
+            // 
+            this.rtbLog.BackColor = System.Drawing.Color.Black;
+            this.rtbLog.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.rtbLog.Font = new System.Drawing.Font("Consolas", 9F);
+            this.rtbLog.ForeColor = System.Drawing.Color.White;
+            this.rtbLog.Location = new System.Drawing.Point(0, 0);
+            this.rtbLog.Name = "rtbLog";
+            this.rtbLog.ReadOnly = true;
+            this.rtbLog.Size = new System.Drawing.Size(150, 46);
+            this.rtbLog.TabIndex = 0;
+            this.rtbLog.Text = "";
             // 
             // btnToggleDebugLog
             // 
-            this.btnToggleDebugLog.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnToggleDebugLog.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
-            this.btnToggleDebugLog.Enabled = false;
             this.btnToggleDebugLog.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnToggleDebugLog.ForeColor = System.Drawing.Color.White;
-            this.btnToggleDebugLog.Location = new System.Drawing.Point(633, 280);
+            this.btnToggleDebugLog.Margin = new System.Windows.Forms.Padding(0, 0, 5, 0);
             this.btnToggleDebugLog.Name = "btnToggleDebugLog";
-            this.btnToggleDebugLog.Size = new System.Drawing.Size(155, 23);
+            this.btnToggleDebugLog.Size = new System.Drawing.Size(80, 30);
             this.btnToggleDebugLog.TabIndex = 13;
-            this.btnToggleDebugLog.Text = "Show Debug Log";
+            this.btnToggleDebugLog.Text = "Log";
             this.btnToggleDebugLog.UseVisualStyleBackColor = false;
             this.btnToggleDebugLog.Click += new System.EventHandler(this.btnToggleDebugLog_Click);
             // 
@@ -601,27 +828,37 @@ namespace CrossworldsModManager
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
-            this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Controls.Add(this.btnToggleDebugLog);
-            this.Controls.Add(this.labelSearch);
-            this.Controls.Add(this.txtSearch);
-            this.Controls.Add(this.btnPlay);
-            this.Controls.Add(this.labelModInfo);
-            this.Controls.Add(this.btnMoveDown);
-            this.Controls.Add(this.btnMoveUp);
-            this.Controls.Add(this.btnRefresh);
-            this.Controls.Add(this.btnRemoveMod);
-            this.Controls.Add(this.btnAddMod);
-            this.Controls.Add(this.btnSave);
-            this.Controls.Add(this.modListView);
+            this.ClientSize = new System.Drawing.Size(1200, 650);
+            this.Controls.Add(this.splitContainerRoot);
+            this.Controls.Add(this.pnlTopActions);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.menuStrip1);
             this.MainMenuStrip = this.menuStrip1;
             this.MinimumSize = new System.Drawing.Size(600, 400);
             this.Name = "MainForm";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Sonic Racing: Crossworlds Mod Manager";
             this.menuStrip1.ResumeLayout(false);
             this.menuStrip1.PerformLayout();
+            this.pnlTopActions.ResumeLayout(false);
+            this.pnlTopActions.PerformLayout();
+            this.splitContainerRoot.Panel1.ResumeLayout(false);
+            this.splitContainerRoot.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerRoot)).EndInit();
+            this.splitContainerRoot.ResumeLayout(false);
+            this.splitContainerMain.Panel1.ResumeLayout(false);
+            this.splitContainerMain.Panel1.PerformLayout();
+            this.splitContainerMain.Panel2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.splitContainerMain)).EndInit();
+            this.splitContainerMain.ResumeLayout(false);
+            this.tabControlMain.ResumeLayout(false);
+            this.tabDetails.ResumeLayout(false);
+            this.tabDeveloper.ResumeLayout(false);
+            this.pnlDevTop.ResumeLayout(false);
+            this.pnlRight.ResumeLayout(false);
+            this.pnlRight.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picModImage)).EndInit();
+            this.pnlButtons.ResumeLayout(false);
             this.statusStrip1.ResumeLayout(false);
             this.statusStrip1.PerformLayout();
             this.modContextMenuStrip.ResumeLayout(false);
@@ -633,6 +870,26 @@ namespace CrossworldsModManager
         #endregion
 
         private System.Windows.Forms.MenuStrip menuStrip1;
+        private System.Windows.Forms.FlowLayoutPanel pnlTopActions;
+        private System.Windows.Forms.SplitContainer splitContainerRoot;
+        private System.Windows.Forms.SplitContainer splitContainerMain;
+        private System.Windows.Forms.RichTextBox rtbLog;
+        private System.Windows.Forms.TabControl tabControlMain;
+        private System.Windows.Forms.TabPage tabDetails;
+        private System.Windows.Forms.TabPage tabDeveloper;
+        private System.Windows.Forms.Panel pnlDevTop;
+        private System.Windows.Forms.Button btnDevSelectPath;
+        private System.Windows.Forms.Button btnDevRefresh;
+        private System.Windows.Forms.Label lblDevPath;
+        private System.Windows.Forms.CheckedListBox chkListDevFiles;
+        private System.Windows.Forms.Panel pnlRight;
+        private System.Windows.Forms.Panel pnlSearch;
+        private System.Windows.Forms.PictureBox picModImage;
+        private System.Windows.Forms.Label lblModName;
+        private System.Windows.Forms.Label lblModAuthor;
+        private System.Windows.Forms.Label lblModVersion;
+        private System.Windows.Forms.TextBox txtModDescription;
+        private System.Windows.Forms.FlowLayoutPanel pnlButtons;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem addModToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
@@ -652,8 +909,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripDropDownButton launchPlatformDropDown;
         private System.Windows.Forms.ListView modListView;
         private System.Windows.Forms.ColumnHeader columnHeaderName;
-        private System.Windows.Forms.ColumnHeader columnHeaderAuthor;
-        private System.Windows.Forms.ColumnHeader columnHeaderVersion;
         #pragma warning disable 0649
         private System.Windows.Forms.ColumnHeader columnHeaderActions;
         private System.Windows.Forms.ColumnHeader columnHeaderUpdate;
@@ -662,9 +917,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.Button btnAddMod;
         private System.Windows.Forms.Button btnRemoveMod;
         private System.Windows.Forms.Button btnRefresh;
-        private System.Windows.Forms.Button btnMoveUp;
-        private System.Windows.Forms.Button btnMoveDown;
-        private System.Windows.Forms.Label labelModInfo;
         private System.Windows.Forms.Button btnPlay;
         private System.Windows.Forms.TextBox txtSearch;
         private System.Windows.Forms.Label labelSearch;

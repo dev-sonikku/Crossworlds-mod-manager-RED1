@@ -72,7 +72,7 @@ namespace CrossworldsModManager
         {
             this.Text = "Mod Config Maker";
             this.Size = new Size(900, 600);
-            this.StartPosition = FormStartPosition.CenterParent;
+            this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = SystemFonts.MessageBoxFont;
             this.BackColor = Color.FromArgb(45, 45, 48);
             this.ForeColor = Color.White;

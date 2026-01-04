@@ -33,8 +33,6 @@ namespace CrossworldsModManager
         private Dictionary<string, (string Path, string? AppName)> _gameInstallations = new();
         private List<ListViewItem> _allModItems = new List<ListViewItem>();
         private string? _selectedPlatform;
-        private LogForm? _logForm;
-        private DeveloperForm? _devForm;
         private Button? btnBrowseMods; // Added for GameBanana browser
         private Button? btnBackupMods; // Added for Mod Backup
         private Button? btnRestoreMods; // Added for Mod Restore
@@ -43,7 +41,6 @@ namespace CrossworldsModManager
         public MainForm(string? oneClickUrl, string appVersion)
         {
             InitializeComponent();
-            this.Height += 10;
             // Set the form's icon from the executable's embedded icon.
             _oneClickUrl = oneClickUrl;
             this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
@@ -61,67 +58,50 @@ namespace CrossworldsModManager
             modListView.DragEnter += modListView_DragEnter;
             modListView.DragDrop += modListView_DragDrop;
 
-            // Create debug log window but hide it by default; user can show it via button.
-            try
+            // Programmatically add the "Browse Mods" button to the flow layout
+            btnBrowseMods = new Button
             {
-                _logForm = new LogForm();
-                _logForm.Hide();
-                btnToggleDebugLog.Enabled = true; // Enable the button now that log exists
+                Name = "btnBrowseMods",
+                Text = "Browse...",
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(63, 63, 70),
+                Margin = new Padding(0, 0, 5, 0)
+            };
+            btnBrowseMods.FlatAppearance.BorderSize = 0;
+            btnBrowseMods.Click += btnBrowseMods_Click;
+            pnlTopActions.Controls.Add(btnBrowseMods);
 
-                // Programmatically add the "Browse Mods" button below the debug log button
-                btnBrowseMods = new Button
-                {
-                    Name = "btnBrowseMods",
-                    Text = "Browse Mods...",
-                    Anchor = btnToggleDebugLog.Anchor,
-                    Location = new Point(btnToggleDebugLog.Location.X, btnToggleDebugLog.Location.Y + btnToggleDebugLog.Height + 6),
-                    Size = btnToggleDebugLog.Size,
-                    FlatStyle = btnToggleDebugLog.FlatStyle,
-                    ForeColor = btnToggleDebugLog.ForeColor,
-                    BackColor = btnToggleDebugLog.BackColor
-                };
-                btnBrowseMods.Click += btnBrowseMods_Click;
-                this.Controls.Add(btnBrowseMods);
-                btnBrowseMods.BringToFront(); // Ensure it's visible
-
-                // Programmatically add the "Backup Mods" button below the Browse Mods button
-                btnBackupMods = new Button
-                {
-                    Name = "btnBackupMods",
-                    Text = "Backup Mods",
-                    Anchor = btnBrowseMods.Anchor,
-                    Location = new Point(btnBrowseMods.Location.X, btnBrowseMods.Location.Y + btnBrowseMods.Height + 6),
-                    Size = btnBrowseMods.Size,
-                    FlatStyle = btnBrowseMods.FlatStyle,
-                    ForeColor = btnBrowseMods.ForeColor,
-                    BackColor = btnBrowseMods.BackColor
-                };
-                btnBackupMods.Click += btnBackupMods_Click;
-                this.Controls.Add(btnBackupMods);
-                btnBackupMods.BringToFront();
-
-                // Programmatically add the "Restore Mods" button below the Backup Mods button
-                btnRestoreMods = new Button
-                {
-                    Name = "btnRestoreMods",
-                    Text = "Restore Mods",
-                    Anchor = btnBackupMods.Anchor,
-                    Location = new Point(btnBackupMods.Location.X, btnBackupMods.Location.Y + btnBackupMods.Height + 6),
-                    Size = btnBackupMods.Size,
-                    FlatStyle = btnBackupMods.FlatStyle,
-                    ForeColor = btnBackupMods.ForeColor,
-                    BackColor = btnBackupMods.BackColor
-                };
-                btnRestoreMods.Click += btnRestoreMods_Click;
-                this.Controls.Add(btnRestoreMods);
-                btnRestoreMods.BringToFront();
-
-                // Enable/Disable All moved to Tools menu to reduce UI clutter.
-            }
-            catch
+            // Programmatically add the "Backup Mods" button
+            btnBackupMods = new Button
             {
-                // If creating the log window fails, ignore and continue — logging will still use Console/Debug.
-            }
+                Name = "btnBackupMods",
+                Text = "Backup",
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(63, 63, 70),
+                Margin = new Padding(0, 0, 5, 0)
+            };
+            btnBackupMods.FlatAppearance.BorderSize = 0;
+            btnBackupMods.Click += btnBackupMods_Click;
+            pnlTopActions.Controls.Add(btnBackupMods);
+
+            // Programmatically add the "Restore Mods" button
+            btnRestoreMods = new Button
+            {
+                Name = "btnRestoreMods",
+                Text = "Restore",
+                Size = new Size(80, 30),
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.White,
+                BackColor = Color.FromArgb(63, 63, 70),
+                Margin = new Padding(0, 0, 5, 0)
+            };
+            btnRestoreMods.FlatAppearance.BorderSize = 0;
+            btnRestoreMods.Click += btnRestoreMods_Click;
+            pnlTopActions.Controls.Add(btnRestoreMods);
 
             // Add Mod Config Maker to context menu
             var configMakerItem = new ToolStripMenuItem("Mod Config Maker");
@@ -225,7 +205,7 @@ namespace CrossworldsModManager
         {
             base.OnShown(e);
             // This needs to be called after the main form is shown to position correctly.
-            ToggleDeveloperForm();
+            UpdateDeveloperTabVisibility();
 
             if (!string.IsNullOrEmpty(_oneClickUrl))
             {
@@ -441,10 +421,7 @@ namespace CrossworldsModManager
             IProgress<string> progress = new Progress<string>(s =>
             {
                 UpdateStatus(s);
-                if (_logForm != null && !_logForm.IsDisposed)
-                {
-                    _logForm.AppendLog(s);
-                }
+                AppendLog(s);
             });
             IProgress<int> progressBarProgress = new Progress<int>(p => progressBar.Value = p);
 
@@ -647,17 +624,11 @@ namespace CrossworldsModManager
                     catch (Exception ex) { progress.Report($"Could not clean up merged JSON files: {ex.Message}"); }
                 }
 
-                if (SettingsManager.Settings.AutoCloseLogOnSuccess && (_logForm?.IsHandleCreated ?? false) && !_logForm.IsDisposed)
+                if (SettingsManager.Settings.AutoCloseLogOnSuccess && !rtbLog.Text.Contains("Failed") && !rtbLog.Text.Contains("Error"))
                 {
-                    // Check if there were errors by looking for specific keywords in the log. A more robust method could be used in the future.
-                    if (!_logForm.ContainsText("Failed") && !_logForm.ContainsText("Error"))
-                    {
-                        _logForm.Close();
-                    }
+                    splitContainerRoot.Panel2Collapsed = true;
+                    btnToggleDebugLog.Text = "Log";
                 }
-
-                // Mark the persistent log as done so the user can close it manually when they want.
-                try { _logForm?.MarkDone(); } catch { }
 
                 progress.Report("Saving Complete");
 
@@ -954,10 +925,10 @@ namespace CrossworldsModManager
         private async Task CheckForModUpdatesAsync()
         {
             UpdateStatus("Checking for mod updates...");
-            _logForm?.AppendLog("--- Starting GameBanana Mod Update Check ---");
+            AppendLog("--- Starting GameBanana Mod Update Check ---");
             IProgress<string> logger = new Progress<string>(s =>
             {
-                _logForm?.AppendLog(s);
+                AppendLog(s);
             });
 
             var updateTasks = new List<Task>();
@@ -1017,8 +988,8 @@ namespace CrossworldsModManager
                                 // We need to update the UI on the UI thread.
                                 this.Invoke((Action)(() => {
                                     item.ForeColor = Color.LimeGreen;
-                                    // Place the "Update" action in the new "Update" column (index 4).
-                                    var updateSubItem = item.SubItems[4];
+                                    // Place the "Update" action in the new "Update" column (index 2).
+                                    var updateSubItem = item.SubItems[2];
                                     if (!updateSubItem.Text.Contains("Update"))
                                     {
                                         updateSubItem.Text = "🔄 Update";
@@ -1037,7 +1008,7 @@ namespace CrossworldsModManager
 
             await Task.WhenAll(updateTasks);
             UpdateStatus("Mod update check complete.");
-            _logForm?.AppendLog("--- Mod Update Check Complete ---");
+            AppendLog("--- Mod Update Check Complete ---");
         }
 
         private ListViewItem CreateModListViewItem(ModInfo modInfo, HashSet<string> enabledMods)
@@ -1045,8 +1016,6 @@ namespace CrossworldsModManager
             var item = new ListViewItem(new[] 
                     {
                         modInfo.Name,
-                        modInfo.Author,
-                        modInfo.Version,
                         // Add text to the "Actions" column only if the mod is configurable.
                         modInfo.ConfigurationGroups.Any() ? "⚙️ Configure" : "",
                         "" // Placeholder for the new Update column
@@ -1285,10 +1254,10 @@ namespace CrossworldsModManager
                 }
                 
                 // 4. Handle Developer Mode files (if enabled)
-                if (SettingsManager.Settings.DeveloperModeEnabled && _devForm is not null && !string.IsNullOrEmpty(_devForm.SelectedExportPath))
+                if (SettingsManager.Settings.DeveloperModeEnabled && !string.IsNullOrEmpty(SettingsManager.Settings.DeveloperExportPath))
                 {
-                    var devExportSourcePath = _devForm.SelectedExportPath;
-                    var enabledFileBases = _devForm.GetEnabledFileBaseNames();
+                    var devExportSourcePath = SettingsManager.Settings.DeveloperExportPath;
+                    var enabledFileBases = GetDevEnabledFileBaseNames();
 
                     if (enabledFileBases.Any())
                     {
@@ -1695,16 +1664,6 @@ namespace CrossworldsModManager
             RefreshModList();
         }
 
-        private void btnMoveUp_Click(object sender, EventArgs e)
-        {
-            MoveSelectedItem(-1);
-        }
-
-        private void btnMoveDown_Click(object sender, EventArgs e)
-        {
-            MoveSelectedItem(1);
-        }
-
         private void MoveSelectedItem(int direction)
         {
             if (modListView.SelectedItems.Count != 1) return;
@@ -1724,15 +1683,8 @@ namespace CrossworldsModManager
 
         private void modListView_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (modListView.SelectedItems.Count > 0)
-            {
-                // We store the description in the Tag property of the ListViewItem
-                labelModInfo.Text = (modListView.SelectedItems[0].Tag as ModInfo)?.Description ?? "No description available.";
-            }
-            else
-            {
-                labelModInfo.Text = "Select a mod to see its description.";
-            }
+            var modInfo = modListView.SelectedItems.Count > 0 ? modListView.SelectedItems[0].Tag as ModInfo : null;
+            UpdateModDetails(modInfo);
         }
 
         private void modListView_ItemChecked(object sender, ItemCheckedEventArgs e)
@@ -1795,29 +1747,26 @@ namespace CrossworldsModManager
                 {
                     // Reload everything to apply new settings
                     LoadSettingsAndSetup();
-                    ToggleDeveloperForm();
+                    UpdateDeveloperTabVisibility();
                 }
             }
         }
 
-        private void ToggleDeveloperForm()
+        private void UpdateDeveloperTabVisibility()
         {
             if (SettingsManager.Settings.DeveloperModeEnabled)
             {
-                if (_devForm is null || _devForm.IsDisposed)
+                if (!tabControlMain.TabPages.Contains(tabDeveloper))
                 {
-                    _devForm = new DeveloperForm(); // This will be resolved once DeveloperForm.cs is in the project
-                    _devForm.Show(this); // Show as non-modal, owned by MainForm
-                    // Position it to the right of the main form
-                    _devForm.Location = new Point(this.Right, this.Top);
+                    tabControlMain.TabPages.Add(tabDeveloper);
+                    LoadDeveloperSettings();
                 }
             }
             else
             {
-                if (_devForm is not null && !_devForm.IsDisposed)
+                if (tabControlMain.TabPages.Contains(tabDeveloper))
                 {
-                    _devForm.Close();
-                    _devForm = null;
+                    tabControlMain.TabPages.Remove(tabDeveloper);
                 }
             }
         }
@@ -1957,13 +1906,13 @@ namespace CrossworldsModManager
 
             int columnIndex = item.SubItems.IndexOf(subItem);
 
-            // Check for a click in the "Update" column (index 4).
-            if (columnIndex == 4 && subItem.Text.Contains("Update"))
+            // Check for a click in the "Update" column (index 2).
+            if (columnIndex == 2 && subItem.Text.Contains("Update"))
             {
                 HandleModUpdateClick(modInfo);
             }
-            // Check for a click in the "Actions" column (index 3).
-            else if (columnIndex == 3)
+            // Check for a click in the "Actions" column (index 1).
+            else if (columnIndex == 1)
             {
                 if (modInfo.ConfigurationGroups.Any() && subItem.Text.Contains("Configure"))
                 {
@@ -2012,7 +1961,7 @@ namespace CrossworldsModManager
 
                 // Open the ModDetailsForm, which will handle the download/install process.
                 // This is the same behavior as clicking "Download" in the mod browser.
-                using (var modDetailsForm = new ModDetailsForm(gameBananaMod, _logForm?.GetLoggerProgress(), RefreshModList))
+                using (var modDetailsForm = new ModDetailsForm(gameBananaMod, new Progress<string>(s => AppendLog(s)), RefreshModList))
                 {
                     modDetailsForm.ShowDialog(this);
                 }
@@ -2051,25 +2000,15 @@ namespace CrossworldsModManager
 
         private void btnToggleDebugLog_Click(object sender, EventArgs e)
         {
-            if (_logForm == null || _logForm.IsDisposed)
+            if (splitContainerRoot.Panel2Collapsed)
             {
-                try
-                {
-                    _logForm = new LogForm();
-                    _logForm.Show(this);
-                    btnToggleDebugLog.Text = "Hide Debug Log";
-                }
-                catch { }
-            }
-            else if (_logForm.Visible)
-            {
-                _logForm.Hide();
-                btnToggleDebugLog.Text = "Show Debug Log";
+                splitContainerRoot.Panel2Collapsed = false;
+                btnToggleDebugLog.Text = "Hide Log";
             }
             else
             {
-                _logForm.Show(this);
-                btnToggleDebugLog.Text = "Hide Debug Log";
+                splitContainerRoot.Panel2Collapsed = true;
+                btnToggleDebugLog.Text = "Log";
             }
         }
 
@@ -2376,10 +2315,7 @@ namespace CrossworldsModManager
             // Create a logger that reports to our main debug log window
             IProgress<string> browserLogger = new Progress<string>(s =>
             {
-                if (_logForm != null && !_logForm.IsDisposed)
-                {
-                    _logForm.AppendLog($"[GB Browser] {s}");
-                }
+                AppendLog($"[GB Browser] {s}");
             });
 
             using (var browserForm = new GameBananaBrowserForm(browserLogger, RefreshModList))
@@ -2462,10 +2398,7 @@ namespace CrossworldsModManager
                 // Create a logger that reports to our main debug log window
                 IProgress<string> browserLogger = new Progress<string>(s =>
                 {
-                    if (_logForm != null && !_logForm.IsDisposed)
-                    {
-                        _logForm.AppendLog($"[1-Click] {s}");
-                    }
+                    AppendLog($"[1-Click] {s}");
                 });
 
                 // Show the details form as a confirmation dialog.
@@ -2590,6 +2523,167 @@ namespace CrossworldsModManager
                 throw new Exception($"{Path.GetFileName(toolPath)} extraction failed with exit code {process.ExitCode}.\nError: {error}");
             }
         }
+
+        private void UpdateModDetails(ModInfo? mod)
+        {
+            if (mod == null)
+            {
+                picModImage.Image = null;
+                lblModName.Text = "Select a mod";
+                lblModAuthor.Text = "";
+                lblModVersion.Text = "";
+                txtModDescription.Text = "";
+                return;
+            }
+
+            lblModName.Text = mod.Name;
+            lblModAuthor.Text = "By: " + mod.Author;
+            lblModVersion.Text = "Version: " + mod.Version;
+            txtModDescription.Text = mod.Description;
+
+            // Load Thumbnail
+            string[] extensions = { ".jpg", ".png", ".jpeg", ".bmp", ".gif" };
+            string? thumbPath = null;
+            foreach (var ext in extensions)
+            {
+                var p = Path.Combine(mod.DirectoryPath, "Thumb" + ext);
+                if (File.Exists(p))
+                {
+                    thumbPath = p;
+                    break;
+                }
+            }
+
+            if (thumbPath != null)
+            {
+                try
+                {
+                    using (var stream = new FileStream(thumbPath, FileMode.Open, FileAccess.Read))
+                    {
+                        var img = Image.FromStream(stream);
+                        picModImage.Image = ProcessThumbnail(img);
+                    }
+                }
+                catch { picModImage.Image = null; }
+            }
+            else
+            {
+                picModImage.Image = null;
+            }
+        }
+
+        private Image ProcessThumbnail(Image img)
+        {
+            // Force 16:9 aspect ratio (Letterbox)
+            int targetW = 640;
+            int targetH = 360;
+            
+            var bmp = new Bitmap(targetW, targetH);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.Clear(Color.Black);
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                
+                float scale = Math.Min((float)targetW / img.Width, (float)targetH / img.Height);
+                int scaleW = (int)(img.Width * scale);
+                int scaleH = (int)(img.Height * scale);
+                
+                int x = (targetW - scaleW) / 2;
+                int y = (targetH - scaleH) / 2;
+                
+                g.DrawImage(img, x, y, scaleW, scaleH);
+            }
+            return bmp;
+        }
+
+        private void AppendLog(string text)
+        {
+            if (rtbLog.InvokeRequired)
+            {
+                rtbLog.BeginInvoke(new Action<string>(AppendLog), text);
+                return;
+            }
+            rtbLog.AppendText($"[{DateTime.Now:HH:mm:ss}] {text}\n");
+            rtbLog.SelectionStart = rtbLog.Text.Length;
+            rtbLog.ScrollToCaret();
+        }
+        #endregion
+
+        #region Developer Tools Logic
+
+        private void LoadDeveloperSettings()
+        {
+            var path = SettingsManager.Settings.DeveloperExportPath;
+            lblDevPath.Text = string.IsNullOrEmpty(path) ? "No export path selected." : path;
+            lblDevPath.ForeColor = string.IsNullOrEmpty(path) ? Color.Gray : Color.White;
+            ScanAndListDevFiles();
+        }
+
+        private void btnDevSelectPath_Click(object sender, EventArgs e)
+        {
+            using (var fbd = new FolderBrowserDialog())
+            {
+                fbd.Description = "Select your Unreal Engine content export directory";
+                if (fbd.ShowDialog() == DialogResult.OK)
+                {
+                    SettingsManager.Settings.DeveloperExportPath = fbd.SelectedPath;
+                    SettingsManager.Save();
+                    LoadDeveloperSettings();
+                }
+            }
+        }
+
+        private void btnDevRefresh_Click(object sender, EventArgs e)
+        {
+            ScanAndListDevFiles();
+        }
+
+        private void ScanAndListDevFiles()
+        {
+            // Temporarily unsubscribe from the event to prevent it from firing during programmatic updates.
+            chkListDevFiles.ItemCheck -= chkListDevFiles_ItemCheck;
+
+            chkListDevFiles.Items.Clear();
+            var path = SettingsManager.Settings.DeveloperExportPath;
+
+            if (string.IsNullOrEmpty(path) || !Directory.Exists(path))
+            {
+                // Re-subscribe before exiting
+                chkListDevFiles.ItemCheck += chkListDevFiles_ItemCheck;
+                return;
+            }
+
+            var unifiedFiles = Directory.GetFiles(path)
+                .Select(f => Path.GetFileNameWithoutExtension(f)!)
+                .Where(f => !string.IsNullOrEmpty(f))
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+
+            var enabledFiles = new HashSet<string>(SettingsManager.Settings.DeveloperEnabledFiles, StringComparer.OrdinalIgnoreCase);
+
+            foreach (var fileBaseName in unifiedFiles.OrderBy(f => f, StringComparer.OrdinalIgnoreCase))
+            {
+                bool isEnabled = enabledFiles.Contains(fileBaseName);
+                chkListDevFiles.Items.Add(fileBaseName, isEnabled);
+            }
+
+            // Re-subscribe to the event now that the list is populated.
+            chkListDevFiles.ItemCheck += chkListDevFiles_ItemCheck;
+        }
+
+        private void chkListDevFiles_ItemCheck(object? sender, ItemCheckEventArgs e)
+        {
+            // This event fires *before* the state is updated, so we schedule the save to happen right after.
+            this.BeginInvoke((Action)(() => {
+                SettingsManager.Settings.DeveloperEnabledFiles = GetDevEnabledFileBaseNames();
+                SettingsManager.Save();
+            }));
+        }
+
+        public List<string> GetDevEnabledFileBaseNames()
+        {
+            return chkListDevFiles.CheckedItems.Cast<string>().ToList();
+        }
+
         #endregion
     }
 }
