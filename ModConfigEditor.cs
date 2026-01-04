@@ -281,6 +281,7 @@ namespace CrossworldsModManager
                         if (parts.Length != 2) continue;
                         var key = parts[0].Trim();
                         var val = parts[1].Trim();
+                        val = val.Trim('"');
 
                         if (currentSection.Equals("Main", StringComparison.OrdinalIgnoreCase))
                         {
