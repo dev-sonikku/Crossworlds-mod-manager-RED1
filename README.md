@@ -53,6 +53,8 @@ Description = This mod replaces the main character's car with a cool new model.
 -   **Description**: A short description of what your mod does.
 -   **Type**: (Optional) Set this to `LogicMod` if your mod is a UE4SS Logic Mod.
 
+**Thumbnail**: (Optional) You can add a Thumbnail image of your mod by adding your Thumb.png or Thumb.jpg next to the `mod.ini`.
+
 > **Note:** If you don't provide a `mod.ini`, the manager will use the mod's folder name as its name and won't show any other details.
 
 ### 2. Creating Configuration Options

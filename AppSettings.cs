@@ -24,7 +24,7 @@ namespace CrossworldsModManager
 
         // If true, the app will NOT create automatic backups before operations.
         // Default is false (automatic backups enabled).
-        public bool DoNotBackupModsAutomatically { get; set; } = false;
+        public bool DoNotBackupModsAutomatically { get; set; } = true;
 
         // If true, the app will NOT show confirmation when enabling/disabling all mods.
         // Default is false (show confirmation).
