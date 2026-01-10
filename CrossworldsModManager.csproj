@@ -1,19 +1,26 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows7.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
-    <AssemblyName>Bluestar Manager</AssemblyName>
+      <OutputType>WinExe</OutputType>
+      <TargetFramework>net8.0</TargetFramework>
+      <Nullable>enable</Nullable>
+      <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
+      <AssemblyName>Bluestar Manager</AssemblyName>
   </PropertyGroup>
 
-  <ItemGroup>
+    <PropertyGroup Condition="'$(Configuration)' == 'SelfContained'">
+        <ConfigurationGroup>Release</ConfigurationGroup>
+        <DefineConstants>SELFCONTAINED</DefineConstants>
+        <SelfContained>true</SelfContained>
+    </PropertyGroup>
+
+
+    <ItemGroup>
     <Content Include="Resources\icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Core.System.Windows.Forms" Version="1.0.0-alpha7" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="SharpCompress" Version="0.37.2" />

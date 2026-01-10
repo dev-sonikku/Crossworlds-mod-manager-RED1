@@ -167,33 +167,48 @@ namespace CrossworldsModManager
 
                 if (latestVersion > currentVersion)
                 {
-                    var result = MessageBox.Show(
-                        $"A new version ({latestVersionTag}) is available!\nWould you like to update now?",
-                        "Update Available",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Information);
-
-                    if (result == DialogResult.Yes)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        // Launch the external updater
-                        string updaterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "updater.exe");
-                        if (File.Exists(updaterPath))
-                        {
-                            var currentProcess = Process.GetCurrentProcess();
-                            string? appPath = currentProcess.MainModule?.FileName;
+                        var result = MessageBox.Show(
+                            $"A new version ({latestVersionTag}) is available!\nWould you like to update now?",
+                            "Update Available",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Information);
 
-                            if (string.IsNullOrEmpty(appPath)) {
-                                MessageBox.Show("Could not determine the application path. Update cannot proceed.", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                return;
+                        if (result == DialogResult.Yes)
+                        {
+                            // Launch the external updater
+                            string updaterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "updater.exe");
+                            if (File.Exists(updaterPath))
+                            {
+                                var currentProcess = Process.GetCurrentProcess();
+                                string? appPath = currentProcess.MainModule?.FileName;
+
+                                if (string.IsNullOrEmpty(appPath)) {
+                                    MessageBox.Show("Could not determine the application path. Update cannot proceed.", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    return;
+                                }
+
+                                string arguments = $"--pid {currentProcess.Id} --appPath \"{appPath}\" --downloadUrl \"{downloadUrl}\"";
+                                Process.Start(updaterPath, arguments);
+                                Application.Exit();
                             }
-
-                            string arguments = $"--pid {currentProcess.Id} --appPath \"{appPath}\" --downloadUrl \"{downloadUrl}\"";
-                            Process.Start(updaterPath, arguments);
-                            Application.Exit();
+                            else
+                            {
+                                MessageBox.Show($"Updater executable not found at:\n{updaterPath}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
                         }
-                        else
+                    }
+                    else
+                    {
+                        var result = MessageBox.Show(
+                            $"A new version ({latestVersionTag}) is available!\nWould you like to open the Github page?",
+                            "Update Available",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Information);
+                        if (result == DialogResult.Yes)
                         {
-                            MessageBox.Show($"Updater executable not found at:\n{updaterPath}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            Process.Start("xdg-open", $"https://github.com/{owner}/{repo}/releases/latest");
                         }
                     }
                 }

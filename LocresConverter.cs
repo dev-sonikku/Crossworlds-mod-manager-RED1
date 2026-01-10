@@ -9,6 +9,7 @@ using SharpCompress.Archives.SevenZip;
 using SharpCompress.Common;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Newtonsoft.Json.Linq;
 
 namespace CrossworldsModManager
@@ -16,8 +17,13 @@ namespace CrossworldsModManager
     public static class LocresConverter
     {
         private const string ToolUrl = "https://github.com/anubi47/LocResUtility/releases/download/v2.1.0/LocResUtilityCli-v2.1.0-win-x64.7z";
+        #if SELFCONTAINED
+            private const string LinuxToolUrl = "https://github.com/AntiApple4life/LocResUtility/releases/download/v2.1.0/LocResUtilityCli-v2.1.0-linux-self-contained-x64.7z";
+        #else
+            private const string LinuxToolUrl = "https://github.com/AntiApple4life/LocResUtility/releases/download/v2.1.0/LocResUtilityCli-v2.1.0-linux-x64.7z";
+        #endif
         private static readonly string ToolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
-        private static readonly string ToolExePath = Path.Combine(ToolsDir, "LocResUtilityCli", "LocResUtilityCli.exe");
+        private static readonly string ToolExePath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? Path.Combine(ToolsDir, "LocResUtilityCli", "LocResUtilityCli") : Path.Combine(ToolsDir, "LocResUtilityCli", "LocResUtilityCli.exe");
 
         public static async Task ConvertToJsonAsync(string locresPath)
         {
@@ -310,24 +316,21 @@ namespace CrossworldsModManager
                     progress?.Report($"\nPacking {successCount} language(s) complete. Now creating final pak file...");
 
                     // Final step: Run UnrealPak.bat with the LocresMod folder path.
-                    var unrealPakDir = Path.Combine(ToolsDir, "UnrealPak");
-                    var unrealPakBatPath = Path.Combine(unrealPakDir, "UnrealPak.bat");
-                    if (File.Exists(unrealPakBatPath))
+                    var repakDir = Path.Combine(ToolsDir, "repak");
+                    var repakBinPath = Path.Combine(repakDir, RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "repak" : "repak.exe");
+                    if (File.Exists(repakBinPath))
                     {
                         var locresModPath = Path.Combine(ToolsDir, "LocresMod");
                         var outputPakPath = Path.Combine(ToolsDir, "LocresMod.pak");
-
-                        // Pass the LocresMod folder to the .bat file (emulates drag-and-drop).
-                        // The .bat will handle filelist.txt creation and UnrealPak invocation.
-                        var batCommand = $"\"{unrealPakBatPath}\" \"{locresModPath}\"";
-                        var cmdArgs = $"/c \"{batCommand}\"";
-                        await RunProcessAsync("cmd.exe", cmdArgs, progress, unrealPakDir);
+                        
+                        var cmdArgs = $"pack \"{locresModPath}\"";
+                        await RunProcessAsync(repakBinPath, cmdArgs, progress, repakDir);
 
                         progress?.Report($"Final pak file created at: {outputPakPath}");
                     }
                     else
                     {
-                        progress?.Report($"Warning: UnrealPak.bat not found at {unrealPakBatPath}. Skipping final pak creation.");
+                        progress?.Report($"Warning: {(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "repak" : "repak.exe")} not found at {repakDir}. Skipping final pak creation.");
                     }
                 }
 
@@ -346,8 +349,13 @@ namespace CrossworldsModManager
                 return ToolExePath;
             }
 
-            var choice = MessageBox.Show("LocResUtility is not found. Would you like to download it now? (approx. 6 MB)",
+            #if SELFCONTAINED
+            var choice = MessageBox.Show("LocResUtility is not found. Would you like to download it now? (approx. 25 MB download, 86 MB extracted)",
                 "Download Required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            #else
+            var choice = MessageBox.Show("LocResUtility is not found. Would you like to download it now? (approx. 3 MB download, 15 MB extracted)",
+                "Download Required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            #endif
 
             if (choice == DialogResult.No) return null;
 
@@ -358,7 +366,7 @@ namespace CrossworldsModManager
 
                 using (var client = new HttpClient())
                 {
-                    var response = await client.GetAsync(ToolUrl);
+                    var response = await client.GetAsync(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? LinuxToolUrl : ToolUrl);
                     response.EnsureSuccessStatusCode();
                     using (var fs = new FileStream(archivePath, FileMode.Create, FileAccess.Write, FileShare.None))
                     {
@@ -372,13 +380,17 @@ namespace CrossworldsModManager
                 }
 
                 File.Delete(archivePath);
-
+                Console.WriteLine(ToolExePath);
                 if (File.Exists(ToolExePath))
                 {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        File.SetUnixFileMode(ToolExePath, UnixFileMode.UserExecute);
+                    }
                     MessageBox.Show("LocResUtility downloaded and extracted successfully.", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return ToolExePath;
                 }
-                throw new FileNotFoundException("Failed to find LocResUtility.exe after extraction.");
+                throw new FileNotFoundException(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Failed to find LocResUtility binary after extraction." : "Failed to find LocResUtility.exe after extraction.");
             }
             catch (Exception ex)
             {

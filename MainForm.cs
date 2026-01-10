@@ -251,7 +251,7 @@ namespace CrossworldsModManager
 
         private void DetectGameInstallations()
         {
-            _gameInstallations = GameRegistry.FindGameInstallations();
+            _gameInstallations = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? GameRegistryLinux.FindGameInstallations() : GameRegistry.FindGameInstallations();
         
             // If we found a game and the settings path is empty, auto-configure it.
             if (_gameInstallations.Any() && string.IsNullOrWhiteSpace(SettingsManager.Settings.GameDirectory))
@@ -265,7 +265,7 @@ namespace CrossworldsModManager
             launchPlatformDropDown.DropDownItems.Clear();
         
             // Always provide options for Steam and Epic, using detected paths or falling back to the settings path.
-            var platformsToShow = new List<string> { "Steam", "Epic Games" };
+            var platformsToShow = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new List<string> { "Steam", "Epic Games" } : new List<string> { "Steam" };
             foreach (var platformName in platformsToShow)
             {
                 var item = new ToolStripMenuItem(platformName);
@@ -2033,10 +2033,21 @@ namespace CrossworldsModManager
 
                 // Open the ModDetailsForm, which will handle the download/install process.
                 // This is the same behavior as clicking "Download" in the mod browser.
-                using (var modDetailsForm = new ModDetailsForm(gameBananaMod, new Progress<string>(s => AppendLog(s)), RefreshModList))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    modDetailsForm.ShowDialog(this);
+                   using (var modDetailsForm = new ModDetailsFormLinux(gameBananaMod, new Progress<string>(s => AppendLog(s)), RefreshModList))
+                   {
+                       modDetailsForm.ShowDialog(this);
+                   }
                 }
+                else
+                {
+                    using (var modDetailsForm = new ModDetailsForm(gameBananaMod, new Progress<string>(s => AppendLog(s)), RefreshModList))
+                    {
+                        modDetailsForm.ShowDialog(this);
+                    }
+                }
+                
             }
             catch (Exception ex)
             {
@@ -2159,7 +2170,15 @@ namespace CrossworldsModManager
 
             if (item.Tag is ModInfo modInfo)
             {
-                Process.Start("explorer.exe", modInfo.DirectoryPath);
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", $"\"{modInfo.DirectoryPath}\"");
+                }
+                else
+                {
+                    Process.Start("explorer.exe", modInfo.DirectoryPath);
+                }
+                
             }
         }
 
@@ -2475,33 +2494,68 @@ namespace CrossworldsModManager
 
                 // Show the details form as a confirmation dialog.
                 // The form will handle fetching full details, downloading, and installing.
-                using (var detailsForm = new ModDetailsForm(fullModInfo, browserLogger, RefreshModList))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
-
-                    // Backup mods before proceeding with a 1-Click install (unless user disabled automatic backups)
-                    try
+                    using (var detailsForm = new ModDetailsFormLinux(fullModInfo, browserLogger, RefreshModList))
                     {
-                        if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                        detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
+
+                        // Backup mods before proceeding with a 1-Click install (unless user disabled automatic backups)
+                        try
                         {
-                            ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                            if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                            {
+                                ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to create backup before 1-Click install: {ex.Message}");
+                        }
+
+                        var result = detailsForm.ShowDialog(this);
+
+                        if (result == DialogResult.OK)
+                        {
+                            await detailsForm.LaunchProgressForm(fileToInstall);
+                            UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
+                        }
+                        else
+                        {
+                            UpdateStatus("1-Click Install cancelled by user.");
                         }
                     }
-                    catch (Exception ex)
+                }
+                else
+                {
+                    using (var detailsForm = new ModDetailsForm(fullModInfo, browserLogger, RefreshModList))
                     {
-                        Debug.WriteLine($"Failed to create backup before 1-Click install: {ex.Message}");
-                    }
+                        detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
 
-                    var result = detailsForm.ShowDialog(this);
+                        // Backup mods before proceeding with a 1-Click install (unless user disabled automatic backups)
+                        try
+                        {
+                            if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                            {
+                                ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to create backup before 1-Click install: {ex.Message}");
+                        }
 
-                    if (result == DialogResult.OK)
-                    {
-                        await detailsForm.LaunchProgressForm(fileToInstall);
-                        UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
-                    }
-                    else
-                    {
-                        UpdateStatus("1-Click Install cancelled by user.");
+                        var result = detailsForm.ShowDialog(this);
+
+                        if (result == DialogResult.OK)
+                        {
+                            await detailsForm.LaunchProgressForm(fileToInstall);
+                            UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
+                        }
+                        else
+                        {
+                            UpdateStatus("1-Click Install cancelled by user.");
+                        }
                     }
                 }
             }
