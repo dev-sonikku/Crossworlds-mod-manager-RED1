@@ -141,6 +141,9 @@ namespace CrossworldsModManager
 
         private static void RegisterProtocolLinux()
         {
+            if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_SELF_UPDATE") != null)
+                return;
+
             try
             {
                 string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
@@ -326,14 +329,29 @@ namespace CrossworldsModManager
                     }
                     else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
-                        var result = MessageBox.Show(
-                            $"A new version ({latestVersionTag}) is available!\nWould you like to download it now?",
-                            "Update Available",
-                            MessageBoxButtons.YesNo,
-                            MessageBoxIcon.Information);
-                        if (result == DialogResult.Yes)
+                        if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_SELF_UPDATE") != null)
                         {
-                            await PerformLinuxUpdate(downloadUrl, fileName);
+                            var result = MessageBox.Show(
+                                $"A new version ({latestVersionTag}) is available!\nWould you like to open the Github page?",
+                                "Update Available",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Information);
+                            if (result == DialogResult.Yes)
+                            {
+                                Process.Start("xdg-open", $"https://github.com/{owner}/{repo}/releases/latest");
+                            }
+                        }
+                        else
+                        {
+                            var result = MessageBox.Show(
+                                $"A new version ({latestVersionTag}) is available!\nWould you like to download it now?",
+                                "Update Available",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Information);
+                            if (result == DialogResult.Yes)
+                            {
+                                await PerformLinuxUpdate(downloadUrl, fileName);
+                            }
                         }
                     }
                 }
