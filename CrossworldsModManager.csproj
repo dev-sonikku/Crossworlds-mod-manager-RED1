@@ -2,7 +2,7 @@
 
   <PropertyGroup>
       <OutputType>WinExe</OutputType>
-      <TargetFramework>net8.0</TargetFramework>
+      <TargetFrameworks>net8.0;net8.0-windows</TargetFrameworks>
       <Nullable>enable</Nullable>
       <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
       <AssemblyName>Bluestar Manager</AssemblyName>
@@ -14,16 +14,22 @@
         <SelfContained>true</SelfContained>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0-windows'">
+        <UseWindowsForms>true</UseWindowsForms>
+    </PropertyGroup>
 
     <ItemGroup>
     <Content Include="Resources\icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Core.System.Windows.Forms" Version="1.0.0-alpha7" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="SharpCompress" Version="0.37.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <PackageReference Include="Core.System.Windows.Forms" Version="1.0.0-alpha7" />
   </ItemGroup>
 
   <ItemGroup>

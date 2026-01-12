@@ -52,12 +52,13 @@ namespace CrossworldsModManager
                 if (createdNew)
                 {
                     // This is the first instance.
+                    Application.EnableVisualStyles();
+                    Application.SetCompatibleTextRenderingDefault(false);
+
                     // Always register the protocol on startup to ensure it's up-to-date.
                     RegisterProtocol();
                     try
                     {
-                        Application.EnableVisualStyles();
-                        Application.SetCompatibleTextRenderingDefault(false);
                         Application.Run(new MainForm(oneClickUrl, AppVersion));
                     }
                     catch (Exception ex)
@@ -99,33 +100,113 @@ namespace CrossworldsModManager
         /// </summary>
         private static void RegisterProtocol()
         {
-            try
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Use HKEY_CURRENT_USER to avoid requiring admin privileges.
-                using (var key = Registry.CurrentUser.CreateSubKey($"Software\\Classes\\{ProtocolName}"))
+                try
                 {
-                    if (key == null) return;
-
-                    string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
-                    if (string.IsNullOrEmpty(exePath))
+                    // Use HKEY_CURRENT_USER to avoid requiring admin privileges.
+                    using (var key = Registry.CurrentUser.CreateSubKey($"Software\\Classes\\{ProtocolName}"))
                     {
-                        Debug.WriteLine("Could not determine executable path for protocol registration.");
-                        return;
-                    }
+                        if (key == null) return;
 
-                    key.SetValue("", $"URL:{ProtocolName} Protocol");
-                    key.SetValue("URL Protocol", "");
+                        string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                        if (string.IsNullOrEmpty(exePath))
+                        {
+                            Debug.WriteLine("Could not determine executable path for protocol registration.");
+                            return;
+                        }
 
-                    using (var commandKey = key.CreateSubKey(@"shell\open\command"))
-                    {
-                        commandKey?.SetValue("", $"\"{exePath}\" \"%1\"");
+                        key.SetValue("", $"URL:{ProtocolName} Protocol");
+                        key.SetValue("URL Protocol", "");
+
+                        using (var commandKey = key.CreateSubKey(@"shell\open\command"))
+                        {
+                            commandKey?.SetValue("", $"\"{exePath}\" \"%1\"");
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    // Log or show a non-fatal error if registration fails.
+                    Debug.WriteLine($"Failed to register URL protocol: {ex.Message}");
+                }
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                RegisterProtocolLinux();
+            }
+        }
+
+        private static void RegisterProtocolLinux()
+        {
+            try
+            {
+                string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                if (string.IsNullOrEmpty(exePath)) return;
+
+                string desktopFileName = "com.bluestar.manager.desktop";
+                string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
+
+                if (!Directory.Exists(applicationsPath))
+                    Directory.CreateDirectory(applicationsPath);
+
+                string desktopFilePath = Path.Combine(applicationsPath, desktopFileName);
+
+                if (!File.Exists(desktopFilePath))
+                {
+                    var result = MessageBox.Show(
+                        "Would you like to register the 'bluestar:' URL protocol?\n\n" +
+                        "This allows 1-Click downloads from GameBanana to work.\n" +
+                        "This will create a .desktop file in ~/.local/share/applications.",
+                        "Linux Integration",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Question);
+
+                    if (result != DialogResult.Yes) return;
+                }
+
+                string content = $"""
+[Desktop Entry]
+Type=Application
+Name=Blue Star Manager
+Exec="{exePath}" %u
+StartupNotify=false
+MimeType=x-scheme-handler/{ProtocolName};
+""";
+                File.WriteAllText(desktopFilePath, content);
+
+                // Register with xdg-mime
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "xdg-mime",
+                        Arguments = $"default {desktopFileName} x-scheme-handler/{ProtocolName}",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    })?.WaitForExit();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to run xdg-mime: {ex.Message}");
+                }
+
+                // Update desktop database if possible
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "update-desktop-database",
+                        Arguments = applicationsPath,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    })?.WaitForExit();
+                }
+                catch { /* Ignore if update-desktop-database is missing */ }
             }
             catch (Exception ex)
             {
-                // Log or show a non-fatal error if registration fails.
-                Debug.WriteLine($"Failed to register URL protocol: {ex.Message}");
+                Debug.WriteLine($"Failed to register URL protocol on Linux: {ex.Message}");
             }
         }
 
