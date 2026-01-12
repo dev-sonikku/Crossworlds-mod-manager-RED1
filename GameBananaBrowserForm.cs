@@ -60,6 +60,7 @@ namespace CrossworldsModManager
             pnlTop.Dock = DockStyle.Top;
             pnlTop.Height = 40;
             pnlTop.Padding = new Padding(5);
+            pnlTop.BackColor = Color.FromArgb(45, 45, 48);
 
             // Search TextBox
             txtSearch.Dock = DockStyle.Fill;
@@ -96,6 +97,7 @@ namespace CrossworldsModManager
             pnlBottom.Dock = DockStyle.Bottom;
             pnlBottom.Height = 40;
             pnlBottom.Padding = new Padding(5);
+            pnlBottom.BackColor = Color.FromArgb(45, 45, 48);
 
             // Page Buttons and Label
             btnPrevPage.Text = "< Prev";

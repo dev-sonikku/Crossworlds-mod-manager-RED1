@@ -73,6 +73,7 @@ namespace CrossworldsModManager
             Panel pnlWebContainer = new Panel();
             pnlWebContainer.Dock = DockStyle.Fill;
             pnlWebContainer.BorderStyle = BorderStyle.None;
+            pnlWebContainer.BackColor = Color.FromArgb(37, 37, 38);
 
             // Left panel for mod details
             Panel pnlDetails = new Panel();

@@ -154,6 +154,7 @@ namespace CrossworldsModManager
             // 
             this.splitContainerRoot.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerRoot.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainerRoot.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.splitContainerRoot.Location = new System.Drawing.Point(0, 64);
             this.splitContainerRoot.Name = "splitContainerRoot";
             this.splitContainerRoot.Orientation = System.Windows.Forms.Orientation.Horizontal;
@@ -174,6 +175,7 @@ namespace CrossworldsModManager
             // 
             this.splitContainerMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerMain.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainerMain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.splitContainerMain.Location = new System.Drawing.Point(0, 0);
             this.splitContainerMain.Name = "splitContainerMain";
             // 
@@ -460,6 +462,7 @@ namespace CrossworldsModManager
             this.pnlDevTop.Controls.Add(this.btnDevRefresh);
             this.pnlDevTop.Controls.Add(this.btnDevSelectPath);
             this.pnlDevTop.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlDevTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlDevTop.Location = new System.Drawing.Point(3, 3);
             this.pnlDevTop.Name = "pnlDevTop";
             this.pnlDevTop.Size = new System.Drawing.Size(382, 40);
@@ -527,6 +530,7 @@ namespace CrossworldsModManager
             this.pnlRight.Controls.Add(this.lblModName);
             this.pnlRight.Controls.Add(this.picModImage);
             this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlRight.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlRight.Location = new System.Drawing.Point(0, 0);
             this.pnlRight.Name = "pnlRight";
             this.pnlRight.Padding = new System.Windows.Forms.Padding(20);
@@ -594,6 +598,7 @@ namespace CrossworldsModManager
             this.pnlButtons.AutoSize = true;
             this.pnlButtons.Controls.Add(this.btnToggleDebugLog);
             this.pnlButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlButtons.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlButtons.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
             this.pnlButtons.Location = new System.Drawing.Point(20, 563);
             this.pnlButtons.Name = "pnlButtons";
@@ -677,6 +682,7 @@ namespace CrossworldsModManager
             this.pnlSearch.Controls.Add(this.txtSearch);
             this.pnlSearch.Controls.Add(this.labelSearch);
             this.pnlSearch.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlSearch.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlSearch.Location = new System.Drawing.Point(10, 10);
             this.pnlSearch.Name = "pnlSearch";
             this.pnlSearch.Size = new System.Drawing.Size(430, 22);
