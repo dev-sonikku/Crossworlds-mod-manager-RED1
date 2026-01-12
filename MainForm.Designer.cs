@@ -70,6 +70,7 @@ namespace CrossworldsModManager
             this.launchPlatformDropDown = new System.Windows.Forms.ToolStripDropDownButton();
             this.modListView = new System.Windows.Forms.ListView();
             this.columnHeaderName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeaderAuthor = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderActions = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderUpdate = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.pnlButtons = new System.Windows.Forms.FlowLayoutPanel();
@@ -389,6 +390,7 @@ namespace CrossworldsModManager
             this.modListView.ContextMenuStrip = this.modContextMenuStrip;
             this.modListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeaderName,
+            this.columnHeaderAuthor,
             this.columnHeaderActions,
             this.columnHeaderUpdate});
             this.modListView.ForeColor = System.Drawing.Color.White;
@@ -408,7 +410,12 @@ namespace CrossworldsModManager
             // columnHeaderName
             // 
             this.columnHeaderName.Text = "Name";
-            this.columnHeaderName.Width = 450;
+            this.columnHeaderName.Width = 300;
+            // 
+            // columnHeaderAuthor
+            // 
+            this.columnHeaderAuthor.Text = "Author";
+            this.columnHeaderAuthor.Width = 150;
             // 
             // columnHeaderActions
             // 
@@ -916,6 +923,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripDropDownButton launchPlatformDropDown;
         private System.Windows.Forms.ListView modListView;
         private System.Windows.Forms.ColumnHeader columnHeaderName;
+        private System.Windows.Forms.ColumnHeader columnHeaderAuthor;
         #pragma warning disable 0649
         private System.Windows.Forms.ColumnHeader columnHeaderActions;
         private System.Windows.Forms.ColumnHeader columnHeaderUpdate;

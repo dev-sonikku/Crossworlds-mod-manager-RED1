@@ -15,6 +15,8 @@ using SharpCompress.Common;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public partial class MainForm : Form
     {
         // Struct for receiving WM_COPYDATA messages
@@ -1060,8 +1062,8 @@ namespace CrossworldsModManager
                                 // We need to update the UI on the UI thread.
                                 this.Invoke((Action)(() => {
                                     item.ForeColor = Color.LimeGreen;
-                                    // Place the "Update" action in the new "Update" column (index 2).
-                                    var updateSubItem = item.SubItems[2];
+                                    // Place the "Update" action in the new "Update" column (index 3).
+                                    var updateSubItem = item.SubItems[3];
                                     if (!updateSubItem.Text.Contains("Update"))
                                     {
                                         updateSubItem.Text = "🔄 Update";
@@ -1088,6 +1090,7 @@ namespace CrossworldsModManager
             var item = new ListViewItem(new[] 
                     {
                         modInfo.Name,
+                        modInfo.Author,
                         // Add text to the "Actions" column only if the mod is configurable.
                         modInfo.ConfigurationGroups.Any() ? "⚙️ Configure" : "",
                         "" // Placeholder for the new Update column
@@ -1978,13 +1981,13 @@ namespace CrossworldsModManager
 
             int columnIndex = item.SubItems.IndexOf(subItem);
 
-            // Check for a click in the "Update" column (index 2).
-            if (columnIndex == 2 && subItem.Text.Contains("Update"))
+            // Check for a click in the "Update" column (index 3).
+            if (columnIndex == 3 && subItem.Text.Contains("Update"))
             {
                 HandleModUpdateClick(modInfo);
             }
-            // Check for a click in the "Actions" column (index 1).
-            else if (columnIndex == 1)
+            // Check for a click in the "Actions" column (index 2).
+            else if (columnIndex == 2)
             {
                 if (modInfo.ConfigurationGroups.Any() && subItem.Text.Contains("Configure"))
                 {
@@ -2854,4 +2857,5 @@ namespace CrossworldsModManager
 
         #endregion
     }
+#pragma warning restore CA1416
 }

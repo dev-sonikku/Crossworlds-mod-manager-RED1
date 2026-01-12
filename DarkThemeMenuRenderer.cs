@@ -4,6 +4,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public class DarkThemeMenuRenderer : ToolStripProfessionalRenderer
     {
         private readonly Color _menuItemSelectedColor = Color.FromArgb(255, 255, 255); // White background for selected item
@@ -78,4 +80,5 @@ namespace CrossworldsModManager
             }
         }
     }
+#pragma warning restore CA1416
 }
