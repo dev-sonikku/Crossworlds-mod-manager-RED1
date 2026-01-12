@@ -40,5 +40,14 @@ namespace CrossworldsModManager
                 base.OnRenderToolStripBackground(e);
             }
         }
+
+        protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+        {
+            if (e.Item.Owner is ToolStripDropDownMenu)
+            {
+                e.TextColor = e.Item.Enabled ? Color.White : Color.Gray;
+            }
+            base.OnRenderItemText(e);
+        }
     }
 }
