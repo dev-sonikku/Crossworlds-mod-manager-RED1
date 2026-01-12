@@ -141,7 +141,7 @@ namespace CrossworldsModManager
 
         private static void RegisterProtocolLinux()
         {
-            if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_SELF_UPDATE") != null)
+            if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_PROTOCOL_REGISTER") != null)
                 return;
 
             try
