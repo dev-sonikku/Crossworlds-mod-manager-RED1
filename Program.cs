@@ -142,6 +142,7 @@ namespace CrossworldsModManager
             try
             {
                 string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                string? exeDirPath = Path.GetDirectoryName(exePath);
                 if (string.IsNullOrEmpty(exePath)) return;
 
                 string desktopFileName = "com.bluestar.manager.desktop";
@@ -169,7 +170,9 @@ namespace CrossworldsModManager
 [Desktop Entry]
 Type=Application
 Name=Blue Star Manager
+Icon={exeDirPath}/Tools/icon.png
 Exec="{exePath}" %u
+Comment=Powerful mod manager for Sonic Racing: CrossWorlds
 StartupNotify=false
 MimeType=x-scheme-handler/{ProtocolName};
 """;
