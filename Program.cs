@@ -4,7 +4,9 @@ using System.IO;
 using System.Net.Http;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -236,8 +238,9 @@ namespace CrossworldsModManager
             {
                 string owner = "Red1Fouad";
                 string repo = "Crossworlds-mod-manager-RED1";
-                string latestVersionTag;
+                string latestVersionTag = "";
                 string downloadUrl = string.Empty;
+                string fileName = string.Empty;
 
                 using (var client = new HttpClient())
                 {
@@ -247,15 +250,39 @@ namespace CrossworldsModManager
                     // Get the latest release information
                     var response = await client.GetStringAsync($"https://api.github.com/repos/{owner}/{repo}/releases/latest");
                     
-                    // A simple JSON parser to avoid adding a full library dependency.
-                    // This finds the "tag_name" and the first "browser_download_url".
-                    latestVersionTag = ParseJsonValue(response, "tag_name");
-                    downloadUrl = ParseJsonValue(response, "browser_download_url");
+                    using (JsonDocument doc = JsonDocument.Parse(response))
+                    {
+                        if (doc.RootElement.TryGetProperty("tag_name", out var tagElement))
+                        {
+                            latestVersionTag = tagElement.GetString() ?? "";
+                        }
+
+                        if (doc.RootElement.TryGetProperty("assets", out var assetsElement))
+                        {
+                            foreach (var asset in assetsElement.EnumerateArray())
+                            {
+                                string name = asset.GetProperty("name").GetString() ?? "";
+                                string url = asset.GetProperty("browser_download_url").GetString() ?? "";
+
+                                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    downloadUrl = url;
+                                    fileName = name;
+                                    break;
+                                }
+                                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.EndsWith(".AppImage", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    downloadUrl = url;
+                                    fileName = name;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (string.IsNullOrEmpty(latestVersionTag) || string.IsNullOrEmpty(downloadUrl))
                 {
-                    Debug.WriteLine("Could not determine latest version or download URL from GitHub API response.");
                     return;
                 }
 
@@ -297,16 +324,16 @@ namespace CrossworldsModManager
                             }
                         }
                     }
-                    else
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
                         var result = MessageBox.Show(
-                            $"A new version ({latestVersionTag}) is available!\nWould you like to open the Github page?",
+                            $"A new version ({latestVersionTag}) is available!\nWould you like to download it now?",
                             "Update Available",
                             MessageBoxButtons.YesNo,
                             MessageBoxIcon.Information);
                         if (result == DialogResult.Yes)
                         {
-                            Process.Start("xdg-open", $"https://github.com/{owner}/{repo}/releases/latest");
+                            await PerformLinuxUpdate(downloadUrl, fileName);
                         }
                     }
                 }
@@ -318,9 +345,88 @@ namespace CrossworldsModManager
             }
         }
 
-        // A very basic helper to extract a value from a JSON string.
-        private static string ParseJsonValue(string json, string key) =>
-            System.Text.RegularExpressions.Regex.Match(json, $"\"{key}\"\\s*:\\s*\"(.*?)\"").Groups[1].Value;
+        private static async Task PerformLinuxUpdate(string downloadUrl, string fileName)
+        {
+            try
+            {
+                string? currentAppImage = Environment.GetEnvironmentVariable("APPIMAGE");
+                string downloadDir;
+                
+                if (!string.IsNullOrEmpty(currentAppImage))
+                {
+                    downloadDir = Path.GetDirectoryName(currentAppImage) ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                }
+                else
+                {
+                    downloadDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                }
+
+                string destinationPath = Path.Combine(downloadDir, fileName);
+
+                using (var client = new HttpClient())
+                {
+                    var data = await client.GetByteArrayAsync(downloadUrl);
+                    await File.WriteAllBytesAsync(destinationPath, data);
+                }
+
+                try
+                {
+                    Process.Start("chmod", $"+x \"{destinationPath}\"")?.WaitForExit();
+                }
+                catch { }
+
+                UpdateLinuxDesktopFile(destinationPath);
+
+                MessageBox.Show($"Update downloaded to:\n{destinationPath}\n\nThe application shortcut has been updated.\nPlease restart the application.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to update: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static void UpdateLinuxDesktopFile(string newAppImagePath)
+        {
+            try
+            {
+                string desktopFileName = "com.bluestar.manager.desktop";
+                string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
+                string desktopFilePath = Path.Combine(applicationsPath, desktopFileName);
+
+                if (File.Exists(desktopFilePath))
+                {
+                    var lines = File.ReadAllLines(desktopFilePath);
+                    bool changed = false;
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        if (lines[i].StartsWith("Exec=") && !lines[i].Contains(newAppImagePath))
+                        {
+                            lines[i] = $"Exec=\"{newAppImagePath}\" %u";
+                            changed = true;
+                        }
+                    }
+                    if (changed)
+                    {
+                        File.WriteAllLines(desktopFilePath, lines);
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = "update-desktop-database",
+                                Arguments = applicationsPath,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            })?.WaitForExit();
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to update desktop file: {ex.Message}");
+            }
+        }
 
         /// <summary>
         /// Checks for a mod.ini in all subdirectories of the given mod path.
