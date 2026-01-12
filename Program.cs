@@ -143,7 +143,7 @@ namespace CrossworldsModManager
             {
                 string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
                 string? exeDirPath = Path.GetDirectoryName(exePath);
-                if (string.IsNullOrEmpty(exePath)) return;
+                if (string.IsNullOrEmpty(exePath) || string.IsNullOrEmpty(exeDirPath)) return;
 
                 string desktopFileName = "com.bluestar.manager.desktop";
                 string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
