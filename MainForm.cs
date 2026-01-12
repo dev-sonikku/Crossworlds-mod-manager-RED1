@@ -540,7 +540,7 @@ namespace CrossworldsModManager
                     // After the pack operation completes, install the final produced pak into the game's ~mods folder.
                     try
                     {
-                        var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                        var toolsDir = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "data") : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
                         var sourcePak = Path.Combine(toolsDir, "LocresMod.pak");
                         if (!File.Exists(sourcePak))
                         {
@@ -614,7 +614,7 @@ namespace CrossworldsModManager
                     }
 
                     // Cleanup the merged Game_*.json files from the Tools directory.
-                    var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                    var toolsDir = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "data") : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
                     try
                     {
                         var mergedJsonFiles = Directory.GetFiles(toolsDir, "Game_*.json");
@@ -2099,7 +2099,7 @@ namespace CrossworldsModManager
         {
             try
             {
-                string flagPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "megaman_promo.flag");
+                string flagPath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar","megaman_promo.flag") : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "megaman_promo.flag");
                 if (File.Exists(flagPath)) return;
 
                 using (var promoForm = new CrossworldsModManager.MegaManPromoForm())

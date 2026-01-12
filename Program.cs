@@ -147,6 +147,7 @@ namespace CrossworldsModManager
 
                 string desktopFileName = "com.bluestar.manager.desktop";
                 string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
+                string iconsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "icons");
 
                 if (!Directory.Exists(applicationsPath))
                     Directory.CreateDirectory(applicationsPath);
@@ -165,17 +166,30 @@ namespace CrossworldsModManager
 
                     if (result != DialogResult.Yes) return;
                 }
-
                 string content = $"""
-[Desktop Entry]
-Type=Application
-Name=Blue Star Manager
-Icon={exeDirPath}/Tools/icon.png
-Exec="{exePath}" %u
-Comment=Powerful mod manager for Sonic Racing: CrossWorlds
-StartupNotify=false
-MimeType=x-scheme-handler/{ProtocolName};
-""";
+                                  [Desktop Entry]
+                                  Type=Application
+                                  Name=Bluestar Manager
+                                  Icon={exeDirPath}/Tools/icon.png
+                                  Exec="{exePath}" %u
+                                  Comment=Powerful mod manager for Sonic Racing: CrossWorlds
+                                  StartupNotify=false
+                                  MimeType=x-scheme-handler/{ProtocolName};
+                                  """;
+                if (Environment.GetEnvironmentVariable("APPIMAGE") != null)
+                {
+                    File.Copy(Path.Combine(exeDirPath, "Tools", "icon-square.png"), Path.Combine(iconsPath, "bluestar.png"));
+                    content = $"""
+                                      [Desktop Entry]
+                                      Type=Application
+                                      Name=Bluestar Manager
+                                      Icon={Path.Combine(iconsPath, "bluestar.png")}
+                                      Exec="{Environment.GetEnvironmentVariable("APPIMAGE")}" %u
+                                      Comment=Powerful mod manager for Sonic Racing: CrossWorlds
+                                      StartupNotify=false
+                                      MimeType=x-scheme-handler/{ProtocolName};
+                                      """;
+                }
                 File.WriteAllText(desktopFilePath, content);
 
                 // Register with xdg-mime

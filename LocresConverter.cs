@@ -23,6 +23,8 @@ namespace CrossworldsModManager
             private const string LinuxToolUrl = "https://github.com/AntiApple4life/LocResUtility/releases/download/v2.1.0/LocResUtilityCli-v2.1.0-linux-x64.7z";
         #endif
         private static readonly string ToolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+
+        private static readonly string AppImageWorkDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "data");
         private static readonly string ToolExePath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? Path.Combine(ToolsDir, "LocResUtilityCli", "LocResUtilityCli") : Path.Combine(ToolsDir, "LocResUtilityCli", "LocResUtilityCli.exe");
 
         public static async Task ConvertToJsonAsync(string locresPath)
@@ -76,6 +78,13 @@ namespace CrossworldsModManager
 
         public static async Task ProcessModJsonFilesAsync(IEnumerable<ModInfo> enabledMods, IProgress<string>? progress = null)
         {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null)
+            {
+                if (!Directory.Exists(AppImageWorkDir))
+                {
+                    Directory.CreateDirectory(AppImageWorkDir);
+                }
+            }
             // Language -> Namespace -> Key -> Value
             var jsonModifications = new Dictionary<string, Dictionary<string, Dictionary<string, string>>>();
 
@@ -257,7 +266,7 @@ namespace CrossworldsModManager
                 }
 
                 // 5. Save the final merged JSON for this language to the Tools folder
-                var outputJsonPath = Path.Combine(ToolsDir, $"Game_{langCode}.json");
+                var outputJsonPath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(AppImageWorkDir, $"Game_{langCode}.json") : Path.Combine(ToolsDir, $"Game_{langCode}.json");
                 await File.WriteAllTextAsync(outputJsonPath, baseJson.ToString(Newtonsoft.Json.Formatting.Indented));
                 progress?.Report($"Saved merged JSON for {langCode}: {outputJsonPath}");
 
@@ -271,12 +280,19 @@ namespace CrossworldsModManager
 
         public static async Task PackMergedLocresAsync(string gamePath, IProgress<string>? progress = null)
         {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null)
+            {
+                if (!Directory.Exists(AppImageWorkDir))
+                {
+                    Directory.CreateDirectory(AppImageWorkDir);
+                }
+            }
             try
             {
                 string? exePath = await EnsureToolExistsAsync();
                 if (exePath == null) return;
 
-                var mergedJsonFiles = Directory.GetFiles(ToolsDir, "Game_*.json");
+                var mergedJsonFiles = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Directory.GetFiles(AppImageWorkDir, "Game_*.json") : Directory.GetFiles(ToolsDir, "Game_*.json");
                 if (mergedJsonFiles.Length == 0)
                 {
                     progress?.Report("No merged 'Game_*.json' files found in the Tools folder to pack.");
@@ -284,7 +300,8 @@ namespace CrossworldsModManager
                 }
 
                 var languagesRoot = Path.Combine(ToolsDir, "Locres", "UNION", "Content", "Localization", "Game");
-                var outputRoot = Path.Combine(ToolsDir, "LocresMod", "UNION", "Content", "Localization", "Game");
+                
+                var outputRoot = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(AppImageWorkDir, "LocresMod", "UNION", "Content", "Localization", "Game") : Path.Combine(ToolsDir, "LocresMod", "UNION", "Content", "Localization", "Game");
 
                 var tasks = mergedJsonFiles.Select(async jsonPath =>
                 {
@@ -297,7 +314,6 @@ namespace CrossworldsModManager
                         progress?.Report($"Skipping '{langCode}': Original Game.locres not found.");
                         return false;
                     }
-
                     var outputLangDir = Path.Combine(outputRoot, langCode);
                     Directory.CreateDirectory(outputLangDir);
                     var outputLocresPath = Path.Combine(outputLangDir, "Game.locres");
@@ -320,8 +336,8 @@ namespace CrossworldsModManager
                     var repakBinPath = Path.Combine(repakDir, RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "repak" : "repak.exe");
                     if (File.Exists(repakBinPath))
                     {
-                        var locresModPath = Path.Combine(ToolsDir, "LocresMod");
-                        var outputPakPath = Path.Combine(ToolsDir, "LocresMod.pak");
+                        var locresModPath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(AppImageWorkDir, "LocresMod") : Path.Combine(ToolsDir, "LocresMod");
+                        var outputPakPath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(AppImageWorkDir, "LocresMod.pak") : Path.Combine(ToolsDir, "LocresMod.pak");
                         
                         var cmdArgs = $"pack \"{locresModPath}\"";
                         await RunProcessAsync(repakBinPath, cmdArgs, progress, repakDir);
