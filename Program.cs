@@ -59,6 +59,39 @@ namespace CrossworldsModManager
 
                     // Always register the protocol on startup to ensure it's up-to-date.
                     RegisterProtocol();
+                    if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_PROTOCOL_REGISTER") == null && RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null)
+                    {
+                        string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
+                        string desktopFileName = "com.bluestar.manager.desktop";
+                        string desktopFilePath = Path.Combine(applicationsPath, desktopFileName);
+                        string curAppImagePath = Environment.GetEnvironmentVariable("APPIMAGE")!;
+                        if (File.Exists(desktopFilePath))
+                        {
+                            var lines = File.ReadAllLines(desktopFilePath);
+                            bool pathChanged = false;
+                            for (int i = 0; i < lines.Length; i++)
+                            {
+                                if (lines[i].StartsWith("Exec=") && !lines[i].Contains(curAppImagePath))
+                                {
+                                    pathChanged = true;
+                                }
+                            }
+
+                            if (pathChanged)
+                            {
+                                var result = MessageBox.Show(
+                                    "The AppImage's location seems to have been moved from where it was last executed.\nWould you like to update the .desktop file to point to the current location of the AppImage?",
+                                    "Linux Integration",
+                                    MessageBoxButtons.YesNo,
+                                    MessageBoxIcon.Question);
+
+                                if (result == DialogResult.Yes)
+                                {
+                                    UpdateLinuxDesktopFile(curAppImagePath);
+                                }
+                            }
+                        }
+                    }
                     try
                     {
                         Application.Run(new MainForm(oneClickUrl, AppVersion));
