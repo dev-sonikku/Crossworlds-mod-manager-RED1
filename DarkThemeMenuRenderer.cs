@@ -7,6 +7,7 @@ namespace CrossworldsModManager
     {
         private readonly Color _menuItemSelectedColor = Color.FromArgb(255, 255, 255); // White background for selected item
         private readonly Color _menuItemTextColor = Color.Black; // Black text for selected item
+        private readonly Color _menuStripBackgroundColor = Color.FromArgb(60, 60, 60); // Dark background for the strip
 
         public DarkThemeMenuRenderer(ProfessionalColorTable colorTable) : base(colorTable)
         {
@@ -22,6 +23,21 @@ namespace CrossworldsModManager
             else
             {
                 base.OnRenderMenuItemBackground(e);
+            }
+        }
+
+        protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+        {
+            if (e.ToolStrip is MenuStrip)
+            {
+                using (var brush = new SolidBrush(_menuStripBackgroundColor))
+                {
+                    e.Graphics.FillRectangle(brush, e.AffectedBounds);
+                }
+            }
+            else
+            {
+                base.OnRenderToolStripBackground(e);
             }
         }
     }
