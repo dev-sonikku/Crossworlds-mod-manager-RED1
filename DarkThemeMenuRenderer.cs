@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace CrossworldsModManager
@@ -8,6 +9,7 @@ namespace CrossworldsModManager
         private readonly Color _menuItemSelectedColor = Color.FromArgb(255, 255, 255); // White background for selected item
         private readonly Color _menuItemTextColor = Color.Black; // Black text for selected item
         private readonly Color _menuStripBackgroundColor = Color.FromArgb(60, 60, 60); // Dark background for the strip
+        private readonly Color _dropDownBackgroundColor = Color.FromArgb(45, 45, 48); // Dark background for dropdowns
 
         public DarkThemeMenuRenderer(ProfessionalColorTable colorTable) : base(colorTable)
         {
@@ -48,6 +50,32 @@ namespace CrossworldsModManager
                 e.TextColor = e.Item.Enabled ? Color.White : Color.Gray;
             }
             base.OnRenderItemText(e);
+        }
+
+        protected override void OnRenderImageMargin(ToolStripRenderEventArgs e)
+        {
+            using (var brush = new SolidBrush(_dropDownBackgroundColor))
+            {
+                e.Graphics.FillRectangle(brush, e.AffectedBounds);
+            }
+        }
+
+        protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            var rect = e.ImageRectangle;
+            var center = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
+
+            using (var pen = new Pen(Color.White, 2))
+            {
+                g.DrawLines(pen, new PointF[] {
+                    new PointF(center.X - 4.5f, center.Y - 1.5f),
+                    new PointF(center.X - 1.5f, center.Y + 3.5f),
+                    new PointF(center.X + 4.5f, center.Y - 4.5f)
+                });
+            }
         }
     }
 }
