@@ -1626,7 +1626,7 @@ namespace CrossworldsModManager
             using (var ofd = new OpenFileDialog())
             {
                 ofd.Title = "Select Mod Archive";
-                ofd.Filter = "Mod Archives (*.zip, *.7z, *.rar)|*.zip;*.7z;*.rar|All files (*.*)|*.*";
+                ofd.Filter = "Mod Archives|*.zip;*.7z;*.rar;*.tar;*.tar.gz;*.tar.xz;*.tar.zst;*.tar.bz2;*.tar.lz|All files (*.*)|*.*";
                 ofd.Multiselect = true;
         
                 if (ofd.ShowDialog() == DialogResult.OK)
@@ -1650,9 +1650,8 @@ namespace CrossworldsModManager
                     {
                         try
                         {
-                            string extension = Path.GetExtension(file).ToLowerInvariant();
                             string modName = Path.GetFileNameWithoutExtension(file);
-                    string targetDir = Path.Combine(modsDirectory, modName); 
+                            string targetDir = Path.Combine(modsDirectory, modName); 
 
                             if (Directory.Exists(targetDir))
                             {
@@ -1662,28 +1661,10 @@ namespace CrossworldsModManager
                             }
 
                             Directory.CreateDirectory(targetDir);
-        
-                            if (extension == ".rar")
+
+                            using (var archive = ArchiveFactory.Open(file))
                             {
-                                var unrarPath = Path.Combine(toolsDir, "UnRAR.exe");
-                                if (!File.Exists(unrarPath)) throw new FileNotFoundException("UnRAR.exe not found in Tools folder. It is required to extract .rar files.");
-                                await ExtractWithToolAsync(unrarPath, file, targetDir);
-                            }
-                            else if (extension == ".zip")
-                            {
-                                // Use native .NET extraction for .zip files for better reliability.
-                                await Task.Run(() => ZipFile.ExtractToDirectory(file, targetDir, true));
-                            }
-                            else if (extension == ".7z")
-                            {
-                                var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
-                                if (!File.Exists(sevenZipPath)) throw new FileNotFoundException("7zr.exe not found in Tools folder. It is required to extract .7z files.");
-                                await ExtractWithToolAsync(sevenZipPath, file, targetDir);
-                            }
-                            else
-                            {
-                                MessageBox.Show($"Unsupported archive format: {extension}", "Unsupported File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                continue;
+                                archive.WriteToDirectory(targetDir, new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
                             }
                             successCount++;
                         }
@@ -2615,43 +2596,6 @@ namespace CrossworldsModManager
         #endregion
 
         #region Archive Extraction
-
-        private async Task ExtractWithToolAsync(string toolPath, string archivePath, string destinationPath)
-        {
-            string arguments;
-            string toolName = Path.GetFileName(toolPath).ToLowerInvariant();
-
-            if (toolName == "unrar.exe")
-            {
-                arguments = $"x -o+ \"{archivePath}\" \"{destinationPath}\\\" -y";
-            }
-            else // Assumes 7zr.exe or 7z.exe
-            {
-                arguments = $"x \"{archivePath}\" -o\"{destinationPath}\" -y";
-            }
-
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = toolPath,
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            string output = await process.StandardOutput.ReadToEndAsync();
-            string error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode != 0)
-            {
-                throw new Exception($"{Path.GetFileName(toolPath)} extraction failed with exit code {process.ExitCode}.\nError: {error}");
-            }
-        }
 
         private async void UpdateModDetails(ModInfo? mod)
         {
