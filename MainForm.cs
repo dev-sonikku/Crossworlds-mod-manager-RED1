@@ -1454,44 +1454,17 @@ namespace CrossworldsModManager
 
         private async Task<bool> CreateSymbolicLinkAsync(string linkPath, string targetPath)
         {
-            string command;
-            string arguments;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                command = "cmd.exe";
-                arguments = $"/c mklink /J \"{linkPath}\" \"{targetPath}\"";
-            }
-            else // For Linux/macOS
-            {
-                command = "ln";
-                arguments = $"-s \"{targetPath}\" \"{linkPath}\"";
-            }
-
-            using (var process = new Process())
-            {
-                process.StartInfo = new ProcessStartInfo
+            
+                try
                 {
-                        FileName = command,
-                        Arguments = arguments,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                };
-
-                process.Start();
-                await process.WaitForExitAsync(); // Asynchronously wait for the process to exit.
-
-                if (process.ExitCode != 0)
+                    await Task.Run(() => Directory.CreateSymbolicLink(linkPath, targetPath));
+                    return true;
+                }
+                catch (Exception ex)
                 {
-                    // Optionally log the error for debugging
-                    // var error = await process.StandardError.ReadToEndAsync();
-                    // Debug.WriteLine($"Failed to create link {linkPath}: {error}");
+                    Debug.WriteLine($"Symlink failed: {ex.Message}");
                     return false;
                 }
-                return true;
-            }
         }
 
         private async Task<bool> CreateHardLinkAsync(string linkPath, string targetPath)
