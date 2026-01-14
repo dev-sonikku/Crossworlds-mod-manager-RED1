@@ -46,14 +46,14 @@ namespace CrossworldsModManager
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
                 this.labelInfo.Text = "Coded by RED1 in C# using .NET and Windows Forms.\r\nPorted to Linux by AntiApple4life\r\n\r\nAcknowledgements:\r\nLocResUti" +
-                                      "lity by anubi47 (github.com/anubi47/LocResUtility)\r\nrepak by trumank (https://github.com/trumank/repak)\r\n7-Zip" +
-                                      " (www.7-zip.org)\r\n\r\nSpecial Thanks:\r\nWindows Forms Linux port by DanielVanNoord\r\nhttps://github.com/DanielVanNoord/System.Windows.Forms\r\n\r\nThis application is not affiliated with Sega or Epic Games.";
+                                      "lity by anubi47 (github.com/anubi47/LocResUtility)\r\nrepak by trumank (https://github.com/trumank/repak)\r\nSharpCompress" +
+                                      " (https://github.com/adamhathcock/sharpcompress)\r\n\r\nSpecial Thanks:\r\nWindows Forms Linux port by DanielVanNoord\r\nhttps://github.com/DanielVanNoord/System.Windows.Forms\r\n\r\nThis application is not affiliated with Sega or Epic Games.";
             }
             else
             {
                 this.labelInfo.Text = "Coded by RED1 in C# using .NET and Windows Forms.\r\n\r\nAcknowledgements:\r\nLocResUti" +
-                                      "lity by anubi47 (github.com/anubi47/LocResUtility)\r\nrepak by trumank (https://github.com/trumank/repak)\r\n7-Zip" +
-                                      " (www.7-zip.org)\r\n\r\nThis application is not affiliated with Sega or Epic Games.";
+                                      "lity by anubi47 (github.com/anubi47/LocResUtility)\r\nrepak by trumank (https://github.com/trumank/repak)\r\nSharpCompress" +
+                                      " (https://github.com/adamhathcock/sharpcompress)\r\n\r\nThis application is not affiliated with Sega or Epic Games.";
             }
             // 
             // buttonOK
