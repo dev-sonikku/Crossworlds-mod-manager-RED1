@@ -165,5 +165,6 @@ Each `.json` file contains an array of objects, where each object represents a s
 -   **repak**: Used for game asset packaging.
 -   **LocResUtilityCLI**: Used for `.locres` file manipulation.
 -   **SharpCompress**: Used for archive extraction.
+-   **DanielVanNoord/System.Windows.Forms**: Used for the Linux port's frontend.
 
 This tool is not affiliated with SEGA or Sumo Digital.
