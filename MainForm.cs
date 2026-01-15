@@ -36,7 +36,18 @@ namespace CrossworldsModManager
             InitializeComponent();
             // Set the form's icon from the executable's embedded icon.
             _oneClickUrl = oneClickUrl;
-            this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            }
+            else
+            {
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "icon.png");
+                if (File.Exists(iconPath))
+                {
+                    using (var bmp = new Bitmap(iconPath)) { this.Icon = Icon.FromHandle(bmp.GetHicon()); }
+                }
+            }
 
             // Use the version in the title bar
             this.Text = $"Blue Star Manager v{appVersion} - A Sonic Racing: CrossWorlds Mod Manager";

@@ -95,10 +95,14 @@ namespace CrossworldsModManager
                 // Create label for text
                 var lbl = new Label();
                 lbl.Text = text;
-                lbl.AutoSize = true;
-                lbl.MaximumSize = new Size(480 - textX, 0);
                 lbl.Location = new Point(textX, 20);
                 lbl.Font = new Font(SystemFonts.MessageBoxFont?.FontFamily ?? SystemFonts.DefaultFont.FontFamily, 10F);
+                
+                // Manual sizing for better cross-platform wrapping
+                lbl.AutoSize = false;
+                lbl.Width = 480 - textX;
+                Size preferredSize = TextRenderer.MeasureText(text, lbl.Font, new Size(lbl.Width, 0), TextFormatFlags.WordBreak);
+                lbl.Height = preferredSize.Height + 5;
                 form.Controls.Add(lbl);
 
                 // Ctrl+C to copy text
@@ -110,7 +114,7 @@ namespace CrossworldsModManager
                 };
 
                 // Calculate size
-                int contentHeight = lbl.PreferredHeight + 40;
+                int contentHeight = lbl.Bottom + 20;
                 int buttonPanelHeight = 50;
                 form.ClientSize = new Size(500, Math.Max(150, contentHeight + buttonPanelHeight));
 

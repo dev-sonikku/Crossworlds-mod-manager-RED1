@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public partial class ModDetailsFormLinux : Form
     {
         private readonly GameBananaMod _mod;
@@ -41,7 +43,18 @@ namespace CrossworldsModManager
             _onModsChanged = onModsChanged;
             InitializeComponent();
             // Set the form's icon from the executable's embedded icon.
-            this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+            {
+                this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            }
+            else
+            {
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "icon.png");
+                if (File.Exists(iconPath))
+                {
+                    using (var bmp = new Bitmap(iconPath)) { this.Icon = Icon.FromHandle(bmp.GetHicon()); }
+                }
+            }
 
             this.Load += async (s, e) => await PopulateDataAsync();
         }
@@ -781,4 +794,5 @@ namespace CrossworldsModManager
             return name.Trim(' ', '.');
         }
     }
+#pragma warning restore CA1416
 }
