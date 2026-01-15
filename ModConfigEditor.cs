@@ -8,6 +8,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     // Data Models
     public class ModConfig
     {
@@ -73,7 +75,7 @@ namespace CrossworldsModManager
             this.Text = "Mod Config Maker";
             this.Size = new Size(900, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.Font = SystemFonts.MessageBoxFont;
+            this.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
             this.BackColor = Color.FromArgb(45, 45, 48);
             this.ForeColor = Color.White;
 
@@ -643,4 +645,5 @@ namespace CrossworldsModManager
             this.Close();
         }
     }
+#pragma warning restore CA1416
 }
