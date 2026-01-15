@@ -58,7 +58,7 @@ namespace CrossworldsModManager
                 var baseLocresPath = Path.Combine(ToolsDir, "Game.locres");
                 if (!File.Exists(baseLocresPath))
                 {
-                    MessageBox.Show($"Base file 'Game.locres' not found in the Tools folder.\nPlease place a clean copy of the game's .locres file there to use as a base for importing.",
+                    CustomMessageBox.Show($"Base file 'Game.locres' not found in the Tools folder.\nPlease place a clean copy of the game's .locres file there to use as a base for importing.",
                         "Base File Missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -66,12 +66,12 @@ namespace CrossworldsModManager
                 // Use the 'import' command: import <outputPath> <targetPath> <sourcePath>
                 // outputPath = new .locres, targetPath = base Game.locres, sourcePath = our .json
                 await RunProcessAsync(exePath, $"import \"{locresPath}\" \"{baseLocresPath}\" \"{jsonPath}\" -y", null);
-                MessageBox.Show($"Successfully created new .locres at:\n{locresPath}",
+                CustomMessageBox.Show($"Successfully created new .locres at:\n{locresPath}",
                     "Conversion Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to convert .json to .locres.\n\nError: {ex.Message}",
+                CustomMessageBox.Show($"Failed to convert .json to .locres.\n\nError: {ex.Message}",
                     "Conversion Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
