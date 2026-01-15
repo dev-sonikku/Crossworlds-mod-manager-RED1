@@ -6,6 +6,8 @@ using System.Linq;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public partial class ModConfigForm : Form
     {
         private readonly ModInfo _modInfo;
@@ -91,7 +93,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 122, 204),
                 ForeColor = Color.White,
-                UseVisualStyleBackColor = false
+                UseVisualStyleBackColor = false,
+                Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont
             };
             btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Click += btnSave_Click;
@@ -106,7 +109,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
                 ForeColor = Color.White,
-                UseVisualStyleBackColor = false
+                UseVisualStyleBackColor = false,
+                Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont
             };
             btnCancel.FlatAppearance.BorderSize = 0;
 
@@ -363,4 +367,5 @@ namespace CrossworldsModManager
             Close();
         }
     }
+#pragma warning restore CA1416
 }

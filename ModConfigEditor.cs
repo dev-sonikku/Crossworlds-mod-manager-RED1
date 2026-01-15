@@ -91,7 +91,7 @@ namespace CrossworldsModManager
             _lstGroups = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _lstGroups.SelectedIndexChanged += (s, e) => UpdateRightPanel();
             
-            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 90, Padding = new Padding(0, 5, 0, 0) };
+            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 100, Padding = new Padding(0, 5, 0, 0) };
             
             // Group Buttons Layout
             var btnAddGroup = CreateButton("Add Group", (s, e) => AddGroup());
@@ -104,7 +104,7 @@ namespace CrossworldsModManager
             var btnClean = CreateButton("Clean .disabled", (s, e) => CleanDisabledFiles());
             btnClean.Dock = DockStyle.Bottom;
 
-            var flowGroupActions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30, FlowDirection = FlowDirection.LeftToRight, Padding = new Padding(0) };
+            var flowGroupActions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 35, FlowDirection = FlowDirection.LeftToRight, Padding = new Padding(0) };
             flowGroupActions.Controls.Add(btnAddGroup);
             flowGroupActions.Controls.Add(btnRemoveGroup);
             flowGroupActions.Controls.Add(btnUpGroup);
@@ -195,7 +195,7 @@ namespace CrossworldsModManager
             _lstOptions = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _lstOptions.SelectedIndexChanged += (s, e) => UpdateFilesList();
 
-            var pnlOptButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 30, FlowDirection = FlowDirection.LeftToRight };
+            var pnlOptButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 35, FlowDirection = FlowDirection.LeftToRight };
             pnlOptButtons.Controls.Add(CreateButton("Add", (s, e) => AddOption(), 60));
             pnlOptButtons.Controls.Add(CreateButton("Rename", (s, e) => RenameOption(), 70));
             pnlOptButtons.Controls.Add(CreateButton("Remove", (s, e) => RemoveOption(), 70));
@@ -215,7 +215,7 @@ namespace CrossworldsModManager
             _lstFiles.DragDrop += _lstFiles_DragDrop;
             _lstFiles.KeyDown += _lstFiles_KeyDown;
             
-            var pnlFileButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 30, FlowDirection = FlowDirection.LeftToRight };
+            var pnlFileButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 35, FlowDirection = FlowDirection.LeftToRight };
             pnlFileButtons.Controls.Add(CreateButton("Add Files...", BtnAddFile_Click, 90));
             pnlFileButtons.Controls.Add(CreateButton("Remove", (s, e) => RemoveFile(), 70));
 
@@ -235,7 +235,7 @@ namespace CrossworldsModManager
             {
                 Text = text,
                 Width = width,
-                Height = 25,
+                Height = 30,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
                 ForeColor = Color.White,

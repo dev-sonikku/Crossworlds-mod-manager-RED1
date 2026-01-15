@@ -4,6 +4,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public partial class ExFatWarningForm : Form
     {
         public bool DoNotShowAgain { get; private set; }
@@ -50,6 +52,7 @@ namespace CrossworldsModManager
             btnOk.ForeColor = Color.White;
             btnOk.FlatAppearance.BorderSize = 0;
             btnOk.UseVisualStyleBackColor = false;
+            btnOk.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
 
             var btnCancel = new Button();
             btnCancel.Text = "Cancel";
@@ -61,6 +64,7 @@ namespace CrossworldsModManager
             btnCancel.ForeColor = Color.White;
             btnCancel.FlatAppearance.BorderSize = 0;
             btnCancel.UseVisualStyleBackColor = false;
+            btnCancel.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
 
             this.Controls.Add(btnCancel);
             this.Controls.Add(btnOk);
@@ -79,4 +83,5 @@ namespace CrossworldsModManager
             base.OnFormClosing(e);
         }
     }
+#pragma warning restore CA1416
 }

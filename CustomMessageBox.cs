@@ -138,6 +138,7 @@ namespace CrossworldsModManager
                     btn.Size = new Size(85, 30);
                     btn.UseVisualStyleBackColor = false;
                     btn.Margin = new Padding(5, 0, 0, 0);
+                    btn.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
                     
                     if (isDefault)
                     {

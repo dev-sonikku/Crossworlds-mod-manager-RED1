@@ -50,7 +50,7 @@ namespace CrossworldsModManager
             // btnOk
             this.btnOk.DialogResult = DialogResult.OK;
             this.btnOk.Location = new Point(150, 85);
-            this.btnOk.Size = new Size(80, 25);
+            this.btnOk.Size = new Size(80, 30);
             this.btnOk.Text = "OK";
             this.btnOk.Visible = false; // Only show when done
             this.btnOk.FlatStyle = FlatStyle.Flat;
@@ -58,16 +58,18 @@ namespace CrossworldsModManager
             this.btnOk.ForeColor = Color.White;
             this.btnOk.FlatAppearance.BorderSize = 0;
             this.btnOk.UseVisualStyleBackColor = false;
+            this.btnOk.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
 
             // btnCancel
             this.btnCancel.Location = new Point(50, 85);
-            this.btnCancel.Size = new Size(80, 25);
+            this.btnCancel.Size = new Size(80, 30);
             this.btnCancel.Text = "Cancel";
             this.btnCancel.FlatStyle = FlatStyle.Flat;
             this.btnCancel.BackColor = Color.FromArgb(160, 160, 160);
             this.btnCancel.ForeColor = Color.White;
             this.btnCancel.FlatAppearance.BorderSize = 0;
             this.btnCancel.UseVisualStyleBackColor = false;
+            this.btnCancel.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
             this.btnCancel.Click += (s, e) =>
             {
                 try
