@@ -2062,6 +2062,10 @@ namespace CrossworldsModManager
                 string flagPath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar","megaman_promo.flag") : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "megaman_promo.flag");
                 if (File.Exists(flagPath)) return;
 
+                // Ensure the directory exists before trying to show/write the flag
+                var flagDir = Path.GetDirectoryName(flagPath);
+                if (flagDir != null && !Directory.Exists(flagDir)) Directory.CreateDirectory(flagDir);
+
                 using (var promoForm = new CrossworldsModManager.MegaManPromoForm())
                 {
                     promoForm.ShowDialog(this);

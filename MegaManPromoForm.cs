@@ -6,6 +6,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public partial class MegaManPromoForm : Form
     {
         public bool DoNotShowAgain { get; private set; }
@@ -27,6 +29,7 @@ namespace CrossworldsModManager
             this.ShowIcon = false;
             this.BackColor = Color.FromArgb(45, 45, 48);
             this.ForeColor = Color.White;
+            this.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
 
             var mainLayout = new TableLayoutPanel();
             mainLayout.Dock = DockStyle.Fill;
@@ -45,7 +48,7 @@ namespace CrossworldsModManager
 
             var lblMsg = new Label();
             lblMsg.Text = "The development of this mod manager was sponsored by my love for megaman. BUY HIS GAMES";
-            lblMsg.Font = new Font(SystemFonts.MessageBoxFont?.FontFamily ?? SystemFonts.DefaultFont.FontFamily, 12, FontStyle.Bold);
+            lblMsg.Font = new Font(this.Font.FontFamily, 12, FontStyle.Bold);
             lblMsg.TextAlign = ContentAlignment.MiddleCenter;
             lblMsg.Dock = DockStyle.Fill;
             lblMsg.AutoSize = true;
@@ -79,6 +82,7 @@ namespace CrossworldsModManager
             btnOk.Text = "OK";
             btnOk.DialogResult = DialogResult.OK;
             btnOk.FlatStyle = FlatStyle.Flat;
+            btnOk.Size = new Size(80, 30);
             btnOk.BackColor = Color.FromArgb(0, 122, 204);
             btnOk.ForeColor = Color.White;
             btnOk.FlatAppearance.BorderSize = 0;
@@ -118,4 +122,5 @@ namespace CrossworldsModManager
             catch { /* Ignore image load errors */ }
         }
     }
+#pragma warning restore CA1416
 }
