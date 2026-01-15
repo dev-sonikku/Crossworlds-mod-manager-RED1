@@ -239,7 +239,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
                 ForeColor = Color.White,
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont
             };
             btn.FlatAppearance.BorderSize = 0;
             btn.Click += onClick;
