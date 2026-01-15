@@ -1578,15 +1578,23 @@ namespace CrossworldsModManager
             using (var fbd = new FolderBrowserDialog())
             {
                 fbd.Description = "Select or create a folder to store your mods";
-                if (fbd.ShowDialog() == DialogResult.OK)
+                while (true)
                 {
-                    SettingsManager.Settings.ModsDirectory = fbd.SelectedPath;
-                    SettingsManager.Save();
-                }
-                else
-                {
+                    if (fbd.ShowDialog() == DialogResult.OK)
+                    {
+                        var dirName = new DirectoryInfo(fbd.SelectedPath).Name;
+                        if (dirName.Equals("~mods", StringComparison.OrdinalIgnoreCase))
+                        {
+                            CustomMessageBox.Show("You cannot select the game's '~mods' folder as your mod storage directory.\n\nThis folder is used by the manager to install mods. Please select a different folder to store your source mods.", "Invalid Directory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            continue;
+                        }
+                        SettingsManager.Settings.ModsDirectory = fbd.SelectedPath;
+                        SettingsManager.Save();
+                        break;
+                    }
                     // User cancelled. The app might not be fully functional, but let it load.
                     UpdateStatus("Warning: Mods directory not selected.");
+                    break;
                 }
             }
         }

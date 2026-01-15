@@ -83,7 +83,7 @@ namespace CrossworldsModManager
                                     "The AppImage's location seems to have been moved from where it was last executed.\nWould you like to update the .desktop file to point to the current location of the AppImage?",
                                     "Linux Integration",
                                     MessageBoxButtons.YesNo,
-                                    MessageBoxIcon.Question);
+                                    MessageBoxIcon.Warning);
 
                                 if (result == DialogResult.Yes)
                                 {
@@ -200,7 +200,7 @@ namespace CrossworldsModManager
                         "This will create a .desktop file in ~/.local/share/applications.",
                         "Linux Integration",
                         MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Question);
+                        MessageBoxIcon.Warning);
 
                     if (result != DialogResult.Yes) return;
                 }
