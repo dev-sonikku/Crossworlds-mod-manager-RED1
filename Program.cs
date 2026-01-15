@@ -31,14 +31,25 @@ namespace CrossworldsModManager
         [STAThread]
         static void Main(string[] args)
         {
-            using (Mutex mutex = new Mutex(true, AppGuid, out bool createdNew))
-            {
-                string? oneClickUrl = args.Length > 0 && args[0].StartsWith($"{ProtocolName}:", StringComparison.OrdinalIgnoreCase)
-                    ? args[0]
-                    : null;
+            string? oneClickUrl = args.Length > 0 && args[0].StartsWith($"{ProtocolName}:", StringComparison.OrdinalIgnoreCase)
+                ? args[0]
+                : null;
 
-                if (createdNew)
+            bool isFirstInstance = true;
+            var currentProcess = Process.GetCurrentProcess();
+            var processes = Process.GetProcessesByName(currentProcess.ProcessName);
+
+            foreach (var p in processes)
+            {
+                if (p.Id != currentProcess.Id)
                 {
+                    isFirstInstance = false;
+                    break;
+                }
+            }
+
+            if (isFirstInstance)
+            {
                     // This is the first instance.
                     Application.EnableVisualStyles();
                     Application.SetCompatibleTextRenderingDefault(false);
@@ -88,9 +99,9 @@ namespace CrossworldsModManager
                         CustomMessageBox.Show($"A fatal error occurred:\n{ex.Message}\n\n{ex.StackTrace}",
                             "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
-                }
-                else
-                {
+            }
+            else
+            {
                     // Another instance is already running. Send the URL to it.
                     if (oneClickUrl != null)
                     {
@@ -112,7 +123,6 @@ namespace CrossworldsModManager
 
                         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                         {
-                            var currentProcess = Process.GetCurrentProcess();
                             var otherProcess = Process.GetProcessesByName(currentProcess.ProcessName)
                                                       .FirstOrDefault(p => p.Id != currentProcess.Id);
                             if (otherProcess != null)
@@ -121,7 +131,6 @@ namespace CrossworldsModManager
                             }
                         }
                     }
-                }
             }
         }
 
