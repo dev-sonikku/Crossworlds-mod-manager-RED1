@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Linq;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
@@ -21,23 +22,8 @@ namespace CrossworldsModManager
         private const string AppGuid = "c1a2b3d4-e5f6-7890-1234-567890abcdef"; // Please generate a new GUID for your app
         private const string ProtocolName = "bluestar";
 
-        // P/Invoke for sending messages to the existing instance
-        [DllImport("user32.dll")]
-        private static extern int SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, ref COPYDATASTRUCT lParam);
-
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        // Struct for WM_COPYDATA
-        [StructLayout(LayoutKind.Sequential)]
-        private struct COPYDATASTRUCT
-        {
-            public IntPtr dwData;
-            public int cbData;
-            public IntPtr lpData;
-        }
-
-        private const int WM_COPYDATA = 0x004A;
 
         /// <summary>
         /// The main entry point for the application.
@@ -108,22 +94,31 @@ namespace CrossworldsModManager
                     // Another instance is already running. Send the URL to it.
                     if (oneClickUrl != null)
                     {
-                        var currentProcess = Process.GetCurrentProcess();
-                        var otherProcess = Process.GetProcessesByName(currentProcess.ProcessName)
-                                                  .FirstOrDefault(p => p.Id != currentProcess.Id);
-
-                        if (otherProcess != null)
+                        try
                         {
-                            // Send the URL via WM_COPYDATA
-                            byte[] data = System.Text.Encoding.UTF8.GetBytes(oneClickUrl);
-                            var cds = new COPYDATASTRUCT
+                            using (var client = new NamedPipeClientStream(".", "CrossworldsModManagerPipe", PipeDirection.Out))
                             {
-                                dwData = IntPtr.Zero,
-                                cbData = data.Length + 1,
-                                lpData = Marshal.StringToHGlobalAnsi(oneClickUrl)
-                            };
-                            SendMessage(otherProcess.MainWindowHandle, WM_COPYDATA, IntPtr.Zero, ref cds);
-                            SetForegroundWindow(otherProcess.MainWindowHandle); // Bring the existing window to the front
+                                client.Connect(1000); // 1 second timeout
+                                using (var writer = new StreamWriter(client))
+                                {
+                                    writer.Write(oneClickUrl);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to send URL to existing instance: {ex.Message}");
+                        }
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            var currentProcess = Process.GetCurrentProcess();
+                            var otherProcess = Process.GetProcessesByName(currentProcess.ProcessName)
+                                                      .FirstOrDefault(p => p.Id != currentProcess.Id);
+                            if (otherProcess != null)
+                            {
+                                SetForegroundWindow(otherProcess.MainWindowHandle); // Bring the existing window to the front
+                            }
                         }
                     }
                 }

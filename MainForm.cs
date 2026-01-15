@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Drawing;
 using System.IO.Compression;
+using System.IO.Pipes;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
@@ -19,16 +20,6 @@ namespace CrossworldsModManager
 #pragma warning disable CA1416
     public partial class MainForm : Form
     {
-        // Struct for receiving WM_COPYDATA messages
-        [StructLayout(LayoutKind.Sequential)]
-        private struct COPYDATASTRUCT
-        {
-            public IntPtr dwData;
-            public int cbData;
-            public IntPtr lpData;
-        }
-        private const int WM_COPYDATA = 0x004A;
-
         // This is a common executable name pattern for Unreal Engine games.
         // We check for the process name without the .exe extension.
         private const string GameProcessName = "SonicRacingCrossWorldsSteam";
@@ -143,6 +134,8 @@ namespace CrossworldsModManager
             {
                 // Ignore if designer names differ or items not present
             }
+
+            StartPipeServer();
         }
 
         private void NormalizeRootItem_Click(object? sender, EventArgs e)
@@ -230,28 +223,33 @@ namespace CrossworldsModManager
             ShowPromoPopup();
         }
 
-        protected override void WndProc(ref Message m)
+        private void StartPipeServer()
         {
-            // Listen for WM_COPYDATA messages from other instances
-            if (m.Msg == WM_COPYDATA)
+            Task.Run(async () =>
             {
-                try
+                while (!IsDisposed)
                 {
-                    var cds = (COPYDATASTRUCT)Marshal.PtrToStructure(m.LParam, typeof(COPYDATASTRUCT))!;
-                    var url = Marshal.PtrToStringAnsi(cds.lpData);
-
-                    if (!string.IsNullOrEmpty(url))
+                    try
                     {
-                        // Handle the URL on the UI thread
-                        this.BeginInvoke((Action)(() => HandleOneClickInstallAsync(url)));
+                        using (var server = new NamedPipeServerStream("CrossworldsModManagerPipe", PipeDirection.In))
+                        {
+                            await server.WaitForConnectionAsync();
+                            using (var reader = new StreamReader(server))
+                            {
+                                var url = await reader.ReadToEndAsync();
+                                if (!string.IsNullOrEmpty(url))
+                                {
+                                    this.BeginInvoke((Action)(() => HandleOneClickInstallAsync(url)));
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors (e.g. disposal during shutdown)
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error processing WM_COPYDATA: {ex.Message}");
-                }
-            }
-            base.WndProc(ref m);
+            });
         }
 
         private void DetectGameInstallations()
