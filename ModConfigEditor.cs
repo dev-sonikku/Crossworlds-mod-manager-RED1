@@ -8,6 +8,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     // Data Models
     public class ModConfig
     {
@@ -73,7 +75,7 @@ namespace CrossworldsModManager
             this.Text = "Mod Config Maker";
             this.Size = new Size(900, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.Font = SystemFonts.MessageBoxFont;
+            this.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
             this.BackColor = Color.FromArgb(45, 45, 48);
             this.ForeColor = Color.White;
 
@@ -89,7 +91,7 @@ namespace CrossworldsModManager
             _lstGroups = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _lstGroups.SelectedIndexChanged += (s, e) => UpdateRightPanel();
             
-            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 90, Padding = new Padding(0, 5, 0, 0) };
+            var pnlGroupButtons = new Panel { Dock = DockStyle.Bottom, Height = 100, Padding = new Padding(0, 5, 0, 0) };
             
             // Group Buttons Layout
             var btnAddGroup = CreateButton("Add Group", (s, e) => AddGroup());
@@ -102,7 +104,7 @@ namespace CrossworldsModManager
             var btnClean = CreateButton("Clean .disabled", (s, e) => CleanDisabledFiles());
             btnClean.Dock = DockStyle.Bottom;
 
-            var flowGroupActions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 30, FlowDirection = FlowDirection.LeftToRight, Padding = new Padding(0) };
+            var flowGroupActions = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 35, FlowDirection = FlowDirection.LeftToRight, Padding = new Padding(0) };
             flowGroupActions.Controls.Add(btnAddGroup);
             flowGroupActions.Controls.Add(btnRemoveGroup);
             flowGroupActions.Controls.Add(btnUpGroup);
@@ -193,7 +195,7 @@ namespace CrossworldsModManager
             _lstOptions = new ListBox { Dock = DockStyle.Fill, IntegralHeight = false, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _lstOptions.SelectedIndexChanged += (s, e) => UpdateFilesList();
 
-            var pnlOptButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 30, FlowDirection = FlowDirection.LeftToRight };
+            var pnlOptButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 35, FlowDirection = FlowDirection.LeftToRight };
             pnlOptButtons.Controls.Add(CreateButton("Add", (s, e) => AddOption(), 60));
             pnlOptButtons.Controls.Add(CreateButton("Rename", (s, e) => RenameOption(), 70));
             pnlOptButtons.Controls.Add(CreateButton("Remove", (s, e) => RemoveOption(), 70));
@@ -213,7 +215,7 @@ namespace CrossworldsModManager
             _lstFiles.DragDrop += _lstFiles_DragDrop;
             _lstFiles.KeyDown += _lstFiles_KeyDown;
             
-            var pnlFileButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 30, FlowDirection = FlowDirection.LeftToRight };
+            var pnlFileButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = 35, FlowDirection = FlowDirection.LeftToRight };
             pnlFileButtons.Controls.Add(CreateButton("Add Files...", BtnAddFile_Click, 90));
             pnlFileButtons.Controls.Add(CreateButton("Remove", (s, e) => RemoveFile(), 70));
 
@@ -233,11 +235,12 @@ namespace CrossworldsModManager
             {
                 Text = text,
                 Width = width,
-                Height = 25,
+                Height = 30,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
                 ForeColor = Color.White,
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont
             };
             btn.FlatAppearance.BorderSize = 0;
             btn.Click += onClick;
@@ -325,7 +328,7 @@ namespace CrossworldsModManager
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error loading config: {ex.Message}");
+                    CustomMessageBox.Show($"Error loading config: {ex.Message}");
                 }
             }
             else
@@ -409,7 +412,7 @@ namespace CrossworldsModManager
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp)
             {
-                if (MessageBox.Show($"Delete group '{grp.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                if (CustomMessageBox.Show($"Delete group '{grp.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     _config.Groups.Remove(grp);
                     _lstGroups.Items.Remove(grp);
@@ -469,7 +472,7 @@ namespace CrossworldsModManager
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp && _lstOptions.SelectedItem is ConfigOption opt)
             {
-                if (MessageBox.Show($"Delete option '{opt.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                if (CustomMessageBox.Show($"Delete option '{opt.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     grp.Options.Remove(opt);
                     _lstOptions.Items.Remove(opt);
@@ -576,7 +579,7 @@ namespace CrossworldsModManager
 
         private void CleanDisabledFiles()
         {
-            if (MessageBox.Show("This will rename all '*.disabled' files in the mod folder back to their original names.\n\nUse this before publishing your mod to ensure all files are active.\n\nProceed?", "Clean Disabled Files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            if (CustomMessageBox.Show("This will rename all '*.disabled' files in the mod folder back to their original names.\n\nUse this before publishing your mod to ensure all files are active.\n\nProceed?", "Clean Disabled Files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
             try
@@ -590,11 +593,11 @@ namespace CrossworldsModManager
                     File.Move(file, newName);
                     count++;
                 }
-                MessageBox.Show($"Cleaned {count} file(s).", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show($"Cleaned {count} file(s).", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error cleaning files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Error cleaning files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -639,8 +642,9 @@ namespace CrossworldsModManager
             }
 
             File.WriteAllText(_configPath, sb.ToString());
-            MessageBox.Show("Configuration saved successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CustomMessageBox.Show("Configuration saved successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.Close();
         }
     }
+#pragma warning restore CA1416
 }

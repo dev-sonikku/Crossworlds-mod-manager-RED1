@@ -1,0 +1,199 @@
+// c:\games\Projects\Crossworlds mod manager RED1\CustomMessageBox.cs
+using System;
+using System.Drawing;
+using System.Media;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+
+namespace CrossworldsModManager
+{
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
+    public static class CustomMessageBox
+    {
+        public static DialogResult Show(string text)
+        {
+            return Show(null, text, "Message", MessageBoxButtons.OK, MessageBoxIcon.None);
+        }
+
+        public static DialogResult Show(string text, string caption)
+        {
+            return Show(null, text, caption, MessageBoxButtons.OK, MessageBoxIcon.None);
+        }
+
+        public static DialogResult Show(string text, string caption, MessageBoxButtons buttons)
+        {
+            return Show(null, text, caption, buttons, MessageBoxIcon.None);
+        }
+
+        public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon)
+        {
+            return Show(null, text, caption, buttons, icon);
+        }
+
+        public static DialogResult Show(IWin32Window? owner, string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon)
+        {
+            // If no owner is specified, try to use the active form.
+            // This fixes issues where the message box might appear behind other modal forms (like MegaManPromoForm).
+            if (owner == null)
+            {
+                owner = Form.ActiveForm;
+            }
+
+            using (var form = new Form())
+            {
+                form.Text = caption;
+                form.StartPosition = owner != null ? FormStartPosition.CenterParent : FormStartPosition.CenterScreen;
+                form.FormBorderStyle = FormBorderStyle.FixedDialog;
+                form.MaximizeBox = false;
+                form.MinimizeBox = false;
+                form.ShowIcon = false;
+                form.BackColor = Color.FromArgb(45, 45, 48);
+                form.ForeColor = Color.White;
+                form.KeyPreview = true; // Enable key preview for Ctrl+C
+
+                // Play system sound
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    try
+                    {
+                        switch (icon)
+                        {
+                            case MessageBoxIcon.Error: SystemSounds.Hand.Play(); break;
+                            case MessageBoxIcon.Exclamation: SystemSounds.Exclamation.Play(); break;
+                            case MessageBoxIcon.Question: SystemSounds.Question.Play(); break;
+                            case MessageBoxIcon.Asterisk: SystemSounds.Asterisk.Play(); break;
+                            default: SystemSounds.Beep.Play(); break;
+                        }
+                    }
+                    catch { }
+                }
+
+                int textX = 20;
+
+                // Add Icon
+                if (icon != MessageBoxIcon.None)
+                {
+                    var pbox = new PictureBox();
+                    pbox.Location = new Point(20, 20);
+                    pbox.Size = new Size(32, 32);
+                    pbox.SizeMode = PictureBoxSizeMode.Zoom;
+                    
+                    Icon sysIcon = SystemIcons.Application;
+                    switch (icon)
+                    {
+                        case MessageBoxIcon.Error: sysIcon = SystemIcons.Error; break;
+                        case MessageBoxIcon.Warning: sysIcon = SystemIcons.Warning; break;
+                        case MessageBoxIcon.Question: sysIcon = SystemIcons.Question; break;
+                        case MessageBoxIcon.Information: sysIcon = SystemIcons.Information; break;
+                    }
+                    pbox.Image = sysIcon.ToBitmap();
+                    form.Controls.Add(pbox);
+                    textX = 70;
+                }
+                
+                // Create label for text
+                var lbl = new Label();
+                lbl.Text = text;
+                lbl.Location = new Point(textX, 20);
+                lbl.Font = new Font(SystemFonts.MessageBoxFont?.FontFamily ?? SystemFonts.DefaultFont.FontFamily, 10F);
+                
+                // Manual sizing for better cross-platform wrapping
+                lbl.AutoSize = false;
+                lbl.Width = 480 - textX;
+                Size preferredSize = TextRenderer.MeasureText(text, lbl.Font, new Size(lbl.Width, 0), TextFormatFlags.WordBreak);
+                lbl.Height = preferredSize.Height + 5;
+                form.Controls.Add(lbl);
+
+                // Ctrl+C to copy text
+                form.KeyDown += (s, e) => {
+                    if (e.Control && e.KeyCode == Keys.C)
+                    {
+                        Clipboard.SetText($"---------------------------\n{caption}\n---------------------------\n{text}\n---------------------------");
+                    }
+                };
+
+                // Calculate size
+                int contentHeight = lbl.Bottom + 20;
+                int buttonPanelHeight = 50;
+                form.ClientSize = new Size(500, Math.Max(150, contentHeight + buttonPanelHeight));
+
+                // Button panel
+                var pnlButtons = new FlowLayoutPanel();
+                pnlButtons.FlowDirection = FlowDirection.RightToLeft;
+                pnlButtons.Dock = DockStyle.Bottom;
+                pnlButtons.Height = buttonPanelHeight;
+                pnlButtons.Padding = new Padding(10);
+                pnlButtons.BackColor = Color.FromArgb(45, 45, 48);
+                form.Controls.Add(pnlButtons);
+
+                void AddButton(string label, DialogResult result, bool isDefault = false)
+                {
+                    var btn = new Button();
+                    btn.Text = label;
+                    btn.DialogResult = result;
+                    btn.FlatStyle = FlatStyle.Flat;
+                    btn.FlatAppearance.BorderSize = 0;
+                    btn.ForeColor = Color.White;
+                    btn.Size = new Size(85, 30);
+                    btn.UseVisualStyleBackColor = false;
+                    btn.Margin = new Padding(5, 0, 0, 0);
+                    btn.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
+                    
+                    if (isDefault)
+                    {
+                        btn.BackColor = Color.FromArgb(0, 122, 204); // Blue
+                        form.AcceptButton = btn;
+                    }
+                    else
+                    {
+                        btn.BackColor = Color.FromArgb(63, 63, 70); // Dark Gray
+                    }
+                    
+                    if (result == DialogResult.Cancel || result == DialogResult.No)
+                    {
+                        form.CancelButton = btn;
+                    }
+
+                    pnlButtons.Controls.Add(btn);
+                }
+
+                // Add buttons based on type (RightToLeft flow means add rightmost button first)
+                switch (buttons)
+                {
+                    case MessageBoxButtons.OK:
+                        AddButton("OK", DialogResult.OK, true);
+                        break;
+                    case MessageBoxButtons.OKCancel:
+                        AddButton("Cancel", DialogResult.Cancel);
+                        AddButton("OK", DialogResult.OK, true);
+                        break;
+                    case MessageBoxButtons.YesNo:
+                        AddButton("No", DialogResult.No);
+                        AddButton("Yes", DialogResult.Yes, true);
+                        break;
+                    case MessageBoxButtons.YesNoCancel:
+                        AddButton("Cancel", DialogResult.Cancel);
+                        AddButton("No", DialogResult.No);
+                        AddButton("Yes", DialogResult.Yes, true);
+                        break;
+                    case MessageBoxButtons.RetryCancel:
+                        AddButton("Cancel", DialogResult.Cancel);
+                        AddButton("Retry", DialogResult.Retry, true);
+                        break;
+                     case MessageBoxButtons.AbortRetryIgnore:
+                        AddButton("Ignore", DialogResult.Ignore);
+                        AddButton("Retry", DialogResult.Retry);
+                        AddButton("Abort", DialogResult.Abort);
+                        break;
+                }
+
+                if (owner != null)
+                    return form.ShowDialog(owner);
+                else
+                    return form.ShowDialog();
+            }
+        }
+    }
+#pragma warning restore CA1416
+}

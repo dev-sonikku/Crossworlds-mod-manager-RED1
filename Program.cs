@@ -3,8 +3,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Linq;
+using System.IO.Pipes;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
@@ -19,23 +22,8 @@ namespace CrossworldsModManager
         private const string AppGuid = "c1a2b3d4-e5f6-7890-1234-567890abcdef"; // Please generate a new GUID for your app
         private const string ProtocolName = "bluestar";
 
-        // P/Invoke for sending messages to the existing instance
-        [DllImport("user32.dll")]
-        private static extern int SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, ref COPYDATASTRUCT lParam);
-
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        // Struct for WM_COPYDATA
-        [StructLayout(LayoutKind.Sequential)]
-        private struct COPYDATASTRUCT
-        {
-            public IntPtr dwData;
-            public int cbData;
-            public IntPtr lpData;
-        }
-
-        private const int WM_COPYDATA = 0x004A;
 
         /// <summary>
         /// The main entry point for the application.
@@ -43,54 +31,106 @@ namespace CrossworldsModManager
         [STAThread]
         static void Main(string[] args)
         {
-            using (Mutex mutex = new Mutex(true, AppGuid, out bool createdNew))
-            {
-                string? oneClickUrl = args.Length > 0 && args[0].StartsWith($"{ProtocolName}:", StringComparison.OrdinalIgnoreCase)
-                    ? args[0]
-                    : null;
+            string? oneClickUrl = args.Length > 0 && args[0].StartsWith($"{ProtocolName}:", StringComparison.OrdinalIgnoreCase)
+                ? args[0]
+                : null;
 
-                if (createdNew)
+            bool isFirstInstance = true;
+            var currentProcess = Process.GetCurrentProcess();
+            var processes = Process.GetProcessesByName(currentProcess.ProcessName);
+
+            foreach (var p in processes)
+            {
+                if (p.Id != currentProcess.Id)
                 {
+                    isFirstInstance = false;
+                    break;
+                }
+            }
+
+            if (isFirstInstance)
+            {
                     // This is the first instance.
+                    Application.EnableVisualStyles();
+                    Application.SetCompatibleTextRenderingDefault(false);
+
                     // Always register the protocol on startup to ensure it's up-to-date.
                     RegisterProtocol();
+                    if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_PROTOCOL_REGISTER") == null && RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null)
+                    {
+                        string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
+                        string desktopFileName = "com.bluestar.manager.desktop";
+                        string desktopFilePath = Path.Combine(applicationsPath, desktopFileName);
+                        string curAppImagePath = Environment.GetEnvironmentVariable("APPIMAGE")!;
+                        if (File.Exists(desktopFilePath))
+                        {
+                            var lines = File.ReadAllLines(desktopFilePath);
+                            bool pathChanged = false;
+                            for (int i = 0; i < lines.Length; i++)
+                            {
+                                if (lines[i].StartsWith("Exec=") && !lines[i].Contains(curAppImagePath))
+                                {
+                                    pathChanged = true;
+                                }
+                            }
+
+                            if (pathChanged)
+                            {
+                                var result = CustomMessageBox.Show(
+                                    "The AppImage's location seems to have been moved from where it was last executed.\nWould you like to update the .desktop file to point to the current location of the AppImage?",
+                                    "Linux Integration",
+                                    MessageBoxButtons.YesNo,
+                                    MessageBoxIcon.Warning);
+
+                                if (result == DialogResult.Yes)
+                                {
+                                    UpdateLinuxDesktopFile(curAppImagePath);
+                                }
+                            }
+                        }
+                    }
                     try
                     {
-                        Application.EnableVisualStyles();
-                        Application.SetCompatibleTextRenderingDefault(false);
                         Application.Run(new MainForm(oneClickUrl, AppVersion));
                     }
                     catch (Exception ex)
                     {
                         // Fallback for unhandled exceptions
-                        MessageBox.Show($"A fatal error occurred:\n{ex.Message}\n\n{ex.StackTrace}",
+                        CustomMessageBox.Show($"A fatal error occurred:\n{ex.Message}\n\n{ex.StackTrace}",
                             "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
-                }
-                else
-                {
+            }
+            else
+            {
                     // Another instance is already running. Send the URL to it.
                     if (oneClickUrl != null)
                     {
-                        var currentProcess = Process.GetCurrentProcess();
-                        var otherProcess = Process.GetProcessesByName(currentProcess.ProcessName)
-                                                  .FirstOrDefault(p => p.Id != currentProcess.Id);
-
-                        if (otherProcess != null)
+                        try
                         {
-                            // Send the URL via WM_COPYDATA
-                            byte[] data = System.Text.Encoding.UTF8.GetBytes(oneClickUrl);
-                            var cds = new COPYDATASTRUCT
+                            using (var client = new NamedPipeClientStream(".", "CrossworldsModManagerPipe", PipeDirection.Out))
                             {
-                                dwData = IntPtr.Zero,
-                                cbData = data.Length + 1,
-                                lpData = Marshal.StringToHGlobalAnsi(oneClickUrl)
-                            };
-                            SendMessage(otherProcess.MainWindowHandle, WM_COPYDATA, IntPtr.Zero, ref cds);
-                            SetForegroundWindow(otherProcess.MainWindowHandle); // Bring the existing window to the front
+                                client.Connect(1000); // 1 second timeout
+                                using (var writer = new StreamWriter(client))
+                                {
+                                    writer.Write(oneClickUrl);
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to send URL to existing instance: {ex.Message}");
+                        }
+
+                        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                        {
+                            var otherProcess = Process.GetProcessesByName(currentProcess.ProcessName)
+                                                      .FirstOrDefault(p => p.Id != currentProcess.Id);
+                            if (otherProcess != null)
+                            {
+                                SetForegroundWindow(otherProcess.MainWindowHandle); // Bring the existing window to the front
+                            }
                         }
                     }
-                }
             }
         }
 
@@ -99,33 +139,144 @@ namespace CrossworldsModManager
         /// </summary>
         private static void RegisterProtocol()
         {
-            try
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                // Use HKEY_CURRENT_USER to avoid requiring admin privileges.
-                using (var key = Registry.CurrentUser.CreateSubKey($"Software\\Classes\\{ProtocolName}"))
+                try
                 {
-                    if (key == null) return;
-
-                    string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
-                    if (string.IsNullOrEmpty(exePath))
+                    // Use HKEY_CURRENT_USER to avoid requiring admin privileges.
+                    using (var key = Registry.CurrentUser.CreateSubKey($"Software\\Classes\\{ProtocolName}"))
                     {
-                        Debug.WriteLine("Could not determine executable path for protocol registration.");
-                        return;
-                    }
+                        if (key == null) return;
 
-                    key.SetValue("", $"URL:{ProtocolName} Protocol");
-                    key.SetValue("URL Protocol", "");
+                        string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                        if (string.IsNullOrEmpty(exePath))
+                        {
+                            Debug.WriteLine("Could not determine executable path for protocol registration.");
+                            return;
+                        }
 
-                    using (var commandKey = key.CreateSubKey(@"shell\open\command"))
-                    {
-                        commandKey?.SetValue("", $"\"{exePath}\" \"%1\"");
+                        key.SetValue("", $"URL:{ProtocolName} Protocol");
+                        key.SetValue("URL Protocol", "");
+
+                        using (var commandKey = key.CreateSubKey(@"shell\open\command"))
+                        {
+                            commandKey?.SetValue("", $"\"{exePath}\" \"%1\"");
+                        }
                     }
                 }
+                catch (Exception ex)
+                {
+                    // Log or show a non-fatal error if registration fails.
+                    Debug.WriteLine($"Failed to register URL protocol: {ex.Message}");
+                }
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                RegisterProtocolLinux();
+            }
+        }
+
+        private static void RegisterProtocolLinux()
+        {
+            if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_PROTOCOL_REGISTER") != null)
+                return;
+
+            try
+            {
+                string? exePath = Process.GetCurrentProcess().MainModule?.FileName;
+                string? exeDirPath = Path.GetDirectoryName(exePath);
+                if (string.IsNullOrEmpty(exePath) || string.IsNullOrEmpty(exeDirPath)) return;
+
+                string desktopFileName = "com.bluestar.manager.desktop";
+                string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
+                string iconsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "icons");
+
+                if (!Directory.Exists(applicationsPath))
+                    Directory.CreateDirectory(applicationsPath);
+
+                string desktopFilePath = Path.Combine(applicationsPath, desktopFileName);
+
+                if (!File.Exists(desktopFilePath))
+                {
+                    var result = CustomMessageBox.Show(
+                        "Would you like to register the 'bluestar:' URL protocol?\n\n" +
+                        "This allows 1-Click downloads from GameBanana to work.\n" +
+                        "This will create a .desktop file in ~/.local/share/applications.",
+                        "Linux Integration",
+                        MessageBoxButtons.YesNo,
+                        MessageBoxIcon.Warning);
+
+                    if (result != DialogResult.Yes) return;
+                }
+                string content = $"""
+                                  [Desktop Entry]
+                                  Type=Application
+                                  Name=Bluestar Manager
+                                  Categories=Game;Utility
+                                  Icon={exeDirPath}/Tools/icon.png
+                                  Exec="{exePath}" %u
+                                  Comment=Powerful mod manager for Sonic Racing: CrossWorlds
+                                  StartupNotify=false
+                                  MimeType=x-scheme-handler/{ProtocolName};
+                                  """;
+                if (Environment.GetEnvironmentVariable("APPIMAGE") != null)
+                {
+                    if (!Directory.Exists(iconsPath))
+                        Directory.CreateDirectory(iconsPath);
+                    try
+                    {
+                        File.Copy(Path.Combine(exeDirPath, "Tools", "icon-square.png"), Path.Combine(iconsPath, "bluestar.png"));
+                    }
+                    catch (IOException)
+                    {
+                        // icon already copied, do nothing
+                    }
+                    content = $"""
+                                      [Desktop Entry]
+                                      Type=Application
+                                      Name=Bluestar Manager
+                                      Categories=Game;Utility
+                                      Icon={Path.Combine(iconsPath, "bluestar.png")}
+                                      Exec="{Environment.GetEnvironmentVariable("APPIMAGE")}" %u
+                                      Comment=Powerful mod manager for Sonic Racing: CrossWorlds
+                                      StartupNotify=false
+                                      MimeType=x-scheme-handler/{ProtocolName};
+                                      """;
+                }
+                File.WriteAllText(desktopFilePath, content);
+
+                // Register with xdg-mime
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "xdg-mime",
+                        Arguments = $"default {desktopFileName} x-scheme-handler/{ProtocolName}",
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    })?.WaitForExit();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Failed to run xdg-mime: {ex.Message}");
+                }
+
+                // Update desktop database if possible
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "update-desktop-database",
+                        Arguments = applicationsPath,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    })?.WaitForExit();
+                }
+                catch { /* Ignore if update-desktop-database is missing */ }
             }
             catch (Exception ex)
             {
-                // Log or show a non-fatal error if registration fails.
-                Debug.WriteLine($"Failed to register URL protocol: {ex.Message}");
+                Debug.WriteLine($"Failed to register URL protocol on Linux: {ex.Message}");
             }
         }
 
@@ -138,8 +289,9 @@ namespace CrossworldsModManager
             {
                 string owner = "Red1Fouad";
                 string repo = "Crossworlds-mod-manager-RED1";
-                string latestVersionTag;
+                string latestVersionTag = "";
                 string downloadUrl = string.Empty;
+                string fileName = string.Empty;
 
                 using (var client = new HttpClient())
                 {
@@ -149,15 +301,39 @@ namespace CrossworldsModManager
                     // Get the latest release information
                     var response = await client.GetStringAsync($"https://api.github.com/repos/{owner}/{repo}/releases/latest");
                     
-                    // A simple JSON parser to avoid adding a full library dependency.
-                    // This finds the "tag_name" and the first "browser_download_url".
-                    latestVersionTag = ParseJsonValue(response, "tag_name");
-                    downloadUrl = ParseJsonValue(response, "browser_download_url");
+                    using (JsonDocument doc = JsonDocument.Parse(response))
+                    {
+                        if (doc.RootElement.TryGetProperty("tag_name", out var tagElement))
+                        {
+                            latestVersionTag = tagElement.GetString() ?? "";
+                        }
+
+                        if (doc.RootElement.TryGetProperty("assets", out var assetsElement))
+                        {
+                            foreach (var asset in assetsElement.EnumerateArray())
+                            {
+                                string name = asset.GetProperty("name").GetString() ?? "";
+                                string url = asset.GetProperty("browser_download_url").GetString() ?? "";
+
+                                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    downloadUrl = url;
+                                    fileName = name;
+                                    break;
+                                }
+                                else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && name.EndsWith(".AppImage", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    downloadUrl = url;
+                                    fileName = name;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (string.IsNullOrEmpty(latestVersionTag) || string.IsNullOrEmpty(downloadUrl))
                 {
-                    Debug.WriteLine("Could not determine latest version or download URL from GitHub API response.");
                     return;
                 }
 
@@ -167,33 +343,63 @@ namespace CrossworldsModManager
 
                 if (latestVersion > currentVersion)
                 {
-                    var result = MessageBox.Show(
-                        $"A new version ({latestVersionTag}) is available!\nWould you like to update now?",
-                        "Update Available",
-                        MessageBoxButtons.YesNo,
-                        MessageBoxIcon.Information);
-
-                    if (result == DialogResult.Yes)
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        // Launch the external updater
-                        string updaterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "updater.exe");
-                        if (File.Exists(updaterPath))
+                        var result = CustomMessageBox.Show(
+                            $"A new version ({latestVersionTag}) is available!\nWould you like to update now?",
+                            "Update Available",
+                            MessageBoxButtons.YesNo,
+                            MessageBoxIcon.Information);
+
+                        if (result == DialogResult.Yes)
                         {
-                            var currentProcess = Process.GetCurrentProcess();
-                            string? appPath = currentProcess.MainModule?.FileName;
+                            // Launch the external updater
+                            string updaterPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "updater.exe");
+                            if (File.Exists(updaterPath))
+                            {
+                                var currentProcess = Process.GetCurrentProcess();
+                                string? appPath = currentProcess.MainModule?.FileName;
 
-                            if (string.IsNullOrEmpty(appPath)) {
-                                MessageBox.Show("Could not determine the application path. Update cannot proceed.", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                return;
+                                if (string.IsNullOrEmpty(appPath)) {
+                                    CustomMessageBox.Show("Could not determine the application path. Update cannot proceed.", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    return;
+                                }
+
+                                string arguments = $"--pid {currentProcess.Id} --appPath \"{appPath}\" --downloadUrl \"{downloadUrl}\"";
+                                Process.Start(updaterPath, arguments);
+                                Application.Exit();
                             }
-
-                            string arguments = $"--pid {currentProcess.Id} --appPath \"{appPath}\" --downloadUrl \"{downloadUrl}\"";
-                            Process.Start(updaterPath, arguments);
-                            Application.Exit();
+                            else
+                            {
+                                CustomMessageBox.Show($"Updater executable not found at:\n{updaterPath}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
+                        }
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_SELF_UPDATE") != null)
+                        {
+                            var result = CustomMessageBox.Show(
+                                $"A new version ({latestVersionTag}) is available!\nWould you like to open the Github page?",
+                                "Update Available",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Information);
+                            if (result == DialogResult.Yes)
+                            {
+                                Process.Start("xdg-open", $"https://github.com/{owner}/{repo}/releases/latest");
+                            }
                         }
                         else
                         {
-                            MessageBox.Show($"Updater executable not found at:\n{updaterPath}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            var result = CustomMessageBox.Show(
+                                $"A new version ({latestVersionTag}) is available!\nWould you like to download it now?",
+                                "Update Available",
+                                MessageBoxButtons.YesNo,
+                                MessageBoxIcon.Information);
+                            if (result == DialogResult.Yes)
+                            {
+                                await PerformLinuxUpdate(downloadUrl, fileName);
+                            }
                         }
                     }
                 }
@@ -205,9 +411,88 @@ namespace CrossworldsModManager
             }
         }
 
-        // A very basic helper to extract a value from a JSON string.
-        private static string ParseJsonValue(string json, string key) =>
-            System.Text.RegularExpressions.Regex.Match(json, $"\"{key}\"\\s*:\\s*\"(.*?)\"").Groups[1].Value;
+        private static async Task PerformLinuxUpdate(string downloadUrl, string fileName)
+        {
+            try
+            {
+                string? currentAppImage = Environment.GetEnvironmentVariable("APPIMAGE");
+                string downloadDir;
+                
+                if (!string.IsNullOrEmpty(currentAppImage))
+                {
+                    downloadDir = Path.GetDirectoryName(currentAppImage) ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                }
+                else
+                {
+                    downloadDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
+                }
+
+                string destinationPath = Path.Combine(downloadDir, fileName);
+
+                using (var client = new HttpClient())
+                {
+                    var data = await client.GetByteArrayAsync(downloadUrl);
+                    await File.WriteAllBytesAsync(destinationPath, data);
+                }
+
+                try
+                {
+                    Process.Start("chmod", $"+x \"{destinationPath}\"")?.WaitForExit();
+                }
+                catch { }
+
+                UpdateLinuxDesktopFile(destinationPath);
+
+                CustomMessageBox.Show($"Update downloaded to:\n{destinationPath}\n\nThe application shortcut has been updated.\nPlease restart the application.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                CustomMessageBox.Show($"Failed to update: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private static void UpdateLinuxDesktopFile(string newAppImagePath)
+        {
+            try
+            {
+                string desktopFileName = "com.bluestar.manager.desktop";
+                string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
+                string desktopFilePath = Path.Combine(applicationsPath, desktopFileName);
+
+                if (File.Exists(desktopFilePath))
+                {
+                    var lines = File.ReadAllLines(desktopFilePath);
+                    bool changed = false;
+                    for (int i = 0; i < lines.Length; i++)
+                    {
+                        if (lines[i].StartsWith("Exec=") && !lines[i].Contains(newAppImagePath))
+                        {
+                            lines[i] = $"Exec=\"{newAppImagePath}\" %u";
+                            changed = true;
+                        }
+                    }
+                    if (changed)
+                    {
+                        File.WriteAllLines(desktopFilePath, lines);
+                        try
+                        {
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = "update-desktop-database",
+                                Arguments = applicationsPath,
+                                UseShellExecute = false,
+                                CreateNoWindow = true
+                            })?.WaitForExit();
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to update desktop file: {ex.Message}");
+            }
+        }
 
         /// <summary>
         /// Checks for a mod.ini in all subdirectories of the given mod path.

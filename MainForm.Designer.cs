@@ -70,6 +70,7 @@ namespace CrossworldsModManager
             this.launchPlatformDropDown = new System.Windows.Forms.ToolStripDropDownButton();
             this.modListView = new System.Windows.Forms.ListView();
             this.columnHeaderName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.columnHeaderAuthor = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderActions = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderUpdate = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.pnlButtons = new System.Windows.Forms.FlowLayoutPanel();
@@ -130,7 +131,7 @@ namespace CrossworldsModManager
             this.menuStrip1.Dock = System.Windows.Forms.DockStyle.Top;
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
-            this.menuStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.Professional;
+            this.menuStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.ManagerRenderMode;
             this.menuStrip1.Size = new System.Drawing.Size(1200, 24);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
@@ -154,6 +155,7 @@ namespace CrossworldsModManager
             // 
             this.splitContainerRoot.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerRoot.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainerRoot.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.splitContainerRoot.Location = new System.Drawing.Point(0, 64);
             this.splitContainerRoot.Name = "splitContainerRoot";
             this.splitContainerRoot.Orientation = System.Windows.Forms.Orientation.Horizontal;
@@ -174,6 +176,7 @@ namespace CrossworldsModManager
             // 
             this.splitContainerMain.Dock = System.Windows.Forms.DockStyle.Fill;
             this.splitContainerMain.FixedPanel = System.Windows.Forms.FixedPanel.Panel2;
+            this.splitContainerMain.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.splitContainerMain.Location = new System.Drawing.Point(0, 0);
             this.splitContainerMain.Name = "splitContainerMain";
             // 
@@ -387,6 +390,7 @@ namespace CrossworldsModManager
             this.modListView.ContextMenuStrip = this.modContextMenuStrip;
             this.modListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.columnHeaderName,
+            this.columnHeaderAuthor,
             this.columnHeaderActions,
             this.columnHeaderUpdate});
             this.modListView.ForeColor = System.Drawing.Color.White;
@@ -406,7 +410,12 @@ namespace CrossworldsModManager
             // columnHeaderName
             // 
             this.columnHeaderName.Text = "Name";
-            this.columnHeaderName.Width = 450;
+            this.columnHeaderName.Width = 300;
+            // 
+            // columnHeaderAuthor
+            // 
+            this.columnHeaderAuthor.Text = "Author";
+            this.columnHeaderAuthor.Width = 150;
             // 
             // columnHeaderActions
             // 
@@ -460,6 +469,7 @@ namespace CrossworldsModManager
             this.pnlDevTop.Controls.Add(this.btnDevRefresh);
             this.pnlDevTop.Controls.Add(this.btnDevSelectPath);
             this.pnlDevTop.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlDevTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlDevTop.Location = new System.Drawing.Point(3, 3);
             this.pnlDevTop.Name = "pnlDevTop";
             this.pnlDevTop.Size = new System.Drawing.Size(382, 40);
@@ -527,6 +537,7 @@ namespace CrossworldsModManager
             this.pnlRight.Controls.Add(this.lblModName);
             this.pnlRight.Controls.Add(this.picModImage);
             this.pnlRight.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pnlRight.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlRight.Location = new System.Drawing.Point(0, 0);
             this.pnlRight.Name = "pnlRight";
             this.pnlRight.Padding = new System.Windows.Forms.Padding(20);
@@ -594,6 +605,7 @@ namespace CrossworldsModManager
             this.pnlButtons.AutoSize = true;
             this.pnlButtons.Controls.Add(this.btnToggleDebugLog);
             this.pnlButtons.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.pnlButtons.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlButtons.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
             this.pnlButtons.Location = new System.Drawing.Point(20, 563);
             this.pnlButtons.Name = "pnlButtons";
@@ -677,6 +689,7 @@ namespace CrossworldsModManager
             this.pnlSearch.Controls.Add(this.txtSearch);
             this.pnlSearch.Controls.Add(this.labelSearch);
             this.pnlSearch.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlSearch.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
             this.pnlSearch.Location = new System.Drawing.Point(10, 10);
             this.pnlSearch.Name = "pnlSearch";
             this.pnlSearch.Size = new System.Drawing.Size(430, 22);
@@ -910,6 +923,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripDropDownButton launchPlatformDropDown;
         private System.Windows.Forms.ListView modListView;
         private System.Windows.Forms.ColumnHeader columnHeaderName;
+        private System.Windows.Forms.ColumnHeader columnHeaderAuthor;
         #pragma warning disable 0649
         private System.Windows.Forms.ColumnHeader columnHeaderActions;
         private System.Windows.Forms.ColumnHeader columnHeaderUpdate;

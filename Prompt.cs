@@ -3,47 +3,78 @@ using System.Drawing;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public static class Prompt
     {
         public static string ShowDialog(string text, string caption, string defaultValue = "")
         {
-            Form prompt = new Form()
+            using (Form prompt = new Form())
             {
-                Width = 400,
-                Height = 150,
-                FormBorderStyle = FormBorderStyle.FixedDialog,
-                Text = caption,
-                StartPosition = FormStartPosition.CenterParent,
-                BackColor = Color.FromArgb(45, 45, 48)
-            };
-            Label textLabel = new Label() { Left = 20, Top = 20, Text = text, ForeColor = Color.White, AutoSize = true };
-            TextBox textBox = new TextBox() { Left = 20, Top = 50, Width = 350, Text = defaultValue };
-            Button confirmation = new Button() { 
-                Text = "Ok", Left = 215, Width = 75, Top = 80, DialogResult = DialogResult.OK,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White
-            };
-            confirmation.FlatAppearance.BorderSize = 0;
-            Button cancel = new Button() { 
-                Text = "Cancel", Left = 295, Width = 75, Top = 80, DialogResult = DialogResult.Cancel,
-                FlatStyle = FlatStyle.Flat,
-                BackColor = Color.FromArgb(63, 63, 70),
-                ForeColor = Color.White
-            };
-            cancel.FlatAppearance.BorderSize = 0;
+                prompt.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
+                prompt.Width = 450;
+                prompt.FormBorderStyle = FormBorderStyle.FixedDialog;
+                prompt.Text = caption;
+                prompt.StartPosition = FormStartPosition.CenterParent;
+                prompt.MaximizeBox = false;
+                prompt.MinimizeBox = false;
+                prompt.BackColor = Color.FromArgb(45, 45, 48);
+                prompt.ForeColor = Color.White;
 
-            confirmation.Click += (sender, e) => { prompt.Close(); };
-            cancel.Click += (sender, e) => { prompt.Close(); };
+                Label textLabel = new Label() { Left = 20, Top = 20, Text = text, AutoSize = true, MaximumSize = new Size(400, 0) };
+                TextBox textBox = new TextBox() { Left = 20, Top = 50, Width = 390, Text = defaultValue };
+                
+                // Adjust input position based on label height
+                if (textLabel.Bottom > 40) textBox.Top = textLabel.Bottom + 10;
 
-            prompt.Controls.Add(textBox);
-            prompt.Controls.Add(confirmation);
-            prompt.Controls.Add(cancel);
-            prompt.Controls.Add(textLabel);
-            prompt.AcceptButton = confirmation;
-            prompt.CancelButton = cancel;
+                FlowLayoutPanel buttonPanel = new FlowLayoutPanel()
+                {
+                    Dock = DockStyle.Bottom,
+                    Height = 50,
+                    FlowDirection = FlowDirection.RightToLeft,
+                    Padding = new Padding(10),
+                    BackColor = Color.FromArgb(45, 45, 48)
+                };
 
-            return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
+                Button confirmation = new Button() { 
+                    Text = "OK", DialogResult = DialogResult.OK,
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Color.FromArgb(0, 122, 204),
+                    ForeColor = Color.White,
+                    Size = new Size(80, 30),
+                    UseVisualStyleBackColor = false,
+                    Margin = new Padding(5, 0, 0, 0)
+                };
+                confirmation.FlatAppearance.BorderSize = 0;
+
+                Button cancel = new Button() { 
+                    Text = "Cancel", DialogResult = DialogResult.Cancel,
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Color.FromArgb(63, 63, 70),
+                    ForeColor = Color.White,
+                    Size = new Size(80, 30),
+                    UseVisualStyleBackColor = false,
+                    Margin = new Padding(5, 0, 0, 0)
+                };
+                cancel.FlatAppearance.BorderSize = 0;
+
+                buttonPanel.Controls.Add(cancel);
+                buttonPanel.Controls.Add(confirmation);
+
+                prompt.Controls.Add(textLabel);
+                prompt.Controls.Add(textBox);
+                prompt.Controls.Add(buttonPanel);
+                
+                // Calculate height based on content
+                int contentHeight = textBox.Bottom + buttonPanel.Height + 40;
+                prompt.ClientSize = new Size(450, contentHeight);
+
+                prompt.AcceptButton = confirmation;
+                prompt.CancelButton = cancel;
+
+                return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
+            }
         }
     }
+#pragma warning restore CA1416
 }

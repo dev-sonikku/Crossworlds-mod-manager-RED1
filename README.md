@@ -161,7 +161,10 @@ Each `.json` file contains an array of objects, where each object represents a s
 ## Credits
 
 -   **RED1**: Lead Developer
--   **UnrealPak**: Used for game asset packaging.
--   **UAssetAPI**: Used for `.locres` file manipulation.
+-   **AntiApple4life**: Linux Port
+-   **repak**: Used for game asset packaging.
+-   **LocResUtilityCLI**: Used for `.locres` file manipulation.
+-   **SharpCompress**: Used for archive extraction.
+-   **DanielVanNoord/System.Windows.Forms**: Used for the Linux port's frontend.
 
 This tool is not affiliated with SEGA or Sumo Digital.

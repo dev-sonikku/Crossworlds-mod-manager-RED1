@@ -45,8 +45,11 @@ namespace CrossworldsModManager
                 Location = new Point(220, 96),
                 Size = new Size(80, 28),
                 BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
             };
+            btnYes.FlatAppearance.BorderSize = 0;
 
             btnNo = new Button()
             {
@@ -55,8 +58,11 @@ namespace CrossworldsModManager
                 Location = new Point(312, 96),
                 Size = new Size(80, 28),
                 BackColor = Color.FromArgb(63, 63, 70),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                UseVisualStyleBackColor = false
             };
+            btnNo.FlatAppearance.BorderSize = 0;
 
             this.Controls.Add(lblMessage);
             this.Controls.Add(chkDontShow);

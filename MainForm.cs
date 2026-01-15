@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Drawing;
 using System.IO.Compression;
+using System.IO.Pipes;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
@@ -15,18 +16,10 @@ using SharpCompress.Common;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public partial class MainForm : Form
     {
-        // Struct for receiving WM_COPYDATA messages
-        [StructLayout(LayoutKind.Sequential)]
-        private struct COPYDATASTRUCT
-        {
-            public IntPtr dwData;
-            public int cbData;
-            public IntPtr lpData;
-        }
-        private const int WM_COPYDATA = 0x004A;
-
         // This is a common executable name pattern for Unreal Engine games.
         // We check for the process name without the .exe extension.
         private const string GameProcessName = "SonicRacingCrossWorldsSteam";
@@ -43,7 +36,18 @@ namespace CrossworldsModManager
             InitializeComponent();
             // Set the form's icon from the executable's embedded icon.
             _oneClickUrl = oneClickUrl;
-            this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                this.Icon = System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            }
+            else
+            {
+                string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools", "icon.png");
+                if (File.Exists(iconPath))
+                {
+                    using (var bmp = new Bitmap(iconPath)) { this.Icon = Icon.FromHandle(bmp.GetHicon()); }
+                }
+            }
 
             // Use the version in the title bar
             this.Text = $"Blue Star Manager v{appVersion} - A Sonic Racing: CrossWorlds Mod Manager";
@@ -70,7 +74,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(63, 63, 70),
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                UseVisualStyleBackColor = false
             };
             btnBrowseMods.FlatAppearance.BorderSize = 0;
             btnBrowseMods.Click += btnBrowseMods_Click;
@@ -85,7 +90,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(63, 63, 70),
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                UseVisualStyleBackColor = false
             };
             btnBackupMods.FlatAppearance.BorderSize = 0;
             btnBackupMods.Click += btnBackupMods_Click;
@@ -100,7 +106,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(63, 63, 70),
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                UseVisualStyleBackColor = false
             };
             btnRestoreMods.FlatAppearance.BorderSize = 0;
             btnRestoreMods.Click += btnRestoreMods_Click;
@@ -138,6 +145,8 @@ namespace CrossworldsModManager
             {
                 // Ignore if designer names differ or items not present
             }
+
+            StartPipeServer();
         }
 
         private void NormalizeRootItem_Click(object? sender, EventArgs e)
@@ -145,7 +154,7 @@ namespace CrossworldsModManager
             var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
             if (selectedItems.Count == 0)
             {
-                MessageBox.Show("Please select one or more mods to normalize.", "Normalize Mod Root", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("Please select one or more mods to normalize.", "Normalize Mod Root", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -161,13 +170,13 @@ namespace CrossworldsModManager
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Failed to normalize '{modInfo.Name}':\n{ex.Message}", "Normalize Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        CustomMessageBox.Show($"Failed to normalize '{modInfo.Name}':\n{ex.Message}", "Normalize Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
 
             RefreshModList();
-            MessageBox.Show($"Normalization complete for {success} mod(s). Check the debug log or mod_ops.log for details.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CustomMessageBox.Show($"Normalization complete for {success} mod(s). Check the debug log or mod_ops.log for details.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void LoadSettingsAndSetup()
@@ -225,33 +234,38 @@ namespace CrossworldsModManager
             ShowPromoPopup();
         }
 
-        protected override void WndProc(ref Message m)
+        private void StartPipeServer()
         {
-            // Listen for WM_COPYDATA messages from other instances
-            if (m.Msg == WM_COPYDATA)
+            Task.Run(async () =>
             {
-                try
+                while (!IsDisposed)
                 {
-                    var cds = (COPYDATASTRUCT)Marshal.PtrToStructure(m.LParam, typeof(COPYDATASTRUCT))!;
-                    var url = Marshal.PtrToStringAnsi(cds.lpData);
-
-                    if (!string.IsNullOrEmpty(url))
+                    try
                     {
-                        // Handle the URL on the UI thread
-                        this.BeginInvoke((Action)(() => HandleOneClickInstallAsync(url)));
+                        using (var server = new NamedPipeServerStream("CrossworldsModManagerPipe", PipeDirection.In))
+                        {
+                            await server.WaitForConnectionAsync();
+                            using (var reader = new StreamReader(server))
+                            {
+                                var url = await reader.ReadToEndAsync();
+                                if (!string.IsNullOrEmpty(url))
+                                {
+                                    this.BeginInvoke((Action)(() => HandleOneClickInstallAsync(url)));
+                                }
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore errors (e.g. disposal during shutdown)
                     }
                 }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"Error processing WM_COPYDATA: {ex.Message}");
-                }
-            }
-            base.WndProc(ref m);
+            });
         }
 
         private void DetectGameInstallations()
         {
-            _gameInstallations = GameRegistry.FindGameInstallations();
+            _gameInstallations = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? GameRegistryLinux.FindGameInstallations() : GameRegistry.FindGameInstallations();
         
             // If we found a game and the settings path is empty, auto-configure it.
             if (_gameInstallations.Any() && string.IsNullOrWhiteSpace(SettingsManager.Settings.GameDirectory))
@@ -265,7 +279,7 @@ namespace CrossworldsModManager
             launchPlatformDropDown.DropDownItems.Clear();
         
             // Always provide options for Steam and Epic, using detected paths or falling back to the settings path.
-            var platformsToShow = new List<string> { "Steam", "Epic Games" };
+            var platformsToShow = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new List<string> { "Steam", "Epic Games" } : new List<string> { "Steam" };
             foreach (var platformName in platformsToShow)
             {
                 var item = new ToolStripMenuItem(platformName);
@@ -370,7 +384,7 @@ namespace CrossworldsModManager
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Failed to apply option for '{baseName}': {ex.Message}",
+                        CustomMessageBox.Show($"Failed to apply option for '{baseName}': {ex.Message}",
                             "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
@@ -540,7 +554,7 @@ namespace CrossworldsModManager
                     // After the pack operation completes, install the final produced pak into the game's ~mods folder.
                     try
                     {
-                        var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                        var toolsDir = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "data") : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
                         var sourcePak = Path.Combine(toolsDir, "LocresMod.pak");
                         if (!File.Exists(sourcePak))
                         {
@@ -597,7 +611,7 @@ namespace CrossworldsModManager
             catch (Exception ex)
             {
                 progress.Report($"\nAn error occurred during the save process: {ex.Message}");
-                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
@@ -614,7 +628,7 @@ namespace CrossworldsModManager
                     }
 
                     // Cleanup the merged Game_*.json files from the Tools directory.
-                    var toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                    var toolsDir = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "data") : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
                     try
                     {
                         var mergedJsonFiles = Directory.GetFiles(toolsDir, "Game_*.json");
@@ -646,14 +660,14 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrEmpty(_selectedPlatform) || !_gameInstallations.ContainsKey(_selectedPlatform))
             {
-                MessageBox.Show("Could not find game installation to launch.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show("Could not find game installation to launch.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             
             // Check if the game process is already running.
             if (Process.GetProcessesByName(GameProcessName).Any())
             {
-                MessageBox.Show("The game is already running.", "Game Running", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("The game is already running.", "Game Running", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 UpdateStatus("Launch aborted: Game is already running.");
                 return;
             }
@@ -682,7 +696,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus("Launch failed.");
             }
         }
@@ -1060,8 +1074,8 @@ namespace CrossworldsModManager
                                 // We need to update the UI on the UI thread.
                                 this.Invoke((Action)(() => {
                                     item.ForeColor = Color.LimeGreen;
-                                    // Place the "Update" action in the new "Update" column (index 2).
-                                    var updateSubItem = item.SubItems[2];
+                                    // Place the "Update" action in the new "Update" column (index 3).
+                                    var updateSubItem = item.SubItems[3];
                                     if (!updateSubItem.Text.Contains("Update"))
                                     {
                                         updateSubItem.Text = "🔄 Update";
@@ -1088,6 +1102,7 @@ namespace CrossworldsModManager
             var item = new ListViewItem(new[] 
                     {
                         modInfo.Name,
+                        modInfo.Author,
                         // Add text to the "Actions" column only if the mod is configurable.
                         modInfo.ConfigurationGroups.Any() ? "⚙️ Configure" : "",
                         "" // Placeholder for the new Update column
@@ -1384,7 +1399,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred during mod installation: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"An error occurred during mod installation: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus("Mod installation failed.");
                 return false;
             }
@@ -1397,7 +1412,7 @@ namespace CrossworldsModManager
 
             if (Directory.Exists(ue4ssDir)) return;
 
-            var result = MessageBox.Show(
+            var result = CustomMessageBox.Show(
                 "One or more enabled mods require UE4SS (Unreal Engine 4 Scripting System) to function.\n\n" +
                 "It is not currently installed. Would you like to download and install it automatically now?",
                 "UE4SS Required",
@@ -1441,7 +1456,7 @@ namespace CrossworldsModManager
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to install UE4SS: {ex.Message}");
-                MessageBox.Show($"Failed to automatically install UE4SS. Please install it manually.\nError: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show($"Failed to automatically install UE4SS. Please install it manually.\nError: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             finally
             {
@@ -1451,44 +1466,17 @@ namespace CrossworldsModManager
 
         private async Task<bool> CreateSymbolicLinkAsync(string linkPath, string targetPath)
         {
-            string command;
-            string arguments;
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                command = "cmd.exe";
-                arguments = $"/c mklink /J \"{linkPath}\" \"{targetPath}\"";
-            }
-            else // For Linux/macOS
-            {
-                command = "ln";
-                arguments = $"-s \"{targetPath}\" \"{linkPath}\"";
-            }
-
-            using (var process = new Process())
-            {
-                process.StartInfo = new ProcessStartInfo
+            
+                try
                 {
-                        FileName = command,
-                        Arguments = arguments,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                };
-
-                process.Start();
-                await process.WaitForExitAsync(); // Asynchronously wait for the process to exit.
-
-                if (process.ExitCode != 0)
+                    await Task.Run(() => Directory.CreateSymbolicLink(linkPath, targetPath));
+                    return true;
+                }
+                catch (Exception ex)
                 {
-                    // Optionally log the error for debugging
-                    // var error = await process.StandardError.ReadToEndAsync();
-                    // Debug.WriteLine($"Failed to create link {linkPath}: {error}");
+                    Debug.WriteLine($"Symlink failed: {ex.Message}");
                     return false;
                 }
-                return true;
-            }
         }
 
         private async Task<bool> CreateHardLinkAsync(string linkPath, string targetPath)
@@ -1595,19 +1583,27 @@ namespace CrossworldsModManager
 
         private void PromptForModsDirectory()
         {
-            MessageBox.Show("Welcome! Please select a folder to store your mods.", "First-Time Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CustomMessageBox.Show("Welcome! Please select a folder to store your mods.", "First-Time Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
             using (var fbd = new FolderBrowserDialog())
             {
                 fbd.Description = "Select or create a folder to store your mods";
-                if (fbd.ShowDialog() == DialogResult.OK)
+                while (true)
                 {
-                    SettingsManager.Settings.ModsDirectory = fbd.SelectedPath;
-                    SettingsManager.Save();
-                }
-                else
-                {
+                    if (fbd.ShowDialog() == DialogResult.OK)
+                    {
+                        var dirName = new DirectoryInfo(fbd.SelectedPath).Name;
+                        if (dirName.Equals("~mods", StringComparison.OrdinalIgnoreCase))
+                        {
+                            CustomMessageBox.Show("You cannot select the game's '~mods' folder as your mod storage directory.\n\nThis folder is used by the manager to install mods. Please select a different folder to store your source mods.", "Invalid Directory", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            continue;
+                        }
+                        SettingsManager.Settings.ModsDirectory = fbd.SelectedPath;
+                        SettingsManager.Save();
+                        break;
+                    }
                     // User cancelled. The app might not be fully functional, but let it load.
                     UpdateStatus("Warning: Mods directory not selected.");
+                    break;
                 }
             }
         }
@@ -1616,14 +1612,14 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) || !Directory.Exists(SettingsManager.Settings.ModsDirectory))
             {
-                MessageBox.Show("The mods directory is not configured. Please set it in Settings before adding mods.", "Mods Directory Not Set", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("The mods directory is not configured. Please set it in Settings before adding mods.", "Mods Directory Not Set", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             using (var ofd = new OpenFileDialog())
             {
                 ofd.Title = "Select Mod Archive";
-                ofd.Filter = "Mod Archives (*.zip, *.7z, *.rar)|*.zip;*.7z;*.rar|All files (*.*)|*.*";
+                ofd.Filter = "Mod Archives|*.zip;*.7z;*.rar;*.tar;*.tar.gz;*.tar.xz;*.tar.zst;*.tar.bz2;*.tar.lz|All files (*.*)|*.*";
                 ofd.Multiselect = true;
         
                 if (ofd.ShowDialog() == DialogResult.OK)
@@ -1647,46 +1643,27 @@ namespace CrossworldsModManager
                     {
                         try
                         {
-                            string extension = Path.GetExtension(file).ToLowerInvariant();
                             string modName = Path.GetFileNameWithoutExtension(file);
-                    string targetDir = Path.Combine(modsDirectory, modName); 
+                            string targetDir = Path.Combine(modsDirectory, modName); 
 
                             if (Directory.Exists(targetDir))
                             {
-                                var result = MessageBox.Show($"A mod named '{modName}' already exists. Do you want to overwrite it?", "Mod Exists", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                                var result = CustomMessageBox.Show($"A mod named '{modName}' already exists. Do you want to overwrite it?", "Mod Exists", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                                 if (result == DialogResult.No) continue;
                                 Directory.Delete(targetDir, true);
                             }
 
                             Directory.CreateDirectory(targetDir);
-        
-                            if (extension == ".rar")
+
+                            using (var archive = ArchiveFactory.Open(file))
                             {
-                                var unrarPath = Path.Combine(toolsDir, "UnRAR.exe");
-                                if (!File.Exists(unrarPath)) throw new FileNotFoundException("UnRAR.exe not found in Tools folder. It is required to extract .rar files.");
-                                await ExtractWithToolAsync(unrarPath, file, targetDir);
-                            }
-                            else if (extension == ".zip")
-                            {
-                                // Use native .NET extraction for .zip files for better reliability.
-                                await Task.Run(() => ZipFile.ExtractToDirectory(file, targetDir, true));
-                            }
-                            else if (extension == ".7z")
-                            {
-                                var sevenZipPath = Path.Combine(toolsDir, "7zr.exe");
-                                if (!File.Exists(sevenZipPath)) throw new FileNotFoundException("7zr.exe not found in Tools folder. It is required to extract .7z files.");
-                                await ExtractWithToolAsync(sevenZipPath, file, targetDir);
-                            }
-                            else
-                            {
-                                MessageBox.Show($"Unsupported archive format: {extension}", "Unsupported File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                                continue;
+                                archive.WriteToDirectory(targetDir, new ExtractionOptions { ExtractFullPath = true, Overwrite = true });
                             }
                             successCount++;
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to install mod from '{Path.GetFileName(file)}':\n{ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            CustomMessageBox.Show($"Failed to install mod from '{Path.GetFileName(file)}':\n{ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                     UpdateStatus($"{successCount} of {ofd.FileNames.Length} mod(s) installed.");
@@ -1700,11 +1677,11 @@ namespace CrossworldsModManager
             var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
             if (selectedItems.Count == 0)
             {
-                MessageBox.Show("Please select a mod to remove.", "Remove Mod", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("Please select a mod to remove.", "Remove Mod", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            if (MessageBox.Show($"Are you sure you want to permanently delete the selected {selectedItems.Count} mod(s)? This cannot be undone.", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (CustomMessageBox.Show($"Are you sure you want to permanently delete the selected {selectedItems.Count} mod(s)? This cannot be undone.", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 foreach (ListViewItem item in selectedItems)
                 {
@@ -1720,7 +1697,7 @@ namespace CrossworldsModManager
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to delete mod '{modInfo.Name}':\n{ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            CustomMessageBox.Show($"Failed to delete mod '{modInfo.Name}':\n{ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }
@@ -1978,13 +1955,13 @@ namespace CrossworldsModManager
 
             int columnIndex = item.SubItems.IndexOf(subItem);
 
-            // Check for a click in the "Update" column (index 2).
-            if (columnIndex == 2 && subItem.Text.Contains("Update"))
+            // Check for a click in the "Update" column (index 3).
+            if (columnIndex == 3 && subItem.Text.Contains("Update"))
             {
                 HandleModUpdateClick(modInfo);
             }
-            // Check for a click in the "Actions" column (index 1).
-            else if (columnIndex == 1)
+            // Check for a click in the "Actions" column (index 2).
+            else if (columnIndex == 2)
             {
                 if (modInfo.ConfigurationGroups.Any() && subItem.Text.Contains("Configure"))
                 {
@@ -2000,7 +1977,7 @@ namespace CrossworldsModManager
 
         private async void HandleModUpdateClick(ModInfo modInfo)
         {
-            var result = MessageBox.Show($"An update is available for '{modInfo.Name}'.\n\nWould you like to view the update details and install it now?", "Update Mod", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            var result = CustomMessageBox.Show($"An update is available for '{modInfo.Name}'.\n\nWould you like to view the update details and install it now?", "Update Mod", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if (result == DialogResult.No) return;
 
             try
@@ -2009,7 +1986,7 @@ namespace CrossworldsModManager
                 var iniPath = Path.Combine(modInfo.DirectoryPath, "mod.ini");
                 if (!File.Exists(iniPath))
                 {
-                    MessageBox.Show("Could not find mod.ini file to get update information.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("Could not find mod.ini file to get update information.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -2019,7 +1996,7 @@ namespace CrossworldsModManager
                     !int.TryParse(itemIdStr, out var itemId) ||
                     !gbSection.TryGetValue("ItemType", out var itemType))
                 {
-                    MessageBox.Show("Could not find valid GameBanana information in the mod's mod.ini file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("Could not find valid GameBanana information in the mod's mod.ini file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -2033,14 +2010,25 @@ namespace CrossworldsModManager
 
                 // Open the ModDetailsForm, which will handle the download/install process.
                 // This is the same behavior as clicking "Download" in the mod browser.
-                using (var modDetailsForm = new ModDetailsForm(gameBananaMod, new Progress<string>(s => AppendLog(s)), RefreshModList))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    modDetailsForm.ShowDialog(this);
+                   using (var modDetailsForm = new ModDetailsFormLinux(gameBananaMod, new Progress<string>(s => AppendLog(s)), RefreshModList))
+                   {
+                       modDetailsForm.ShowDialog(this);
+                   }
                 }
+                else
+                {
+                    using (var modDetailsForm = new ModDetailsForm(gameBananaMod, new Progress<string>(s => AppendLog(s)), RefreshModList))
+                    {
+                        modDetailsForm.ShowDialog(this);
+                    }
+                }
+                
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start update process:\n\n{ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to start update process:\n\n{ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -2088,8 +2076,12 @@ namespace CrossworldsModManager
         {
             try
             {
-                string flagPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "megaman_promo.flag");
+                string flagPath = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar","megaman_promo.flag") : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "megaman_promo.flag");
                 if (File.Exists(flagPath)) return;
+
+                // Ensure the directory exists before trying to show/write the flag
+                var flagDir = Path.GetDirectoryName(flagPath);
+                if (flagDir != null && !Directory.Exists(flagDir)) Directory.CreateDirectory(flagDir);
 
                 using (var promoForm = new CrossworldsModManager.MegaManPromoForm())
                 {
@@ -2159,7 +2151,15 @@ namespace CrossworldsModManager
 
             if (item.Tag is ModInfo modInfo)
             {
-                Process.Start("explorer.exe", modInfo.DirectoryPath);
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", $"\"{modInfo.DirectoryPath}\"");
+                }
+                else
+                {
+                    Process.Start("explorer.exe", modInfo.DirectoryPath);
+                }
+                
             }
         }
 
@@ -2331,7 +2331,7 @@ namespace CrossworldsModManager
             if (string.IsNullOrWhiteSpace(newProfileName) || SettingsManager.Settings.Profiles.ContainsKey(newProfileName))
             {
                 if (!string.IsNullOrWhiteSpace(newProfileName))
-                    MessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -2351,7 +2351,7 @@ namespace CrossworldsModManager
             if (string.IsNullOrWhiteSpace(newName) || newName == currentName || SettingsManager.Settings.Profiles.ContainsKey(newName))
             {
                 if (!string.IsNullOrWhiteSpace(newName) && newName != currentName)
-                    MessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -2368,11 +2368,11 @@ namespace CrossworldsModManager
             var currentName = SettingsManager.Settings.ActiveProfileName;
             if (string.IsNullOrEmpty(currentName) || SettingsManager.Settings.Profiles.Count <= 1)
             {
-                MessageBox.Show("You cannot delete the last profile.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show("You cannot delete the last profile.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (MessageBox.Show($"Are you sure you want to delete the '{currentName}' profile?", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (CustomMessageBox.Show($"Are you sure you want to delete the '{currentName}' profile?", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 SettingsManager.Settings.Profiles.Remove(currentName);
                 SettingsManager.Settings.ActiveProfileName = SettingsManager.Settings.Profiles.Keys.First();
@@ -2400,7 +2400,7 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) || !Directory.Exists(SettingsManager.Settings.ModsDirectory))
             {
-                MessageBox.Show("Mods directory is not set or does not exist.", "Backup Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("Mods directory is not set or does not exist.", "Backup Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -2411,11 +2411,11 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory))
             {
-                MessageBox.Show("Mods directory is not set.", "Restore Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("Mods directory is not set.", "Restore Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (MessageBox.Show("Are you sure you want to restore mods from backup? This will overwrite existing files.", "Confirm Restore", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (CustomMessageBox.Show("Are you sure you want to restore mods from backup? This will overwrite existing files.", "Confirm Restore", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 ModBackupManager.RestoreModsFromBackup(SettingsManager.Settings.ModsDirectory);
                 RefreshModList();
@@ -2475,39 +2475,74 @@ namespace CrossworldsModManager
 
                 // Show the details form as a confirmation dialog.
                 // The form will handle fetching full details, downloading, and installing.
-                using (var detailsForm = new ModDetailsForm(fullModInfo, browserLogger, RefreshModList))
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                 {
-                    detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
-
-                    // Backup mods before proceeding with a 1-Click install (unless user disabled automatic backups)
-                    try
+                    using (var detailsForm = new ModDetailsFormLinux(fullModInfo, browserLogger, RefreshModList))
                     {
-                        if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                        detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
+
+                        // Backup mods before proceeding with a 1-Click install (unless user disabled automatic backups)
+                        try
                         {
-                            ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                            if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                            {
+                                ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to create backup before 1-Click install: {ex.Message}");
+                        }
+
+                        var result = detailsForm.ShowDialog(this);
+
+                        if (result == DialogResult.OK)
+                        {
+                            await detailsForm.LaunchProgressForm(fileToInstall);
+                            UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
+                        }
+                        else
+                        {
+                            UpdateStatus("1-Click Install cancelled by user.");
                         }
                     }
-                    catch (Exception ex)
+                }
+                else
+                {
+                    using (var detailsForm = new ModDetailsForm(fullModInfo, browserLogger, RefreshModList))
                     {
-                        Debug.WriteLine($"Failed to create backup before 1-Click install: {ex.Message}");
-                    }
+                        detailsForm.SetConfirmationMode(); // Adapt the form for Yes/No confirmation
 
-                    var result = detailsForm.ShowDialog(this);
+                        // Backup mods before proceeding with a 1-Click install (unless user disabled automatic backups)
+                        try
+                        {
+                            if (!SettingsManager.Settings.DoNotBackupModsAutomatically && !string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) && Directory.Exists(SettingsManager.Settings.ModsDirectory))
+                            {
+                                ModBackupManager.BackupMods(SettingsManager.Settings.ModsDirectory);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Debug.WriteLine($"Failed to create backup before 1-Click install: {ex.Message}");
+                        }
 
-                    if (result == DialogResult.OK)
-                    {
-                        await detailsForm.LaunchProgressForm(fileToInstall);
-                        UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
-                    }
-                    else
-                    {
-                        UpdateStatus("1-Click Install cancelled by user.");
+                        var result = detailsForm.ShowDialog(this);
+
+                        if (result == DialogResult.OK)
+                        {
+                            await detailsForm.LaunchProgressForm(fileToInstall);
+                            UpdateStatus($"1-Click Install for '{detailsForm.ModName}' successful!");
+                        }
+                        else
+                        {
+                            UpdateStatus("1-Click Install cancelled by user.");
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to handle 1-Click Install link:\n\n{ex.Message}", "1-Click Install Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to handle 1-Click Install link:\n\n{ex.Message}", "1-Click Install Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus("1-Click Install failed.");
             }
         }
@@ -2558,43 +2593,6 @@ namespace CrossworldsModManager
         #endregion
 
         #region Archive Extraction
-
-        private async Task ExtractWithToolAsync(string toolPath, string archivePath, string destinationPath)
-        {
-            string arguments;
-            string toolName = Path.GetFileName(toolPath).ToLowerInvariant();
-
-            if (toolName == "unrar.exe")
-            {
-                arguments = $"x -o+ \"{archivePath}\" \"{destinationPath}\\\" -y";
-            }
-            else // Assumes 7zr.exe or 7z.exe
-            {
-                arguments = $"x \"{archivePath}\" -o\"{destinationPath}\" -y";
-            }
-
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = toolPath,
-                    Arguments = arguments,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            string output = await process.StandardOutput.ReadToEndAsync();
-            string error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-
-            if (process.ExitCode != 0)
-            {
-                throw new Exception($"{Path.GetFileName(toolPath)} extraction failed with exit code {process.ExitCode}.\nError: {error}");
-            }
-        }
 
         private async void UpdateModDetails(ModInfo? mod)
         {
@@ -2800,4 +2798,5 @@ namespace CrossworldsModManager
 
         #endregion
     }
+#pragma warning restore CA1416
 }

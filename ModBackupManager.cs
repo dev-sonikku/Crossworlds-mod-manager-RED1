@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Windows.Forms;
@@ -24,8 +25,16 @@ namespace CrossworldsModManager
         {
             try
             {
-                string appDir = AppDomain.CurrentDomain.BaseDirectory;
-                string backupDir = Path.Combine(appDir, "ModsTemp");
+                string backupDir;
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null)
+                {
+                    backupDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "backup");
+                }
+                else
+                {
+                    backupDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModsTemp");
+                }
 
                 if (!Directory.Exists(backupDir))
                 {
@@ -110,8 +119,16 @@ namespace CrossworldsModManager
         {
             try
             {
-                string appDir = AppDomain.CurrentDomain.BaseDirectory;
-                string backupDir = Path.Combine(appDir, "ModsTemp");
+                string backupDir;
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null)
+                {
+                    backupDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "backup");
+                }
+                else
+                {
+                    backupDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModsTemp");
+                }
 
                 if (!Directory.Exists(backupDir))
                 {

@@ -7,6 +7,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public partial class DeveloperForm : Form
     {
         private Button btnSelectPath = null!;
@@ -51,10 +53,11 @@ namespace CrossworldsModManager
 
             // btnSelectPath
             this.btnSelectPath.Location = new Point(5, 5);
-            this.btnSelectPath.Size = new Size(160, 25);
+            this.btnSelectPath.Size = new Size(160, 30);
             this.btnSelectPath.Text = "Select UE Export Path...";
             this.btnSelectPath.Click += BtnSelectPath_Click;
             this.btnSelectPath.ForeColor = Color.White;
+            this.btnSelectPath.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
 
             // checkedListBoxFiles
             this.checkedListBoxFiles.Dock = DockStyle.Fill;
@@ -66,10 +69,11 @@ namespace CrossworldsModManager
 
             // btnRefresh
             this.btnRefresh.Location = new Point(170, 5);
-            this.btnRefresh.Size = new Size(75, 25);
+            this.btnRefresh.Size = new Size(75, 30);
             this.btnRefresh.Text = "Refresh";
             this.btnRefresh.Click += BtnRefresh_Click;
             this.btnRefresh.ForeColor = Color.White;
+            this.btnRefresh.Font = SystemFonts.MessageBoxFont ?? SystemFonts.DefaultFont;
 
             pnlTop.Controls.Add(this.btnSelectPath);
             pnlTop.Controls.Add(this.btnRefresh);
@@ -153,4 +157,5 @@ namespace CrossworldsModManager
             SettingsManager.Save();
         }
     }
+#pragma warning restore CA1416
 }

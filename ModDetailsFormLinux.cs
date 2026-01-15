@@ -15,7 +15,7 @@ namespace CrossworldsModManager
 {
     // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
 #pragma warning disable CA1416
-    public partial class ModDetailsForm : Form
+    public partial class ModDetailsFormLinux : Form
     {
         private readonly GameBananaMod _mod;
         private readonly IProgress<string>? _logger;
@@ -27,7 +27,7 @@ namespace CrossworldsModManager
         private Label lblAuthor = null!;
         private LinkLabel lnkProfileUrl = null!; 
         private Label lblLikeCount = null!;
-        private WebBrowser webDescription = null!; 
+        private Label lblDescription = null!; 
         private Button btnDownload = null!;
         private ListBox lstFiles = null!;
         private ProgressBar prgDownload = null!;
@@ -36,7 +36,7 @@ namespace CrossworldsModManager
 
         public string ModName => _mod.Name;
 
-        public ModDetailsForm(GameBananaMod mod, IProgress<string>? logger = null, Action? onModsChanged = null)
+        public ModDetailsFormLinux(GameBananaMod mod, IProgress<string>? logger = null, Action? onModsChanged = null)
         {
             _mod = mod;
             _logger = logger;
@@ -67,7 +67,7 @@ namespace CrossworldsModManager
             this.lblAuthor = new Label();
             this.lnkProfileUrl = new LinkLabel();
             this.lblLikeCount = new Label();
-            this.webDescription = new WebBrowser(); 
+            this.lblDescription = new Label();
             this.btnDownload = new Button();
             this.lstFiles = new ListBox();
             this.prgDownload = new ProgressBar();
@@ -86,6 +86,7 @@ namespace CrossworldsModManager
             Panel pnlWebContainer = new Panel();
             pnlWebContainer.Dock = DockStyle.Fill;
             pnlWebContainer.BorderStyle = BorderStyle.None;
+            pnlWebContainer.BackColor = Color.FromArgb(37, 37, 38);
 
             // Left panel for mod details
             Panel pnlDetails = new Panel();
@@ -139,26 +140,8 @@ namespace CrossworldsModManager
             this.lblLikeCount.AutoSize = true;
 
             // webDescription
-            this.webDescription.Dock = DockStyle.Fill;
-            this.webDescription.MinimumSize = new System.Drawing.Size(20, 20);
-            this.webDescription.IsWebBrowserContextMenuEnabled = false;
-            this.webDescription.WebBrowserShortcutsEnabled = false;
-            this.webDescription.ScriptErrorsSuppressed = true;
-            this.webDescription.Navigating += (s, e) =>
-            {
-                if (s is WebBrowser wb && wb.Document != null)
-                {
-                    try
-                    {
-                        var activeElement = wb.Document.ActiveElement;
-                        if (activeElement != null && activeElement.TagName.Equals("A", StringComparison.OrdinalIgnoreCase))
-                        {
-                            e.Cancel = true;
-                        }
-                    }
-                    catch { }
-                }
-            };
+            this.lblDescription.Dock = DockStyle.Fill;
+            this.lblDescription.MinimumSize = new System.Drawing.Size(20, 20);
 
             // lstFiles
             this.lstFiles.Dock = DockStyle.Fill;
@@ -189,10 +172,11 @@ namespace CrossworldsModManager
             this.btnDownload.BackColor = Color.FromArgb(0, 122, 204);
             this.btnDownload.FlatAppearance.BorderSize = 0;
             this.btnDownload.ForeColor = Color.White;
+            this.btnDownload.UseVisualStyleBackColor = false;
             this.btnDownload.Click += btnDownload_Click;
             
             // Add controls to panels
-            pnlWebContainer.Controls.Add(this.webDescription); // Add browser to its container
+            pnlWebContainer.Controls.Add(this.lblDescription); // Add browser to its container
             pnlDetails.Controls.Add(this.lnkProfileUrl);
             pnlDetails.Controls.Add(this.lblAuthor);
             pnlDetails.Controls.Add(this.lblLikeCount);
@@ -241,7 +225,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
                 ForeColor = Color.White,
-                DialogResult = DialogResult.Cancel
+                DialogResult = DialogResult.Cancel,
+                UseVisualStyleBackColor = false
             };
             btnCancel.FlatAppearance.BorderSize = 0;
 
@@ -311,7 +296,8 @@ namespace CrossworldsModManager
                 Dock = DockStyle.Bottom,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                UseVisualStyleBackColor = false
             };
             btnOk.FlatAppearance.BorderSize = 0;
 
@@ -322,13 +308,13 @@ namespace CrossworldsModManager
         }
         private async Task PopulateDataAsync()
         {
-            if (this.IsDisposed || webDescription.IsDisposed) return;
+            if (this.IsDisposed || lblDescription.IsDisposed) return;
 
             lblModName.Text = _mod.Name;
             lblAuthor.Text = $"by {_mod.Author}";
             lnkProfileUrl.Text = _mod.ProfileUrl;
             lblLikeCount.Text = $"Likes: {_mod.LikeCount:N0}";
-            webDescription.DocumentText = "<body style='background-color:#252526; color:white; font-family:sans-serif;'>Loading description...</body>";
+            lblDescription.Text = "Loading description...";
 
             if (!string.IsNullOrEmpty(_mod.ThumbnailUrl))
             {
@@ -350,7 +336,7 @@ namespace CrossworldsModManager
 
                 if (this.IsDisposed) return;
 
-                if (webDescription.IsDisposed) return;
+                if (lblDescription.IsDisposed) return;
 
                 // Populate description
                 if (modProfile?.Description != null && !string.IsNullOrEmpty(modProfile.Description))
@@ -358,14 +344,12 @@ namespace CrossworldsModManager
                     _mod.Name = modProfile.Name; // Update name from profile
                     lblLikeCount.Text = $"Likes: {modProfile.LikeCount:N0}"; // Update with more accurate count from profile if available
                     _logger?.Report($"Successfully fetched details. Description length: {modProfile.Description.Length} characters.");
-                    // Inject some basic CSS to make the HTML content match the dark theme.
-                    string styledHtml = "<style>body { background-color: #252526; color: white; font-family: sans-serif; } a { color: #569CD6; }</style>" + modProfile.Description;
-                    webDescription.DocumentText = styledHtml;
+                    lblDescription.Text = modProfile.Description;
                 }
                 else
                 {
                     _logger?.Report("Received a valid response, but it contained no description.");
-                    webDescription.DocumentText = "<body style='background-color:#252526; color:white; font-family:sans-serif;'>No description available for this mod.</body>";
+                    lblDescription.Text = "No description available for this mod.";
                 }
 
                 if (this.IsDisposed || lstFiles.IsDisposed) return;
@@ -388,7 +372,7 @@ namespace CrossworldsModManager
             {
                 if (this.IsDisposed) return;
                 _logger?.Report($"ERROR fetching mod details: {ex.Message}");
-                webDescription.DocumentText = $"<body style='background-color:#252526; color:white; font-family:sans-serif;'>Failed to load description. See debug log for details.</body>";
+                lblDescription.Text = "Failed to load description. See debug log for details.";
                 btnDownload.Enabled = false;
                 btnDownload.Text = "Error Loading Files";
             }
@@ -400,7 +384,7 @@ namespace CrossworldsModManager
 
             if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
             {
-                MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
