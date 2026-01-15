@@ -212,6 +212,7 @@ namespace CrossworldsModManager
                                   [Desktop Entry]
                                   Type=Application
                                   Name=Bluestar Manager
+                                  Categories=Game;Utility
                                   Icon={exeDirPath}/Tools/icon.png
                                   Exec="{exePath}" %u
                                   Comment=Powerful mod manager for Sonic Racing: CrossWorlds
@@ -220,11 +221,21 @@ namespace CrossworldsModManager
                                   """;
                 if (Environment.GetEnvironmentVariable("APPIMAGE") != null)
                 {
-                    File.Copy(Path.Combine(exeDirPath, "Tools", "icon-square.png"), Path.Combine(iconsPath, "bluestar.png"));
+                    if (!Directory.Exists(iconsPath))
+                        Directory.CreateDirectory(iconsPath);
+                    try
+                    {
+                        File.Copy(Path.Combine(exeDirPath, "Tools", "icon-square.png"), Path.Combine(iconsPath, "bluestar.png"));
+                    }
+                    catch (IOException)
+                    {
+                        // icon already copied, do nothing
+                    }
                     content = $"""
                                       [Desktop Entry]
                                       Type=Application
                                       Name=Bluestar Manager
+                                      Categories=Game;Utility
                                       Icon={Path.Combine(iconsPath, "bluestar.png")}
                                       Exec="{Environment.GetEnvironmentVariable("APPIMAGE")}" %u
                                       Comment=Powerful mod manager for Sonic Racing: CrossWorlds
