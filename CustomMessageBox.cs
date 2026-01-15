@@ -1,10 +1,14 @@
 // c:\games\Projects\Crossworlds mod manager RED1\CustomMessageBox.cs
 using System;
 using System.Drawing;
+using System.Media;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public static class CustomMessageBox
     {
         public static DialogResult Show(string text)
@@ -29,6 +33,13 @@ namespace CrossworldsModManager
 
         public static DialogResult Show(IWin32Window? owner, string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon)
         {
+            // If no owner is specified, try to use the active form.
+            // This fixes issues where the message box might appear behind other modal forms (like MegaManPromoForm).
+            if (owner == null)
+            {
+                owner = Form.ActiveForm;
+            }
+
             using (var form = new Form())
             {
                 form.Text = caption;
@@ -39,15 +50,64 @@ namespace CrossworldsModManager
                 form.ShowIcon = false;
                 form.BackColor = Color.FromArgb(45, 45, 48);
                 form.ForeColor = Color.White;
+                form.KeyPreview = true; // Enable key preview for Ctrl+C
+
+                // Play system sound
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    try
+                    {
+                        switch (icon)
+                        {
+                            case MessageBoxIcon.Error: SystemSounds.Hand.Play(); break;
+                            case MessageBoxIcon.Exclamation: SystemSounds.Exclamation.Play(); break;
+                            case MessageBoxIcon.Question: SystemSounds.Question.Play(); break;
+                            case MessageBoxIcon.Asterisk: SystemSounds.Asterisk.Play(); break;
+                            default: SystemSounds.Beep.Play(); break;
+                        }
+                    }
+                    catch { }
+                }
+
+                int textX = 20;
+
+                // Add Icon
+                if (icon != MessageBoxIcon.None)
+                {
+                    var pbox = new PictureBox();
+                    pbox.Location = new Point(20, 20);
+                    pbox.Size = new Size(32, 32);
+                    pbox.SizeMode = PictureBoxSizeMode.Zoom;
+                    
+                    Icon sysIcon = SystemIcons.Application;
+                    switch (icon)
+                    {
+                        case MessageBoxIcon.Error: sysIcon = SystemIcons.Error; break;
+                        case MessageBoxIcon.Warning: sysIcon = SystemIcons.Warning; break;
+                        case MessageBoxIcon.Question: sysIcon = SystemIcons.Question; break;
+                        case MessageBoxIcon.Information: sysIcon = SystemIcons.Information; break;
+                    }
+                    pbox.Image = sysIcon.ToBitmap();
+                    form.Controls.Add(pbox);
+                    textX = 70;
+                }
                 
                 // Create label for text
                 var lbl = new Label();
                 lbl.Text = text;
                 lbl.AutoSize = true;
-                lbl.MaximumSize = new Size(460, 0);
-                lbl.Location = new Point(20, 20);
+                lbl.MaximumSize = new Size(480 - textX, 0);
+                lbl.Location = new Point(textX, 20);
                 lbl.Font = new Font(SystemFonts.MessageBoxFont?.FontFamily ?? SystemFonts.DefaultFont.FontFamily, 10F);
                 form.Controls.Add(lbl);
+
+                // Ctrl+C to copy text
+                form.KeyDown += (s, e) => {
+                    if (e.Control && e.KeyCode == Keys.C)
+                    {
+                        Clipboard.SetText($"---------------------------\n{caption}\n---------------------------\n{text}\n---------------------------");
+                    }
+                };
 
                 // Calculate size
                 int contentHeight = lbl.PreferredHeight + 40;
@@ -130,4 +190,5 @@ namespace CrossworldsModManager
             }
         }
     }
+#pragma warning restore CA1416
 }
