@@ -49,6 +49,7 @@ namespace CrossworldsModManager
             btnOk.BackColor = Color.FromArgb(0, 122, 204);
             btnOk.ForeColor = Color.White;
             btnOk.FlatAppearance.BorderSize = 0;
+            btnOk.UseVisualStyleBackColor = false;
 
             var btnCancel = new Button();
             btnCancel.Text = "Cancel";
@@ -59,6 +60,7 @@ namespace CrossworldsModManager
             btnCancel.BackColor = Color.FromArgb(63, 63, 70);
             btnCancel.ForeColor = Color.White;
             btnCancel.FlatAppearance.BorderSize = 0;
+            btnCancel.UseVisualStyleBackColor = false;
 
             this.Controls.Add(btnCancel);
             this.Controls.Add(btnOk);

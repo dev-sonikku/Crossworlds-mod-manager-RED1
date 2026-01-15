@@ -79,7 +79,7 @@ namespace CrossworldsModManager
 
                             if (pathChanged)
                             {
-                                var result = MessageBox.Show(
+                                var result = CustomMessageBox.Show(
                                     "The AppImage's location seems to have been moved from where it was last executed.\nWould you like to update the .desktop file to point to the current location of the AppImage?",
                                     "Linux Integration",
                                     MessageBoxButtons.YesNo,
@@ -99,7 +99,7 @@ namespace CrossworldsModManager
                     catch (Exception ex)
                     {
                         // Fallback for unhandled exceptions
-                        MessageBox.Show($"A fatal error occurred:\n{ex.Message}\n\n{ex.StackTrace}",
+                        CustomMessageBox.Show($"A fatal error occurred:\n{ex.Message}\n\n{ex.StackTrace}",
                             "Fatal Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
@@ -194,7 +194,7 @@ namespace CrossworldsModManager
 
                 if (!File.Exists(desktopFilePath))
                 {
-                    var result = MessageBox.Show(
+                    var result = CustomMessageBox.Show(
                         "Would you like to register the 'bluestar:' URL protocol?\n\n" +
                         "This allows 1-Click downloads from GameBanana to work.\n" +
                         "This will create a .desktop file in ~/.local/share/applications.",
@@ -330,7 +330,7 @@ namespace CrossworldsModManager
                 {
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
                     {
-                        var result = MessageBox.Show(
+                        var result = CustomMessageBox.Show(
                             $"A new version ({latestVersionTag}) is available!\nWould you like to update now?",
                             "Update Available",
                             MessageBoxButtons.YesNo,
@@ -346,7 +346,7 @@ namespace CrossworldsModManager
                                 string? appPath = currentProcess.MainModule?.FileName;
 
                                 if (string.IsNullOrEmpty(appPath)) {
-                                    MessageBox.Show("Could not determine the application path. Update cannot proceed.", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    CustomMessageBox.Show("Could not determine the application path. Update cannot proceed.", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                     return;
                                 }
 
@@ -356,7 +356,7 @@ namespace CrossworldsModManager
                             }
                             else
                             {
-                                MessageBox.Show($"Updater executable not found at:\n{updaterPath}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                CustomMessageBox.Show($"Updater executable not found at:\n{updaterPath}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             }
                         }
                     }
@@ -364,7 +364,7 @@ namespace CrossworldsModManager
                     {
                         if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_SELF_UPDATE") != null)
                         {
-                            var result = MessageBox.Show(
+                            var result = CustomMessageBox.Show(
                                 $"A new version ({latestVersionTag}) is available!\nWould you like to open the Github page?",
                                 "Update Available",
                                 MessageBoxButtons.YesNo,
@@ -376,7 +376,7 @@ namespace CrossworldsModManager
                         }
                         else
                         {
-                            var result = MessageBox.Show(
+                            var result = CustomMessageBox.Show(
                                 $"A new version ({latestVersionTag}) is available!\nWould you like to download it now?",
                                 "Update Available",
                                 MessageBoxButtons.YesNo,
@@ -428,11 +428,11 @@ namespace CrossworldsModManager
 
                 UpdateLinuxDesktopFile(destinationPath);
 
-                MessageBox.Show($"Update downloaded to:\n{destinationPath}\n\nThe application shortcut has been updated.\nPlease restart the application.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show($"Update downloaded to:\n{destinationPath}\n\nThe application shortcut has been updated.\nPlease restart the application.", "Update Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to update: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to update: {ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

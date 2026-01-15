@@ -72,7 +72,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(63, 63, 70),
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                UseVisualStyleBackColor = false
             };
             btnBrowseMods.FlatAppearance.BorderSize = 0;
             btnBrowseMods.Click += btnBrowseMods_Click;
@@ -87,7 +88,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(63, 63, 70),
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                UseVisualStyleBackColor = false
             };
             btnBackupMods.FlatAppearance.BorderSize = 0;
             btnBackupMods.Click += btnBackupMods_Click;
@@ -102,7 +104,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(63, 63, 70),
-                Margin = new Padding(0, 0, 5, 0)
+                Margin = new Padding(0, 0, 5, 0),
+                UseVisualStyleBackColor = false
             };
             btnRestoreMods.FlatAppearance.BorderSize = 0;
             btnRestoreMods.Click += btnRestoreMods_Click;
@@ -147,7 +150,7 @@ namespace CrossworldsModManager
             var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
             if (selectedItems.Count == 0)
             {
-                MessageBox.Show("Please select one or more mods to normalize.", "Normalize Mod Root", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("Please select one or more mods to normalize.", "Normalize Mod Root", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -163,13 +166,13 @@ namespace CrossworldsModManager
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Failed to normalize '{modInfo.Name}':\n{ex.Message}", "Normalize Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        CustomMessageBox.Show($"Failed to normalize '{modInfo.Name}':\n{ex.Message}", "Normalize Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
             }
 
             RefreshModList();
-            MessageBox.Show($"Normalization complete for {success} mod(s). Check the debug log or mod_ops.log for details.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CustomMessageBox.Show($"Normalization complete for {success} mod(s). Check the debug log or mod_ops.log for details.", "Done", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void LoadSettingsAndSetup()
@@ -372,7 +375,7 @@ namespace CrossworldsModManager
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show($"Failed to apply option for '{baseName}': {ex.Message}",
+                        CustomMessageBox.Show($"Failed to apply option for '{baseName}': {ex.Message}",
                             "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
@@ -599,7 +602,7 @@ namespace CrossworldsModManager
             catch (Exception ex)
             {
                 progress.Report($"\nAn error occurred during the save process: {ex.Message}");
-                MessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"An error occurred: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
@@ -648,14 +651,14 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrEmpty(_selectedPlatform) || !_gameInstallations.ContainsKey(_selectedPlatform))
             {
-                MessageBox.Show("Could not find game installation to launch.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show("Could not find game installation to launch.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
             
             // Check if the game process is already running.
             if (Process.GetProcessesByName(GameProcessName).Any())
             {
-                MessageBox.Show("The game is already running.", "Game Running", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("The game is already running.", "Game Running", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 UpdateStatus("Launch aborted: Game is already running.");
                 return;
             }
@@ -684,7 +687,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to launch the game: {ex.Message}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus("Launch failed.");
             }
         }
@@ -1387,7 +1390,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"An error occurred during mod installation: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"An error occurred during mod installation: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus("Mod installation failed.");
                 return false;
             }
@@ -1400,7 +1403,7 @@ namespace CrossworldsModManager
 
             if (Directory.Exists(ue4ssDir)) return;
 
-            var result = MessageBox.Show(
+            var result = CustomMessageBox.Show(
                 "One or more enabled mods require UE4SS (Unreal Engine 4 Scripting System) to function.\n\n" +
                 "It is not currently installed. Would you like to download and install it automatically now?",
                 "UE4SS Required",
@@ -1444,7 +1447,7 @@ namespace CrossworldsModManager
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to install UE4SS: {ex.Message}");
-                MessageBox.Show($"Failed to automatically install UE4SS. Please install it manually.\nError: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show($"Failed to automatically install UE4SS. Please install it manually.\nError: {ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             finally
             {
@@ -1571,7 +1574,7 @@ namespace CrossworldsModManager
 
         private void PromptForModsDirectory()
         {
-            MessageBox.Show("Welcome! Please select a folder to store your mods.", "First-Time Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CustomMessageBox.Show("Welcome! Please select a folder to store your mods.", "First-Time Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
             using (var fbd = new FolderBrowserDialog())
             {
                 fbd.Description = "Select or create a folder to store your mods";
@@ -1592,7 +1595,7 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) || !Directory.Exists(SettingsManager.Settings.ModsDirectory))
             {
-                MessageBox.Show("The mods directory is not configured. Please set it in Settings before adding mods.", "Mods Directory Not Set", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("The mods directory is not configured. Please set it in Settings before adding mods.", "Mods Directory Not Set", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -1628,7 +1631,7 @@ namespace CrossworldsModManager
 
                             if (Directory.Exists(targetDir))
                             {
-                                var result = MessageBox.Show($"A mod named '{modName}' already exists. Do you want to overwrite it?", "Mod Exists", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                                var result = CustomMessageBox.Show($"A mod named '{modName}' already exists. Do you want to overwrite it?", "Mod Exists", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
                                 if (result == DialogResult.No) continue;
                                 Directory.Delete(targetDir, true);
                             }
@@ -1643,7 +1646,7 @@ namespace CrossworldsModManager
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to install mod from '{Path.GetFileName(file)}':\n{ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            CustomMessageBox.Show($"Failed to install mod from '{Path.GetFileName(file)}':\n{ex.Message}", "Installation Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                     UpdateStatus($"{successCount} of {ofd.FileNames.Length} mod(s) installed.");
@@ -1657,11 +1660,11 @@ namespace CrossworldsModManager
             var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
             if (selectedItems.Count == 0)
             {
-                MessageBox.Show("Please select a mod to remove.", "Remove Mod", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("Please select a mod to remove.", "Remove Mod", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            if (MessageBox.Show($"Are you sure you want to permanently delete the selected {selectedItems.Count} mod(s)? This cannot be undone.", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (CustomMessageBox.Show($"Are you sure you want to permanently delete the selected {selectedItems.Count} mod(s)? This cannot be undone.", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 foreach (ListViewItem item in selectedItems)
                 {
@@ -1677,7 +1680,7 @@ namespace CrossworldsModManager
                         }
                         catch (Exception ex)
                         {
-                            MessageBox.Show($"Failed to delete mod '{modInfo.Name}':\n{ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            CustomMessageBox.Show($"Failed to delete mod '{modInfo.Name}':\n{ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
                 }
@@ -1957,7 +1960,7 @@ namespace CrossworldsModManager
 
         private async void HandleModUpdateClick(ModInfo modInfo)
         {
-            var result = MessageBox.Show($"An update is available for '{modInfo.Name}'.\n\nWould you like to view the update details and install it now?", "Update Mod", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+            var result = CustomMessageBox.Show($"An update is available for '{modInfo.Name}'.\n\nWould you like to view the update details and install it now?", "Update Mod", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if (result == DialogResult.No) return;
 
             try
@@ -1966,7 +1969,7 @@ namespace CrossworldsModManager
                 var iniPath = Path.Combine(modInfo.DirectoryPath, "mod.ini");
                 if (!File.Exists(iniPath))
                 {
-                    MessageBox.Show("Could not find mod.ini file to get update information.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("Could not find mod.ini file to get update information.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -1976,7 +1979,7 @@ namespace CrossworldsModManager
                     !int.TryParse(itemIdStr, out var itemId) ||
                     !gbSection.TryGetValue("ItemType", out var itemType))
                 {
-                    MessageBox.Show("Could not find valid GameBanana information in the mod's mod.ini file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("Could not find valid GameBanana information in the mod's mod.ini file.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -2008,7 +2011,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start update process:\n\n{ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to start update process:\n\n{ex.Message}", "Update Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -2307,7 +2310,7 @@ namespace CrossworldsModManager
             if (string.IsNullOrWhiteSpace(newProfileName) || SettingsManager.Settings.Profiles.ContainsKey(newProfileName))
             {
                 if (!string.IsNullOrWhiteSpace(newProfileName))
-                    MessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -2327,7 +2330,7 @@ namespace CrossworldsModManager
             if (string.IsNullOrWhiteSpace(newName) || newName == currentName || SettingsManager.Settings.Profiles.ContainsKey(newName))
             {
                 if (!string.IsNullOrWhiteSpace(newName) && newName != currentName)
-                    MessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CustomMessageBox.Show("A profile with that name already exists.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -2344,11 +2347,11 @@ namespace CrossworldsModManager
             var currentName = SettingsManager.Settings.ActiveProfileName;
             if (string.IsNullOrEmpty(currentName) || SettingsManager.Settings.Profiles.Count <= 1)
             {
-                MessageBox.Show("You cannot delete the last profile.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show("You cannot delete the last profile.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (MessageBox.Show($"Are you sure you want to delete the '{currentName}' profile?", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (CustomMessageBox.Show($"Are you sure you want to delete the '{currentName}' profile?", "Confirm Deletion", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 SettingsManager.Settings.Profiles.Remove(currentName);
                 SettingsManager.Settings.ActiveProfileName = SettingsManager.Settings.Profiles.Keys.First();
@@ -2376,7 +2379,7 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) || !Directory.Exists(SettingsManager.Settings.ModsDirectory))
             {
-                MessageBox.Show("Mods directory is not set or does not exist.", "Backup Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("Mods directory is not set or does not exist.", "Backup Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -2387,11 +2390,11 @@ namespace CrossworldsModManager
         {
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory))
             {
-                MessageBox.Show("Mods directory is not set.", "Restore Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("Mods directory is not set.", "Restore Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            if (MessageBox.Show("Are you sure you want to restore mods from backup? This will overwrite existing files.", "Confirm Restore", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (CustomMessageBox.Show("Are you sure you want to restore mods from backup? This will overwrite existing files.", "Confirm Restore", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 ModBackupManager.RestoreModsFromBackup(SettingsManager.Settings.ModsDirectory);
                 RefreshModList();
@@ -2518,7 +2521,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to handle 1-Click Install link:\n\n{ex.Message}", "1-Click Install Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to handle 1-Click Install link:\n\n{ex.Message}", "1-Click Install Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 UpdateStatus("1-Click Install failed.");
             }
         }

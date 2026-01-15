@@ -55,6 +55,7 @@ namespace CrossworldsModManager
             this.btnOk.BackColor = Color.FromArgb(0, 122, 204);
             this.btnOk.ForeColor = Color.White;
             this.btnOk.FlatAppearance.BorderSize = 0;
+            this.btnOk.UseVisualStyleBackColor = false;
 
             // btnSkip
             this.btnSkip.Location = new Point(50, 85);
@@ -64,6 +65,7 @@ namespace CrossworldsModManager
             this.btnSkip.BackColor = Color.FromArgb(160, 160, 160);
             this.btnSkip.ForeColor = Color.White;
             this.btnSkip.FlatAppearance.BorderSize = 0;
+            this.btnSkip.UseVisualStyleBackColor = false;
             this.btnSkip.Click += (s, e) =>
             {
                 try

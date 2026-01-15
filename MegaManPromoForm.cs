@@ -25,6 +25,8 @@ namespace CrossworldsModManager
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.ShowIcon = false;
+            this.BackColor = Color.FromArgb(45, 45, 48);
+            this.ForeColor = Color.White;
 
             var mainLayout = new TableLayoutPanel();
             mainLayout.Dock = DockStyle.Fill;
@@ -49,6 +51,7 @@ namespace CrossworldsModManager
             lblMsg.AutoSize = true;
             lblMsg.MaximumSize = new Size(this.ClientSize.Width - 20, 0);
             lblMsg.Padding = new Padding(10);
+            lblMsg.ForeColor = Color.White;
             mainLayout.Controls.Add(lblMsg, 0, 1);
 
             var lnk = new LinkLabel();
@@ -57,6 +60,8 @@ namespace CrossworldsModManager
             lnk.Dock = DockStyle.Fill;
             lnk.AutoSize = true;
             lnk.Padding = new Padding(0, 0, 0, 10);
+            lnk.LinkColor = Color.FromArgb(0, 122, 204);
+            lnk.ActiveLinkColor = Color.FromArgb(0, 122, 204);
             lnk.LinkClicked += (s, e) => {
                 try {
                     System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(lnk.Text) { UseShellExecute = true });
@@ -73,11 +78,17 @@ namespace CrossworldsModManager
             var btnOk = new Button();
             btnOk.Text = "OK";
             btnOk.DialogResult = DialogResult.OK;
+            btnOk.FlatStyle = FlatStyle.Flat;
+            btnOk.BackColor = Color.FromArgb(0, 122, 204);
+            btnOk.ForeColor = Color.White;
+            btnOk.FlatAppearance.BorderSize = 0;
+            btnOk.UseVisualStyleBackColor = false;
             
             _chkDoNotShow = new CheckBox();
             _chkDoNotShow.Text = "Do not show next time";
             _chkDoNotShow.AutoSize = true;
             _chkDoNotShow.Padding = new Padding(0, 6, 10, 0);
+            _chkDoNotShow.ForeColor = Color.Gainsboro;
 
             bottomPanel.Controls.Add(btnOk);
             bottomPanel.Controls.Add(_chkDoNotShow);

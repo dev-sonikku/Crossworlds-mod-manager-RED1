@@ -37,12 +37,12 @@ namespace CrossworldsModManager
 
                 // Use the 'export' command: export <outputPath> <targetPath>
                 await RunProcessAsync(exePath, $"export \"{jsonPath}\" \"{locresPath}\" -y", null);
-                MessageBox.Show($"Successfully converted to:\n{jsonPath}",
+                CustomMessageBox.Show($"Successfully converted to:\n{jsonPath}",
                     "Conversion Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to convert .locres to .json.\n\nError: {ex.Message}",
+                CustomMessageBox.Show($"Failed to convert .locres to .json.\n\nError: {ex.Message}",
                     "Conversion Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -155,7 +155,7 @@ namespace CrossworldsModManager
             {
                 var msg = $"Base locres directory not found at: {languagesRoot}";
                 if (progress != null) progress.Report(msg);
-                MessageBox.Show(msg, "Directory Missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show(msg, "Directory Missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
@@ -366,10 +366,10 @@ namespace CrossworldsModManager
             }
 
             #if SELFCONTAINED
-            var choice = MessageBox.Show("LocResUtility is not found. Would you like to download it now? (approx. 25 MB download, 86 MB extracted)",
+            var choice = CustomMessageBox.Show("LocResUtility is not found. Would you like to download it now? (approx. 25 MB download, 86 MB extracted)",
                 "Download Required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             #else
-            var choice = MessageBox.Show("LocResUtility is not found. Would you like to download it now? (approx. 3 MB download, 15 MB extracted)",
+            var choice = CustomMessageBox.Show("LocResUtility is not found. Would you like to download it now? (approx. 3 MB download, 15 MB extracted)",
                 "Download Required", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
             #endif
 
@@ -403,14 +403,14 @@ namespace CrossworldsModManager
                     {
                         File.SetUnixFileMode(ToolExePath, UnixFileMode.UserExecute);
                     }
-                    MessageBox.Show("LocResUtility downloaded and extracted successfully.", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    CustomMessageBox.Show("LocResUtility downloaded and extracted successfully.", "Download Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return ToolExePath;
                 }
                 throw new FileNotFoundException(RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ? "Failed to find LocResUtility binary after extraction." : "Failed to find LocResUtility.exe after extraction.");
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to download or extract LocResUtility.\n\nError: {ex.Message}", "Download Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to download or extract LocResUtility.\n\nError: {ex.Message}", "Download Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return null;
             }
         }

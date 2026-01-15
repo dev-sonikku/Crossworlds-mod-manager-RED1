@@ -90,7 +90,8 @@ namespace CrossworldsModManager
                 Location = new Point(pnlButtons.ClientSize.Width - 105, 9),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                UseVisualStyleBackColor = false
             };
             btnSave.FlatAppearance.BorderSize = 0;
             btnSave.Click += btnSave_Click;
@@ -104,7 +105,8 @@ namespace CrossworldsModManager
                 Location = new Point(pnlButtons.ClientSize.Width - 210, 9),
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                UseVisualStyleBackColor = false
             };
             btnCancel.FlatAppearance.BorderSize = 0;
 

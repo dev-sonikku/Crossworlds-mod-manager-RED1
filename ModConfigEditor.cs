@@ -325,7 +325,7 @@ namespace CrossworldsModManager
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error loading config: {ex.Message}");
+                    CustomMessageBox.Show($"Error loading config: {ex.Message}");
                 }
             }
             else
@@ -409,7 +409,7 @@ namespace CrossworldsModManager
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp)
             {
-                if (MessageBox.Show($"Delete group '{grp.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                if (CustomMessageBox.Show($"Delete group '{grp.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     _config.Groups.Remove(grp);
                     _lstGroups.Items.Remove(grp);
@@ -469,7 +469,7 @@ namespace CrossworldsModManager
         {
             if (_lstGroups.SelectedItem is ConfigGroup grp && _lstOptions.SelectedItem is ConfigOption opt)
             {
-                if (MessageBox.Show($"Delete option '{opt.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                if (CustomMessageBox.Show($"Delete option '{opt.Name}'?", "Confirm", MessageBoxButtons.YesNo) == DialogResult.Yes)
                 {
                     grp.Options.Remove(opt);
                     _lstOptions.Items.Remove(opt);
@@ -576,7 +576,7 @@ namespace CrossworldsModManager
 
         private void CleanDisabledFiles()
         {
-            if (MessageBox.Show("This will rename all '*.disabled' files in the mod folder back to their original names.\n\nUse this before publishing your mod to ensure all files are active.\n\nProceed?", "Clean Disabled Files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            if (CustomMessageBox.Show("This will rename all '*.disabled' files in the mod folder back to their original names.\n\nUse this before publishing your mod to ensure all files are active.\n\nProceed?", "Clean Disabled Files", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
             try
@@ -590,11 +590,11 @@ namespace CrossworldsModManager
                     File.Move(file, newName);
                     count++;
                 }
-                MessageBox.Show($"Cleaned {count} file(s).", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show($"Cleaned {count} file(s).", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error cleaning files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Error cleaning files: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -639,7 +639,7 @@ namespace CrossworldsModManager
             }
 
             File.WriteAllText(_configPath, sb.ToString());
-            MessageBox.Show("Configuration saved successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            CustomMessageBox.Show("Configuration saved successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             this.Close();
         }
     }

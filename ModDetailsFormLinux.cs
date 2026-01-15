@@ -159,6 +159,7 @@ namespace CrossworldsModManager
             this.btnDownload.BackColor = Color.FromArgb(0, 122, 204);
             this.btnDownload.FlatAppearance.BorderSize = 0;
             this.btnDownload.ForeColor = Color.White;
+            this.btnDownload.UseVisualStyleBackColor = false;
             this.btnDownload.Click += btnDownload_Click;
             
             // Add controls to panels
@@ -211,7 +212,8 @@ namespace CrossworldsModManager
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
                 ForeColor = Color.White,
-                DialogResult = DialogResult.Cancel
+                DialogResult = DialogResult.Cancel,
+                UseVisualStyleBackColor = false
             };
             btnCancel.FlatAppearance.BorderSize = 0;
 
@@ -281,7 +283,8 @@ namespace CrossworldsModManager
                 Dock = DockStyle.Bottom,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                UseVisualStyleBackColor = false
             };
             btnOk.FlatAppearance.BorderSize = 0;
 
@@ -368,7 +371,7 @@ namespace CrossworldsModManager
 
             if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
             {
-                MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 

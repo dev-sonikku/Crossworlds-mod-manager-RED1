@@ -22,14 +22,16 @@ namespace CrossworldsModManager
                 Text = "Ok", Left = 215, Width = 75, Top = 80, DialogResult = DialogResult.OK,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(0, 122, 204),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                UseVisualStyleBackColor = false
             };
             confirmation.FlatAppearance.BorderSize = 0;
             Button cancel = new Button() { 
                 Text = "Cancel", Left = 295, Width = 75, Top = 80, DialogResult = DialogResult.Cancel,
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.FromArgb(63, 63, 70),
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                UseVisualStyleBackColor = false
             };
             cancel.FlatAppearance.BorderSize = 0;
 
