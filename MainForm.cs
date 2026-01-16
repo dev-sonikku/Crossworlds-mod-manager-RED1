@@ -506,20 +506,49 @@ namespace CrossworldsModManager
                     if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
                     {
                         var targetModsDir = Path.Combine(gameInfo.Path, "UNION", "Content", "Paks", "~mods");
-                        var locresPakPath = Path.Combine(targetModsDir, "LocresMod.pak");
-                        if (File.Exists(locresPakPath))
+                        var oldLocresPakPath = Path.Combine(targetModsDir, "LocresMod.pak");
+                        var zzzLocresPakPath = Path.Combine(targetModsDir, "ZZZ_LocresMod.pak");
+                        var bangLocresPakPath = Path.Combine(targetModsDir, "!LocresMod.pak");
+
+                        if (File.Exists(oldLocresPakPath))
                         {
                             try
                             {
-                                File.Delete(locresPakPath);
-                                progress.Report($"Deleted old merged pak: {locresPakPath}");
+                                File.Delete(oldLocresPakPath);
+                                progress.Report($"Deleted old merged pak: {oldLocresPakPath}");
                             }
                             catch (Exception ex)
                             {
                                 progress.Report($"Failed to delete old merged pak: {ex.Message}");
                             }
                         }
-                        else
+
+                        if (File.Exists(zzzLocresPakPath))
+                        {
+                            try
+                            {
+                                File.Delete(zzzLocresPakPath);
+                                progress.Report($"Deleted old merged pak: {zzzLocresPakPath}");
+                            }
+                            catch (Exception ex)
+                            {
+                                progress.Report($"Failed to delete old merged pak: {ex.Message}");
+                            }
+                        }
+
+                        if (File.Exists(bangLocresPakPath))
+                        {
+                            try
+                            {
+                                File.Delete(bangLocresPakPath);
+                                progress.Report($"Deleted merged pak: {bangLocresPakPath}");
+                            }
+                            catch (Exception ex)
+                            {
+                                progress.Report($"Failed to delete merged pak: {ex.Message}");
+                            }
+                        }
+                        else if (!File.Exists(oldLocresPakPath) && !File.Exists(zzzLocresPakPath) && !File.Exists(bangLocresPakPath))
                         {
                             progress.Report("No old merged pak found to delete.");
                         }
@@ -568,25 +597,53 @@ namespace CrossworldsModManager
                             {
                                 var targetModsDir = Path.Combine(gameInfo.Path, "UNION", "Content", "Paks", "~mods");
                                 Directory.CreateDirectory(targetModsDir);
-                                var destPak = Path.Combine(targetModsDir, "LocresMod.pak");
+
+                                var oldPak = Path.Combine(targetModsDir, "LocresMod.pak");
+                                if (File.Exists(oldPak)) File.Delete(oldPak);
+
+                                var zzzPak = Path.Combine(targetModsDir, "ZZZ_LocresMod.pak");
+                                if (File.Exists(zzzPak)) File.Delete(zzzPak);
+
+                                var bangPak = Path.Combine(targetModsDir, "!LocresMod.pak");
+                                if (File.Exists(bangPak)) File.Delete(bangPak);
+
+                                var bangLink = Path.Combine(targetModsDir, "!LocresMod");
+                                if (Directory.Exists(bangLink)) Directory.Delete(bangLink);
+                                if (File.Exists(bangLink)) File.Delete(bangLink);
+
+                                // Create a container folder in Tools to hold the pak, so we can link the folder
+                                var packedDir = Path.Combine(toolsDir, "LocresMod_Packed");
+                                if (!Directory.Exists(packedDir)) Directory.CreateDirectory(packedDir);
+
+                                var oldPackedPak = Path.Combine(packedDir, "LocresMod.pak");
+                                if (File.Exists(oldPackedPak)) File.Delete(oldPackedPak);
+
+                                var packedPakPath = Path.Combine(packedDir, "!LocresMod_P.pak");
+                                if (File.Exists(packedPakPath)) File.Delete(packedPakPath);
+
+                                File.Move(sourcePak, packedPakPath);
+
+                                var destLink = Path.Combine(targetModsDir, "zzzLocresMod");
                                 try
                                 {
-                                    if (File.Exists(destPak)) File.Delete(destPak);
-                                    File.Move(sourcePak, destPak);
-                                    progress.Report($"Moved merged pak to ~mods: {destPak}");
+                                    if (Directory.Exists(destLink)) Directory.Delete(destLink);
+                                    if (File.Exists(destLink)) File.Delete(destLink);
+
+                                    // Use CreateSymbolicLinkAsync which creates directory links (Junctions on Windows)
+                                    bool linked = await CreateSymbolicLinkAsync(destLink, packedDir);
+
+                                    if (linked)
+                                    {
+                                        progress.Report($"Linked merged pak folder to ~mods: {Path.GetFileName(destLink)}");
+                                    }
+                                    else
+                                    {
+                                        progress.Report("Failed to link merged pak folder to ~mods.");
+                                    }
                                 }
                                 catch (Exception moveEx)
                                 {
-                                    try
-                                    {
-                                        File.Copy(sourcePak, destPak, true);
-                                        File.Delete(sourcePak);
-                                        progress.Report($"Copied merged pak to ~mods (fallback): {destPak}");
-                                    }
-                                    catch (Exception copyEx)
-                                    {
-                                        progress.Report($"Failed to move or copy merged pak: {moveEx.Message}; {copyEx.Message}");
-                                    }
+                                    progress.Report($"Failed to link merged pak folder: {moveEx.Message}");
                                 }
                             }
                             else
@@ -1503,6 +1560,35 @@ namespace CrossworldsModManager
                     Debug.WriteLine($"Symlink failed: {ex.Message}");
                     return false;
                 }
+            }
+        }
+
+        private async Task<bool> CreateFileSymbolicLinkAsync(string linkPath, string targetPath)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                try
+                {
+                    using (var process = new Process())
+                    {
+                        process.StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "cmd.exe",
+                            Arguments = $"/c mklink \"{linkPath}\" \"{targetPath}\"",
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        process.Start();
+                        await process.WaitForExitAsync();
+                        return process.ExitCode == 0;
+                    }
+                }
+                catch { return false; }
+            }
+            else
+            {
+                try { File.CreateSymbolicLink(linkPath, targetPath); return true; }
+                catch { return false; }
             }
         }
 
@@ -2485,20 +2571,35 @@ namespace CrossworldsModManager
                 var downloadPage = await GameBananaApiService.GetModDownloadPageAsync(fullModInfo);
                 var fileToInstall = downloadPage?.Files?.FirstOrDefault(f => f.FileId == downloadId);
 
-                if (fileToInstall == null)
-                {
-                    var availableIds = string.Join(", ", downloadPage?.Files?.Select(f => f.FileId.ToString()) ?? new[] { "none" });
-                    throw new Exception($"The specified file (ID: {downloadId}) could not be found for this mod. Available file IDs: {availableIds}. The file may have been updated or removed.");
-                }
-
-                // Update the status with the correct file name.
-                UpdateStatus($"Found file: {fileToInstall.FileName}");
-
                 // Create a logger that reports to our main debug log window
                 IProgress<string> browserLogger = new Progress<string>(s =>
                 {
                     AppendLog($"[1-Click] {s}");
                 });
+
+                if (fileToInstall == null)
+                {
+                    CustomMessageBox.Show($"The specified file (ID: {downloadId}) could not be found.\n\nThis might happen if the mod was updated. Please select the correct file from the list.", "File Not Found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        using (var detailsForm = new ModDetailsFormLinux(fullModInfo, browserLogger, RefreshModList))
+                        {
+                            detailsForm.ShowDialog(this);
+                        }
+                    }
+                    else
+                    {
+                        using (var detailsForm = new ModDetailsForm(fullModInfo, browserLogger, RefreshModList))
+                        {
+                            detailsForm.ShowDialog(this);
+                        }
+                    }
+                    return;
+                }
+
+                // Update the status with the correct file name.
+                UpdateStatus($"Found file: {fileToInstall.FileName}");
 
                 // Show the details form as a confirmation dialog.
                 // The form will handle fetching full details, downloading, and installing.
