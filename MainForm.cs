@@ -1466,7 +1466,33 @@ namespace CrossworldsModManager
 
         private async Task<bool> CreateSymbolicLinkAsync(string linkPath, string targetPath)
         {
-            
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Use Junctions on Windows to avoid Admin requirement for symbolic links
+                try
+                {
+                    using (var process = new Process())
+                    {
+                        process.StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "cmd.exe",
+                            Arguments = $"/c mklink /J \"{linkPath}\" \"{targetPath}\"",
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        };
+                        process.Start();
+                        await process.WaitForExitAsync();
+                        return process.ExitCode == 0;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"Junction failed: {ex.Message}");
+                    return false;
+                }
+            }
+            else
+            {
                 try
                 {
                     await Task.Run(() => Directory.CreateSymbolicLink(linkPath, targetPath));
@@ -1477,6 +1503,7 @@ namespace CrossworldsModManager
                     Debug.WriteLine($"Symlink failed: {ex.Message}");
                     return false;
                 }
+            }
         }
 
         private async Task<bool> CreateHardLinkAsync(string linkPath, string targetPath)
