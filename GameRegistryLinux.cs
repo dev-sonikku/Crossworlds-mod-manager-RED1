@@ -46,7 +46,7 @@ namespace CrossworldsModManager
                 var libraryPaths = new List<string> { steamInstallPath };
                 var vdfContent = File.ReadAllText(libraryFoldersFile);
                 var matches = Regex.Matches(vdfContent, @"""path""\s+""(.+?)""");
-                libraryPaths.AddRange(matches.Cast<Match>().Select(match => match.Value));
+                libraryPaths.AddRange(matches.Cast<Match>().Select(match => match.Groups[1].Value));
 
                 // 3. Check each library for the game's appmanifest
                 foreach (var libraryPath in libraryPaths.Distinct())
