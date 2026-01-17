@@ -47,6 +47,33 @@ namespace CrossworldsModManager
             }
         }
 
+        public static async Task<bool> ConvertLocresToJsonFile(string locresPath, string outputPath, IProgress<string> progress)
+        {
+            try
+            {
+                string? exePath = await EnsureToolExistsAsync();
+                if (exePath == null) return false;
+
+                await RunProcessAsync(exePath, $"export \"{outputPath}\" \"{locresPath}\" -y", progress);
+
+                if (File.Exists(outputPath))
+                {
+                    progress.Report($"Successfully converted '{Path.GetFileName(locresPath)}' to '{Path.GetFileName(outputPath)}'.");
+                    return true;
+                }
+                else
+                {
+                    progress.Report($"Conversion failed: Output file not created at '{outputPath}'.");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                progress.Report($"ERROR during conversion: {ex.Message}");
+                return false;
+            }
+        }
+
         public static async Task ConvertToLocresAsync(string jsonPath)
         {
             var locresPath = Path.ChangeExtension(jsonPath, ".locres");

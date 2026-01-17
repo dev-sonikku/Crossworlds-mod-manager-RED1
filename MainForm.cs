@@ -54,6 +54,15 @@ namespace CrossworldsModManager
 
             // Apply the custom dark theme renderer for menus and tool strips
             ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
+
+            // Add Text Change Tool to Tools menu
+            var textChangeToolItem = new ToolStripMenuItem("Text Change Tool");
+            textChangeToolItem.ForeColor = Color.White;
+            textChangeToolItem.BackColor = Color.FromArgb(45, 45, 48);
+            textChangeToolItem.Click += TextChangeToolItem_Click;
+            toolsToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
+            toolsToolStripMenuItem.DropDownItems.Add(textChangeToolItem);
+
             LoadSettingsAndSetup();
 
             // Initialize details pane with default state (icon)
@@ -147,6 +156,110 @@ namespace CrossworldsModManager
             }
 
             StartPipeServer();
+        }
+
+        private async void TextChangeToolItem_Click(object? sender, EventArgs e)
+        {
+            using (var nameForm = new TextCreatorFileNameForm())
+            {
+                if (nameForm.ShowDialog(this) != DialogResult.OK) return;
+
+                string fileName = nameForm.FileName;
+                if (string.IsNullOrWhiteSpace(fileName)) return;
+                if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                    fileName += ".json";
+
+                string toolsDir = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null
+                    ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "data")
+                    : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+
+                string gameJsonPath = Path.Combine(toolsDir, "Game.json");
+                string selectedLanguage = "en"; // Default language
+                bool proceedToEditor = false;
+
+                if (File.Exists(gameJsonPath))
+                {
+                    //var result = CustomMessageBox.Show(
+                    //    "An existing Game.json was found in the Tools folder.\n\n" +
+                    //    "Would you like to create a new one from the game's files (Yes), or use the existing one (No)?",
+                    //    "Game.json Found",
+                    //    MessageBoxButtons.YesNoCancel,
+                    //    MessageBoxIcon.Question);
+
+                    //if (result == DialogResult.Cancel) return;
+                    //if (result == DialogResult.No)
+                    //{
+                    //    // Assume existing is English. User can regenerate if they need another language.
+                    //    proceedToEditor = true;
+                    //}
+                }
+
+                if (!proceedToEditor) // This block runs if Game.json doesn't exist OR user chose to create a new one.
+                {
+                    string? localizationPath = null;
+
+                    // 1. Try Game Directory
+                    if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var gameInfo))
+                    {
+                        var path = Path.Combine(gameInfo.Path, "UNION", "Content", "Localization", "Game");
+                        if (Directory.Exists(path)) localizationPath = path;
+                    }
+
+                    // 2. Try Tools Directory
+                    if (string.IsNullOrEmpty(localizationPath))
+                    {
+                        var toolsLocPath = Path.Combine(toolsDir, "Locres", "UNION", "Content", "Localization", "Game");
+                        if (Directory.Exists(toolsLocPath)) localizationPath = toolsLocPath;
+                    }
+
+                    if (string.IsNullOrEmpty(localizationPath))
+                    {
+                        CustomMessageBox.Show("Could not find the game's localization folder.\n\nPlease ensure a game installation is selected or the 'Locres' folder exists in Tools.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    var languages = Directory.GetDirectories(localizationPath).Select(Path.GetFileName).Where(f => f != null).Cast<string>().ToList();
+                    if (languages.Count == 0)
+                    {
+                        CustomMessageBox.Show("No languages found in the game's localization folder.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    using (var langForm = new LanguageSelectionForm(languages!))
+                    {
+                        if (langForm.ShowDialog(this) != DialogResult.OK || string.IsNullOrEmpty(langForm.SelectedLanguage)) return;
+                        selectedLanguage = langForm.SelectedLanguage;
+                    }
+
+                    var locresPath = Path.Combine(localizationPath, selectedLanguage, "Game.locres");
+                    if (!File.Exists(locresPath))
+                    {
+                        CustomMessageBox.Show($"Game.locres for language '{selectedLanguage}' not found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    using (var progressForm = new ProgressForm("Creating Game.json..."))
+                    {
+                        bool success = false;
+                        progressForm.Shown += async (s, e) => {
+                            success = await LocresConverter.ConvertLocresToJsonFile(locresPath, gameJsonPath, progressForm.GetLoggerProgress());
+                            progressForm.ShowCompletion(success ? "Game.json created successfully!" : "Failed to create Game.json.");
+                        };
+                        progressForm.ShowDialog(this);
+                        if (!success) return;
+                    }
+                    proceedToEditor = true;
+                }
+
+                if (proceedToEditor)
+                {
+                    using (var editor = new TextCreatorForm(fileName, gameJsonPath, selectedLanguage))
+                    {
+                        editor.ShowDialog(this);
+                    }
+                    RefreshModList();
+                }
+            }
         }
 
         private void NormalizeRootItem_Click(object? sender, EventArgs e)

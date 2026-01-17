@@ -122,6 +122,11 @@ namespace CrossworldsModManager
             btnCancel.Visible = false;
         }
 
+        public IProgress<string> GetLoggerProgress()
+        {
+            return new Progress<string>(UpdateStatus);
+        }
+
         protected override void OnShown(EventArgs e)
         {
             // Initialize cancellation token before raising Shown so callers can observe it.
