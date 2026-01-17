@@ -54,8 +54,11 @@ namespace CrossworldsModManager
                     Application.EnableVisualStyles();
                     Application.SetCompatibleTextRenderingDefault(false);
 
-                    // Always register the protocol on startup to ensure it's up-to-date.
-                    RegisterProtocol();
+                    // Always register the protocol on startup to ensure it's up-to-date, ask on Linux.
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        RegisterProtocol();
+                    }
                     if (Environment.GetEnvironmentVariable("BLUESTAR_DISABLE_PROTOCOL_REGISTER") == null && RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null)
                     {
                         string applicationsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "applications");
