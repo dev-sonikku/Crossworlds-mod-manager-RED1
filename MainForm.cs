@@ -169,11 +169,12 @@ namespace CrossworldsModManager
                 if (!fileName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
                     fileName += ".json";
 
-                string toolsDir = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null
+                string toolsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
+                string workDir = RuntimeInformation.IsOSPlatform(OSPlatform.Linux) && Environment.GetEnvironmentVariable("APPIMAGE") != null
                     ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "bluestar", "data")
                     : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Tools");
 
-                string gameJsonPath = Path.Combine(toolsDir, "Game.json");
+                string gameJsonPath = Path.Combine(workDir, "Game.json");
                 string selectedLanguage = "en"; // Default language
                 bool proceedToEditor = false;
 
