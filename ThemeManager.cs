@@ -49,11 +49,6 @@ namespace CrossworldsModManager
             ["Purple"] = new Theme
             {
                 Name = "Purple",
-                AccentColor = Color.FromArgb(138, 43, 226) // BlueViolet
-            },
-            ["Purple & Black"] = new Theme
-            {
-                Name = "Purple & Black",
                 BackColor = Color.FromArgb(35, 30, 40),
                 ControlBackColor = Color.FromArgb(25, 20, 30),
                 ButtonBackColor = Color.FromArgb(50, 40, 60),
@@ -63,11 +58,6 @@ namespace CrossworldsModManager
             ["Pink"] = new Theme
             {
                 Name = "Pink",
-                AccentColor = Color.FromArgb(255, 20, 147) // DeepPink
-            },
-            ["Pink & Black"] = new Theme
-            {
-                Name = "Pink & Black",
                 BackColor = Color.FromArgb(40, 30, 35),
                 ControlBackColor = Color.FromArgb(30, 20, 25),
                 ButtonBackColor = Color.FromArgb(60, 40, 50),
@@ -77,11 +67,6 @@ namespace CrossworldsModManager
             ["Green"] = new Theme
             {
                 Name = "Green",
-                AccentColor = Color.FromArgb(34, 139, 34) // ForestGreen
-            },
-            ["Green & Black"] = new Theme
-            {
-                Name = "Green & Black",
                 BackColor = Color.FromArgb(30, 40, 30),
                 ControlBackColor = Color.FromArgb(20, 30, 20),
                 ButtonBackColor = Color.FromArgb(40, 60, 40),
@@ -91,11 +76,6 @@ namespace CrossworldsModManager
             ["Red"] = new Theme
             {
                 Name = "Red",
-                AccentColor = Color.FromArgb(178, 34, 34) // Firebrick
-            },
-            ["Red & Black"] = new Theme
-            {
-                Name = "Red & Black",
                 BackColor = Color.FromArgb(40, 30, 30),
                 ControlBackColor = Color.FromArgb(30, 20, 20),
                 ButtonBackColor = Color.FromArgb(60, 40, 40),
@@ -105,16 +85,38 @@ namespace CrossworldsModManager
             ["Dark Yellow"] = new Theme
             {
                 Name = "Dark Yellow",
-                AccentColor = Color.FromArgb(184, 134, 11) // DarkGoldenrod
-            },
-            ["Dark Yellow & Black"] = new Theme
-            {
-                Name = "Dark Yellow & Black",
                 BackColor = Color.FromArgb(40, 38, 30),
                 ControlBackColor = Color.FromArgb(30, 28, 20),
                 ButtonBackColor = Color.FromArgb(60, 55, 40),
                 MenuBackColor = Color.FromArgb(55, 50, 35),
                 AccentColor = Color.FromArgb(184, 134, 11)
+            },
+            ["Orange"] = new Theme
+            {
+                Name = "Orange",
+                BackColor = Color.FromArgb(45, 40, 35),
+                ControlBackColor = Color.FromArgb(35, 30, 25),
+                ButtonBackColor = Color.FromArgb(65, 55, 45),
+                MenuBackColor = Color.FromArgb(60, 50, 40),
+                AccentColor = Color.FromArgb(255, 140, 0)
+            },
+            ["Blue"] = new Theme
+            {
+                Name = "Blue",
+                BackColor = Color.FromArgb(30, 35, 45),
+                ControlBackColor = Color.FromArgb(20, 25, 35),
+                ButtonBackColor = Color.FromArgb(40, 50, 70),
+                MenuBackColor = Color.FromArgb(35, 45, 60),
+                AccentColor = Color.FromArgb(30, 144, 255)
+            },
+            ["Teal"] = new Theme
+            {
+                Name = "Teal",
+                BackColor = Color.FromArgb(30, 40, 40),
+                ControlBackColor = Color.FromArgb(20, 30, 30),
+                ButtonBackColor = Color.FromArgb(40, 60, 60),
+                MenuBackColor = Color.FromArgb(35, 55, 55),
+                AccentColor = Color.FromArgb(0, 180, 180)
             },
             ["Grey and Black"] = new Theme
             {
@@ -153,6 +155,15 @@ namespace CrossworldsModManager
             ApplyThemeToControls(form.Controls);
         }
 
+        public static void ApplyTheme(Control control)
+        {
+            UpdateControl(control);
+            if (control.HasChildren)
+            {
+                ApplyThemeToControls(control.Controls);
+            }
+        }
+
         private static void ApplyThemeToControls(Control.ControlCollection controls)
         {
             foreach (Control c in controls)
@@ -167,7 +178,12 @@ namespace CrossworldsModManager
 
         private static void UpdateControl(Control c)
         {
-            if (c is Button btn)
+            if (c is ModCardControl)
+            {
+                c.BackColor = CurrentTheme.ButtonBackColor;
+                c.ForeColor = CurrentTheme.ButtonForeColor;
+            }
+            else if (c is Button btn)
             {
                 if (btn.FlatStyle == FlatStyle.Flat)
                 {
@@ -177,7 +193,7 @@ namespace CrossworldsModManager
                          btn.BackColor = CurrentTheme.PlayButtonColor ?? CurrentTheme.AccentColor;
                          btn.ForeColor = Color.White; 
                     }
-                    else if (btn.Name == "btnSave" || btn.Name == "btnOk" || btn.Name == "btnYes")
+                    else if (btn.Name == "btnSave" || btn.Name == "btnOk" || btn.Name == "btnYes" || btn.Name == "btnDownload")
                     {
                          btn.BackColor = CurrentTheme.AccentColor;
                          btn.ForeColor = Color.White; 
@@ -194,7 +210,7 @@ namespace CrossworldsModManager
                 c.BackColor = CurrentTheme.ControlBackColor;
                 c.ForeColor = CurrentTheme.ControlForeColor;
             }
-            else if (c is Panel || c is GroupBox || c is TabPage || c is SplitContainer || c is FlowLayoutPanel || c is TableLayoutPanel)
+            else if (c is Panel || c is GroupBox || c is TabPage || c is SplitContainer || c is FlowLayoutPanel || c is TableLayoutPanel || c is UserControl)
             {
                 c.BackColor = CurrentTheme.BackColor;
                 c.ForeColor = CurrentTheme.ForeColor;

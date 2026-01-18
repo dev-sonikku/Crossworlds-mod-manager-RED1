@@ -67,6 +67,14 @@ namespace CrossworldsModManager
             _configPath = Path.Combine(modPath, "mod.ini");
             
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
+
+            // Make Save button brighter
+            var btnSave = this.Controls.Find("btnSave", true).FirstOrDefault() as Button;
+            if (btnSave != null)
+            {
+                btnSave.BackColor = Color.FromArgb(30, 144, 255); // DodgerBlue
+            }
             LoadConfig();
         }
 
@@ -99,6 +107,7 @@ namespace CrossworldsModManager
             var btnUpGroup = CreateButton("▲", (s, e) => MoveGroup(-1), 30);
             var btnDownGroup = CreateButton("▼", (s, e) => MoveGroup(1), 30);
             var btnSave = CreateButton("Save && Close", (s, e) => SaveConfig());
+            btnSave.Name = "btnSave";
             btnSave.BackColor = Color.FromArgb(0, 122, 204);
 
             var btnClean = CreateButton("Clean .disabled", (s, e) => CleanDisabledFiles());

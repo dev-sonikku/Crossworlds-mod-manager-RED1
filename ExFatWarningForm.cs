@@ -14,6 +14,7 @@ namespace CrossworldsModManager
         public ExFatWarningForm()
         {
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
         }
 
         private void InitializeComponent()

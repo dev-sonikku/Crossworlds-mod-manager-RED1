@@ -7,6 +7,7 @@ namespace CrossworldsModManager
         public AboutForm()
         {
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
         }
     }
 }

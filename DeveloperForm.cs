@@ -21,6 +21,7 @@ namespace CrossworldsModManager
         public DeveloperForm()
         {
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
             LoadSettings();
         }
 

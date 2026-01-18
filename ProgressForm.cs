@@ -18,6 +18,7 @@ namespace CrossworldsModManager
         {
             InitializeComponent();
             this.Text = title;
+            ThemeManager.ApplyTheme(this);
         }
 
         private void InitializeComponent()

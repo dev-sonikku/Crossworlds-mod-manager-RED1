@@ -72,6 +72,8 @@ namespace CrossworldsModManager
             this.CancelButton = btnNo;
             this.BackColor = Color.FromArgb(45, 45, 48);
             this.ForeColor = Color.White;
+            
+            ThemeManager.ApplyTheme(this);
         }
     }
 }

@@ -15,6 +15,7 @@ namespace CrossworldsModManager
         public TextCreatorFileNameForm()
         {
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
         }
 
         private void InitializeComponent()

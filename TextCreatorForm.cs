@@ -39,6 +39,7 @@ namespace CrossworldsModManager
             _sourceJsonPath = sourceJsonPath;
             _languageCode = languageCode;
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
             LoadGameDataAsync();
         }
 

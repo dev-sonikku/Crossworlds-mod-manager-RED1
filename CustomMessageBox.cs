@@ -188,6 +188,8 @@ namespace CrossworldsModManager
                         break;
                 }
 
+                ThemeManager.ApplyTheme(form);
+
                 if (owner != null)
                     return form.ShowDialog(owner);
                 else

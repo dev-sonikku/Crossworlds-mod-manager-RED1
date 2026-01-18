@@ -127,6 +127,8 @@ namespace CrossworldsModManager
             this.Controls.Add(_splitContainer);
             this.Controls.Add(pnlButtons);
 
+            ThemeManager.ApplyTheme(this);
+
             foreach (var group in _modInfo.ConfigurationGroups)
             {
                 var groupPanel = CreateGroupSelectionPanel(group);
@@ -153,7 +155,7 @@ namespace CrossworldsModManager
                 Height = 40,
                 Margin = new Padding(0, 0, 0, 4),
                 Padding = new Padding(10, 0, 10, 0),
-                BackColor = Color.FromArgb(63, 63, 70),
+                BackColor = ThemeManager.CurrentTheme.ButtonBackColor,
                 Tag = group.GroupName,
                 Cursor = Cursors.Hand
             };
@@ -163,7 +165,7 @@ namespace CrossworldsModManager
                 Text = group.GroupName,
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
-                ForeColor = Color.White,
+                ForeColor = ThemeManager.CurrentTheme.ButtonForeColor,
                 Font = new Font(this.Font.FontFamily, 10f),
                 Tag = group.GroupName, // Also tag the label for click event
                 Cursor = Cursors.Hand
@@ -172,8 +174,8 @@ namespace CrossworldsModManager
             panel.Controls.Add(label);
 
             // Attach events to both panel and label for reliable hover/click
-            panel.MouseEnter += (s, e) => { if (panel != _selectedGroupPanel) panel.BackColor = Color.FromArgb(80, 80, 85); };
-            panel.MouseLeave += (s, e) => { if (panel != _selectedGroupPanel) panel.BackColor = Color.FromArgb(63, 63, 70); };
+            panel.MouseEnter += (s, e) => { if (panel != _selectedGroupPanel) panel.BackColor = ControlPaint.Light(ThemeManager.CurrentTheme.ButtonBackColor); };
+            panel.MouseLeave += (s, e) => { if (panel != _selectedGroupPanel) panel.BackColor = ThemeManager.CurrentTheme.ButtonBackColor; };
             panel.Click += GroupSelectionPanel_Click;
             label.Click += GroupSelectionPanel_Click;
 
@@ -196,12 +198,12 @@ namespace CrossworldsModManager
             // Update selection visual state
             if (_selectedGroupPanel != null)
             {
-                _selectedGroupPanel.BackColor = Color.FromArgb(63, 63, 70); // Deselect old
+                _selectedGroupPanel.BackColor = ThemeManager.CurrentTheme.ButtonBackColor; // Deselect old
             }
 
             if (parentPanel != null)
             {
-                parentPanel.BackColor = Color.FromArgb(0, 122, 204); // Select new
+                parentPanel.BackColor = ThemeManager.CurrentTheme.AccentColor; // Select new
                 _selectedGroupPanel = parentPanel;
             }
 
@@ -246,7 +248,7 @@ namespace CrossworldsModManager
                     Tag = optionName,
                     Location = new Point(0, 50 + (controls.Count * 30)),
                     AutoSize = true,
-                    ForeColor = Color.White,
+                    ForeColor = ThemeManager.CurrentTheme.ForeColor,
                     BackColor = Color.Transparent,
                     Font = new Font(this.Font.FontFamily, 10f)
                 };
@@ -279,7 +281,7 @@ namespace CrossworldsModManager
                     Tag = optionName,
                     Location = new Point(0, 50 + (controls.Count * 30)),
                     AutoSize = true,
-                    ForeColor = Color.White,
+                    ForeColor = ThemeManager.CurrentTheme.ForeColor,
                     BackColor = Color.Transparent,
                     Font = new Font(this.Font.FontFamily, 10f)
                 };
@@ -311,7 +313,7 @@ namespace CrossworldsModManager
             {
                 Text = group.GroupName,
                 Font = new Font(this.Font, FontStyle.Bold),
-                ForeColor = Color.White,
+                ForeColor = ThemeManager.CurrentTheme.ForeColor,
                 Dock = DockStyle.Top,
                 Height = 30,
                 TextAlign = ContentAlignment.MiddleLeft
@@ -320,7 +322,7 @@ namespace CrossworldsModManager
             var lblDescription = new Label
             {
                 Text = group.Description,
-                ForeColor = Color.Gainsboro,
+                ForeColor = ThemeManager.CurrentTheme.ForeColor,
                 Dock = DockStyle.Top,
                 Height = 20,
                 TextAlign = ContentAlignment.MiddleLeft

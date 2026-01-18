@@ -56,6 +56,8 @@ namespace CrossworldsModManager
 
             Controls.Add(rtbLog);
             Controls.Add(panel);
+            
+            ThemeManager.ApplyTheme(this);
         }
 
         public void AppendLog(string text)

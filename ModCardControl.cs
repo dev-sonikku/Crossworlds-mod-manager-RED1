@@ -67,6 +67,7 @@ namespace CrossworldsModManager
 
             // Download Button
             btnDownload.Dock = DockStyle.Bottom;
+            btnDownload.Name = "btnDownload";
             btnDownload.Text = "Download";
             btnDownload.Height = 35;
             btnDownload.FlatStyle = FlatStyle.Flat;

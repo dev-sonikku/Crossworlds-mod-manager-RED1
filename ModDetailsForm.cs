@@ -56,6 +56,7 @@ namespace CrossworldsModManager
                 }
             }
 
+            ThemeManager.ApplyTheme(this);
             this.Load += async (s, e) => await PopulateDataAsync();
         }
 

@@ -31,6 +31,7 @@ namespace CrossworldsModManager
             _logger = logger;
             _onModsChanged = onModsChanged;
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
         }
 
         private void InitializeComponent()
@@ -201,6 +202,7 @@ namespace CrossworldsModManager
                     {
                         var card = new ModCardControl(mod);
                         card.DownloadClicked += OnModDownloadClicked;
+                        ThemeManager.ApplyTheme(card); // Apply theme to dynamically added control
                         flowLayoutPanelMods.Controls.Add(card);
                     }
                     _logger?.Report($"Successfully loaded {mods.Count} mod(s).");

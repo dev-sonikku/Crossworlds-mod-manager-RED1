@@ -72,6 +72,8 @@ namespace CrossworldsModManager
                 prompt.AcceptButton = confirmation;
                 prompt.CancelButton = cancel;
 
+                ThemeManager.ApplyTheme(prompt);
+
                 return prompt.ShowDialog() == DialogResult.OK ? textBox.Text : "";
             }
         }

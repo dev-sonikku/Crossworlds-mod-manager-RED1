@@ -16,6 +16,7 @@ namespace CrossworldsModManager
         public MegaManPromoForm()
         {
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
         }
 
         private void InitializeComponent()

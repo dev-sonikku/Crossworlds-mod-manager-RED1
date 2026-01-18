@@ -18,6 +18,7 @@ namespace CrossworldsModManager
         public LanguageSelectionForm(List<string> languages)
         {
             InitializeComponent();
+            ThemeManager.ApplyTheme(this);
             cmbLanguages!.DataSource = languages;
             if (languages.Contains("en", StringComparer.OrdinalIgnoreCase))
             {
