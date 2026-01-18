@@ -1291,6 +1291,9 @@ namespace CrossworldsModManager
                 item.Checked = enabledMods.Contains(modFolderName);
             }
 
+            // Set the initial color based on the checked state
+            item.ForeColor = item.Checked ? ThemeManager.CurrentTheme.ForeColor : Color.Gray;
+
             return item;
         }
 
@@ -1941,6 +1944,7 @@ namespace CrossworldsModManager
         private void btnRefresh_Click(object sender, EventArgs e)
         {
             RefreshModList();
+            _ = CheckForModUpdatesAsync();
         }
 
         private void MoveSelectedItem(int direction)
