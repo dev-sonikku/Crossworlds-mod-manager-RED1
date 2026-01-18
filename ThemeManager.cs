@@ -127,7 +127,8 @@ namespace CrossworldsModManager
                 AccentColor = Color.FromArgb(100, 100, 100),
                 MenuBackColor = Color.FromArgb(30, 30, 30),
                 BorderColor = Color.FromArgb(60, 60, 60)
-            }
+            },
+            ["Custom"] = new Theme { Name = "Custom" }
         };
 
         public static List<string> GetAvailableThemes() => new List<string>(Themes.Keys);
@@ -136,6 +137,10 @@ namespace CrossworldsModManager
         {
             if (Themes.TryGetValue(themeName, out var theme))
             {
+                if (themeName == "Custom")
+                {
+                    ReloadCustomTheme(SettingsManager.Settings.CustomTheme);
+                }
                 CurrentTheme = theme;
             }
             else
@@ -145,6 +150,23 @@ namespace CrossworldsModManager
             
             // Update renderer
             ToolStripManager.Renderer = new DynamicThemeMenuRenderer(new DynamicThemeColorTable());
+        }
+
+        public static void ReloadCustomTheme(SerializableTheme settings)
+        {
+            if (!Themes.ContainsKey("Custom")) return;
+            var t = Themes["Custom"];
+            t.BackColor = Color.FromArgb(settings.BackColor);
+            t.ForeColor = Color.FromArgb(settings.ForeColor);
+            t.ControlBackColor = Color.FromArgb(settings.ControlBackColor);
+            t.ControlForeColor = Color.FromArgb(settings.ControlForeColor);
+            t.ButtonBackColor = Color.FromArgb(settings.ButtonBackColor);
+            t.ButtonForeColor = Color.FromArgb(settings.ButtonForeColor);
+            t.AccentColor = Color.FromArgb(settings.AccentColor);
+            t.PlayButtonColor = settings.PlayButtonColor.HasValue ? Color.FromArgb(settings.PlayButtonColor.Value) : null;
+            t.BorderColor = Color.FromArgb(settings.BorderColor);
+            t.MenuBackColor = Color.FromArgb(settings.MenuBackColor);
+            t.MenuForeColor = Color.FromArgb(settings.MenuForeColor);
         }
 
         public static void ApplyTheme(Form form)
@@ -178,6 +200,8 @@ namespace CrossworldsModManager
 
         private static void UpdateControl(Control c)
         {
+            if (c.Tag is string tag && tag == "ColorSwatch") return;
+
             if (c is ModCardControl)
             {
                 c.BackColor = CurrentTheme.ButtonBackColor;

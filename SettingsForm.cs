@@ -36,6 +36,7 @@ namespace CrossworldsModManager
                 cmbTheme.Items.Clear();
                 cmbTheme.Items.AddRange(ThemeManager.GetAvailableThemes().ToArray());
                 cmbTheme.SelectedItem = SettingsManager.Settings.SelectedTheme;
+                UpdateCustomizeButtonVisibility();
             }
 
             ThemeManager.ApplyTheme(this);
@@ -99,6 +100,40 @@ namespace CrossworldsModManager
             SettingsManager.Save();
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        private void cmbTheme_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            UpdateCustomizeButtonVisibility();
+        }
+
+        private void UpdateCustomizeButtonVisibility()
+        {
+            var cmbThemeControl = this.Controls.Find("cmbTheme", true);
+            var btnCustomizeControl = this.Controls.Find("btnCustomizeTheme", true);
+            if (cmbThemeControl.Length > 0 && cmbThemeControl[0] is ComboBox cmbTheme && 
+                btnCustomizeControl.Length > 0 && btnCustomizeControl[0] is Button btnCustomize)
+            {
+                btnCustomize.Visible = (cmbTheme.SelectedItem?.ToString() == "Custom");
+            }
+        }
+
+        private void btnCustomizeTheme_Click(object sender, EventArgs e)
+        {
+            using (var editor = new ThemeEditorForm(SettingsManager.Settings.CustomTheme))
+            {
+                if (editor.ShowDialog(this) == DialogResult.OK)
+                {
+                    SettingsManager.Settings.CustomTheme = editor.ResultTheme;
+                    ThemeManager.ReloadCustomTheme(SettingsManager.Settings.CustomTheme);
+                    ThemeManager.ApplyTheme(this);
+                }
+                else
+                {
+                    ThemeManager.ReloadCustomTheme(SettingsManager.Settings.CustomTheme);
+                    ThemeManager.ApplyTheme(this);
+                }
+            }
         }
     }
 }

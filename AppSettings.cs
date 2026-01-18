@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Drawing;
 
 namespace CrossworldsModManager
 {
@@ -17,6 +18,7 @@ namespace CrossworldsModManager
         public Dictionary<string, ModProfile> Profiles { get; set; } = new();
         public string? ActiveProfileName { get; set; }
         public string SelectedTheme { get; set; } = "Default";
+        public SerializableTheme CustomTheme { get; set; } = new SerializableTheme();
 
         public bool SortEnabledModsToTop { get; set; } = true;
         public bool AutoCleanTemporaryFiles { get; set; } = true;
@@ -42,5 +44,20 @@ namespace CrossworldsModManager
         public string? DeveloperExportPath { get; set; }
         public List<string> DeveloperEnabledFiles { get; set; } = new();
         public bool SuppressExFatWarning { get; set; } = false;
+    }
+
+    public class SerializableTheme
+    {
+        public int BackColor { get; set; } = Color.FromArgb(45, 45, 48).ToArgb();
+        public int ForeColor { get; set; } = Color.White.ToArgb();
+        public int ControlBackColor { get; set; } = Color.FromArgb(30, 30, 30).ToArgb();
+        public int ControlForeColor { get; set; } = Color.White.ToArgb();
+        public int ButtonBackColor { get; set; } = Color.FromArgb(63, 63, 70).ToArgb();
+        public int ButtonForeColor { get; set; } = Color.White.ToArgb();
+        public int AccentColor { get; set; } = Color.FromArgb(0, 122, 204).ToArgb();
+        public int? PlayButtonColor { get; set; }
+        public int BorderColor { get; set; } = Color.FromArgb(80, 80, 80).ToArgb();
+        public int MenuBackColor { get; set; } = Color.FromArgb(60, 60, 60).ToArgb();
+        public int MenuForeColor { get; set; } = Color.White.ToArgb();
     }
 }

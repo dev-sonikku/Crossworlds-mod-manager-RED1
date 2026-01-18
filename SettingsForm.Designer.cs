@@ -33,6 +33,7 @@ namespace CrossworldsModManager
             this.chkDoNotBackup = new System.Windows.Forms.CheckBox();
             this.lblTheme = new System.Windows.Forms.Label();
             this.cmbTheme = new System.Windows.Forms.ComboBox();
+            this.btnCustomizeTheme = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // label1
@@ -228,12 +229,27 @@ namespace CrossworldsModManager
             this.cmbTheme.Name = "cmbTheme";
             this.cmbTheme.Size = new System.Drawing.Size(200, 21);
             this.cmbTheme.TabIndex = 16;
+            this.cmbTheme.SelectedIndexChanged += new System.EventHandler(this.cmbTheme_SelectedIndexChanged);
+            // 
+            // btnCustomizeTheme
+            // 
+            this.btnCustomizeTheme.Location = new System.Drawing.Point(310, 227);
+            this.btnCustomizeTheme.Name = "btnCustomizeTheme";
+            this.btnCustomizeTheme.Size = new System.Drawing.Size(75, 23);
+            this.btnCustomizeTheme.TabIndex = 17;
+            this.btnCustomizeTheme.Text = "Edit...";
+            this.btnCustomizeTheme.UseVisualStyleBackColor = false;
+            this.btnCustomizeTheme.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
+            this.btnCustomizeTheme.ForeColor = System.Drawing.Color.White;
+            this.btnCustomizeTheme.Click += new System.EventHandler(this.btnCustomizeTheme_Click);
+            this.btnCustomizeTheme.Visible = false;
             // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(584, 300);
+            this.Controls.Add(this.btnCustomizeTheme);
             this.Controls.Add(this.cmbTheme);
             this.Controls.Add(this.lblTheme);
             this.Controls.Add(this.chkDeveloperMode);
@@ -284,5 +300,6 @@ namespace CrossworldsModManager
         private System.Windows.Forms.CheckBox chkDoNotConfirmEnableDisable;
         private System.Windows.Forms.Label lblTheme;
         private System.Windows.Forms.ComboBox cmbTheme;
+        private System.Windows.Forms.Button btnCustomizeTheme;
     }
 }
