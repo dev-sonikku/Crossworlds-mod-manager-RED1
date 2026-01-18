@@ -22,6 +22,7 @@ namespace CrossworldsModManager
         private DataGridView? dgvSource;
         private DataGridView? dgvMod;
         private TextBox? txtSearch;
+        private ComboBox? cmbTargetLang;
         private CheckBox? chkCaseSensitive;
         private TextBox? txtFindInMod;
         private TextBox? txtReplaceWith;
@@ -79,6 +80,18 @@ namespace CrossworldsModManager
             pnlSearch.Controls.Add(txtSearch);
             pnlSearch.Controls.Add(chkCaseSensitive);
 
+            // New Language Selection Panel
+            var pnlAddOptions = new Panel { Dock = DockStyle.Bottom, Height = 35, Padding = new Padding(0, 5, 0, 0) };
+            var lblTargetLang = new Label { Text = "Target Lang:", AutoSize = true, Location = new Point(0, 8), ForeColor = Color.White };
+            cmbTargetLang = new ComboBox { Location = new Point(80, 5), Width = 120, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
+            cmbTargetLang.Items.AddRange(new object[] { "en", "fr", "it", "de", "es", "es-US", "ru", "ja", "ko", "zh-Hans", "zh-Hant", "pt", "pl", "th" });
+            if (cmbTargetLang.Items.Contains(_languageCode)) cmbTargetLang.SelectedItem = _languageCode;
+            else if (cmbTargetLang.Items.Count > 0) cmbTargetLang.SelectedIndex = 0;
+            else cmbTargetLang.Text = _languageCode;
+
+            pnlAddOptions.Controls.Add(lblTargetLang);
+            pnlAddOptions.Controls.Add(cmbTargetLang);
+
             dgvSource = CreateDataGridView();
             dgvSource.Dock = DockStyle.Fill;
             dgvSource.Columns.Add("Namespace", "Namespace");
@@ -93,6 +106,7 @@ namespace CrossworldsModManager
             btnAdd.Click += (s, e) => AddSelectedToMod();
 
             pnlLeft.Controls.Add(dgvSource);
+            pnlLeft.Controls.Add(pnlAddOptions);
             pnlLeft.Controls.Add(btnAdd);
             pnlLeft.Controls.Add(pnlSearch);
             pnlLeft.Controls.Add(lblSource);
@@ -121,12 +135,14 @@ namespace CrossworldsModManager
 
             dgvMod = CreateDataGridView();
             dgvMod.Dock = DockStyle.Fill;
+            dgvMod.Columns.Add("Language", "Lang");
             dgvMod.Columns.Add("Namespace", "Namespace");
             dgvMod.Columns.Add("Key", "Key");
             dgvMod.Columns.Add("Value", "New Text (Editable)");
-            dgvMod.Columns[0].ReadOnly = true;
+            dgvMod.Columns[0].Width = 60;
             dgvMod.Columns[1].ReadOnly = true;
-            dgvMod.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dgvMod.Columns[2].ReadOnly = true;
+            dgvMod.Columns[3].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             dgvMod.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             dgvMod.CellValueChanged += DgvMod_CellValueChanged;
 
@@ -236,7 +252,8 @@ namespace CrossworldsModManager
                     dgvMod!.Rows.Clear();
                     foreach (var item in _modData)
                     {
-                        dgvMod.Rows.Add(item.Namespace, item.Key, item.Value);
+                        int idx = dgvMod.Rows.Add(item.Language, item.Namespace, item.Key, item.Value);
+                        dgvMod.Rows[idx].Tag = item;
                     }
                     lblStatus!.Text = $"Loaded existing mod with {_modData.Count} entries.";
                     MessageBox.Show($"Loaded {_modData.Count} entries from existing file.", "Loaded", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -279,18 +296,21 @@ namespace CrossworldsModManager
 
         private void AddSelectedToMod()
         {
+            string targetLang = cmbTargetLang?.SelectedItem?.ToString() ?? _languageCode;
+
             foreach (DataGridViewRow row in dgvSource!.SelectedRows)
             {
                 string ns = row.Cells[0].Value?.ToString() ?? "";
                 string key = row.Cells[1].Value?.ToString() ?? "";
                 string val = row.Cells[2].Value?.ToString() ?? "";
 
-                // Check if already exists
-                if (_modData.Any(x => x.Namespace == ns && x.Key == key)) continue;
+                // Check if already exists for this language
+                if (_modData.Any(x => x.Namespace == ns && x.Key == key && x.Language == targetLang)) continue;
 
-                var entry = new ModLocEntry { Language = _languageCode, Namespace = ns, Key = key, Value = val };
+                var entry = new ModLocEntry { Language = targetLang, Namespace = ns, Key = key, Value = val };
                 _modData.Add(entry);
-                dgvMod!.Rows.Add(ns, key, val);
+                int idx = dgvMod!.Rows.Add(targetLang, ns, key, val);
+                dgvMod.Rows[idx].Tag = entry;
             }
         }
 
@@ -304,28 +324,29 @@ namespace CrossworldsModManager
 
             foreach (var row in rowsToRemove)
             {
-                string ns = row.Cells[0].Value?.ToString() ?? "";
-                string key = row.Cells[1].Value?.ToString() ?? "";
-                
-                var item = _modData.FirstOrDefault(x => x.Namespace == ns && x.Key == key);
-                if (item != null) _modData.Remove(item);
-                
+                if (row.Tag is ModLocEntry entry)
+                {
+                    _modData.Remove(entry);
+                }
                 dgvMod.Rows.Remove(row);
             }
         }
 
         private void DgvMod_CellValueChanged(object? sender, DataGridViewCellEventArgs e)
         {
-            if (e.RowIndex >= 0 && e.ColumnIndex == 2) // Value column
+            if (e.RowIndex >= 0)
             {
-                string ns = dgvMod!.Rows[e.RowIndex].Cells[0].Value?.ToString() ?? "";
-                string key = dgvMod.Rows[e.RowIndex].Cells[1].Value?.ToString() ?? "";
-                string newVal = dgvMod.Rows[e.RowIndex].Cells[2].Value?.ToString() ?? "";
-
-                var item = _modData.FirstOrDefault(x => x.Namespace == ns && x.Key == key);
-                if (item != null)
+                var row = dgvMod!.Rows[e.RowIndex];
+                if (row.Tag is ModLocEntry entry)
                 {
-                    item.Value = newVal;
+                    if (e.ColumnIndex == 0) // Language column
+                    {
+                        entry.Language = row.Cells[0].Value?.ToString() ?? "";
+                    }
+                    else if (e.ColumnIndex == 3) // Value column
+                    {
+                        entry.Value = row.Cells[3].Value?.ToString() ?? "";
+                    }
                 }
             }
         }
@@ -342,6 +363,13 @@ namespace CrossworldsModManager
             var changesToSave = new List<ModLocEntry>();
             foreach (var modItem in _modData)
             {
+                // If language differs from source, always save (it's a translation or new entry)
+                if (modItem.Language != _languageCode)
+                {
+                    changesToSave.Add(modItem);
+                    continue;
+                }
+
                 var originalItem = _sourceData.FirstOrDefault(s => s.Namespace == modItem.Namespace && s.Key == modItem.Key);
                 
                 // If it's a new key (not in source) OR the value is different, save it.
@@ -408,7 +436,8 @@ namespace CrossworldsModManager
                 dgvMod!.Rows.Clear();
                 foreach (var item in _modData)
                 {
-                    dgvMod.Rows.Add(item.Namespace, item.Key, item.Value);
+                    int idx = dgvMod.Rows.Add(item.Language, item.Namespace, item.Key, item.Value);
+                    dgvMod.Rows[idx].Tag = item;
                 }
                 CustomMessageBox.Show($"{replacements} occurrence(s) replaced.", "Replace Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
