@@ -29,6 +29,16 @@ namespace CrossworldsModManager
             {
                 cb2.Checked = SettingsManager.Settings.DoNotConfirmEnableDisable;
             }
+
+            var cmbThemeControl = this.Controls.Find("cmbTheme", true);
+            if (cmbThemeControl.Length > 0 && cmbThemeControl[0] is ComboBox cmbTheme)
+            {
+                cmbTheme.Items.Clear();
+                cmbTheme.Items.AddRange(ThemeManager.GetAvailableThemes().ToArray());
+                cmbTheme.SelectedItem = SettingsManager.Settings.SelectedTheme;
+            }
+
+            ThemeManager.ApplyTheme(this);
         }
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
@@ -80,6 +90,11 @@ namespace CrossworldsModManager
             if (doNotConfirmChk2.Length > 0 && doNotConfirmChk2[0] is CheckBox cb3)
             {
                 SettingsManager.Settings.DoNotConfirmEnableDisable = cb3.Checked;
+            }
+            var cmbThemeControl = this.Controls.Find("cmbTheme", true);
+            if (cmbThemeControl.Length > 0 && cmbThemeControl[0] is ComboBox cmbTheme && cmbTheme.SelectedItem != null)
+            {
+                SettingsManager.Settings.SelectedTheme = cmbTheme.SelectedItem.ToString() ?? "Default";
             }
             SettingsManager.Save();
             DialogResult = DialogResult.OK;

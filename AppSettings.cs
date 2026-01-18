@@ -16,6 +16,7 @@ namespace CrossworldsModManager
 
         public Dictionary<string, ModProfile> Profiles { get; set; } = new();
         public string? ActiveProfileName { get; set; }
+        public string SelectedTheme { get; set; } = "Default";
 
         public bool SortEnabledModsToTop { get; set; } = true;
         public bool AutoCleanTemporaryFiles { get; set; } = true;

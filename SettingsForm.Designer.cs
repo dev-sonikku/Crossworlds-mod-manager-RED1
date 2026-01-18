@@ -31,6 +31,8 @@ namespace CrossworldsModManager
             this.chkAutoCloseLog = new System.Windows.Forms.CheckBox();
             this.chkDeveloperMode = new System.Windows.Forms.CheckBox();
             this.chkDoNotBackup = new System.Windows.Forms.CheckBox();
+            this.lblTheme = new System.Windows.Forms.Label();
+            this.cmbTheme = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
             // label1
@@ -104,7 +106,7 @@ namespace CrossworldsModManager
             // btnSave
             // 
             this.btnSave.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnSave.Location = new System.Drawing.Point(416, 79);
+            this.btnSave.Location = new System.Drawing.Point(416, 265);
             this.btnSave.Name = "btnSave";
             this.btnSave.Size = new System.Drawing.Size(75, 23);
             this.btnSave.TabIndex = 6;
@@ -118,7 +120,7 @@ namespace CrossworldsModManager
             // 
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Location = new System.Drawing.Point(497, 79);
+            this.btnCancel.Location = new System.Drawing.Point(497, 265);
             this.btnCancel.Name = "btnCancel";
             this.btnCancel.Size = new System.Drawing.Size(75, 23);
             this.btnCancel.TabIndex = 7;
@@ -205,11 +207,35 @@ namespace CrossworldsModManager
             this.chkDoNotConfirmEnableDisable.Text = "Do not ask for confirmation when enabling/disabling all";
             this.chkDoNotConfirmEnableDisable.UseVisualStyleBackColor = true;
             // 
+            // lblTheme
+            // 
+            this.lblTheme.AutoSize = true;
+            this.lblTheme.ForeColor = System.Drawing.Color.Gainsboro;
+            this.lblTheme.Location = new System.Drawing.Point(12, 231);
+            this.lblTheme.Name = "lblTheme";
+            this.lblTheme.Size = new System.Drawing.Size(43, 13);
+            this.lblTheme.TabIndex = 15;
+            this.lblTheme.Text = "Theme:";
+            // 
+            // cmbTheme
+            // 
+            this.cmbTheme.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
+            this.cmbTheme.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbTheme.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.cmbTheme.ForeColor = System.Drawing.Color.White;
+            this.cmbTheme.FormattingEnabled = true;
+            this.cmbTheme.Location = new System.Drawing.Point(102, 228);
+            this.cmbTheme.Name = "cmbTheme";
+            this.cmbTheme.Size = new System.Drawing.Size(200, 21);
+            this.cmbTheme.TabIndex = 16;
+            // 
             // SettingsForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(584, 230);
+            this.ClientSize = new System.Drawing.Size(584, 300);
+            this.Controls.Add(this.cmbTheme);
+            this.Controls.Add(this.lblTheme);
             this.Controls.Add(this.chkDeveloperMode);
             this.Controls.Add(this.chkDoNotBackup);
             this.Controls.Add(this.chkDoNotConfirmEnableDisable);
@@ -256,5 +282,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.CheckBox chkDeveloperMode;
         private System.Windows.Forms.CheckBox chkDoNotBackup;
         private System.Windows.Forms.CheckBox chkDoNotConfirmEnableDisable;
+        private System.Windows.Forms.Label lblTheme;
+        private System.Windows.Forms.ComboBox cmbTheme;
     }
 }

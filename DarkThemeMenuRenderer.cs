@@ -6,14 +6,9 @@ namespace CrossworldsModManager
 {
     // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
 #pragma warning disable CA1416
-    public class DarkThemeMenuRenderer : ToolStripProfessionalRenderer
+    public class DynamicThemeMenuRenderer : ToolStripProfessionalRenderer
     {
-        private readonly Color _menuItemSelectedColor = Color.FromArgb(255, 255, 255); // White background for selected item
-        private readonly Color _menuItemTextColor = Color.Black; // Black text for selected item
-        private readonly Color _menuStripBackgroundColor = Color.FromArgb(60, 60, 60); // Dark background for the strip
-        private readonly Color _dropDownBackgroundColor = Color.FromArgb(45, 45, 48); // Dark background for dropdowns
-
-        public DarkThemeMenuRenderer(ProfessionalColorTable colorTable) : base(colorTable)
+        public DynamicThemeMenuRenderer(ProfessionalColorTable colorTable) : base(colorTable)
         {
         }
 
@@ -21,8 +16,9 @@ namespace CrossworldsModManager
         {
             if (e.Item.Owner is MenuStrip && e.Item.Selected)
             {
-                e.Graphics.FillRectangle(new SolidBrush(_menuItemSelectedColor), new Rectangle(Point.Empty, e.Item.Size));
-                TextRenderer.DrawText(e.Graphics, e.Item.Text, e.Item.Font, e.Item.ContentRectangle, _menuItemTextColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                e.Graphics.FillRectangle(new SolidBrush(ThemeManager.CurrentTheme.ButtonBackColor), new Rectangle(Point.Empty, e.Item.Size));
+                // Text color is handled by OnRenderItemText, but we rely on the theme there.
+                TextRenderer.DrawText(e.Graphics, e.Item.Text, e.Item.Font, e.Item.ContentRectangle, ThemeManager.CurrentTheme.MenuForeColor, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             }
             else
             {
@@ -34,7 +30,7 @@ namespace CrossworldsModManager
         {
             if (e.ToolStrip is MenuStrip)
             {
-                using (var brush = new SolidBrush(_menuStripBackgroundColor))
+                using (var brush = new SolidBrush(ThemeManager.CurrentTheme.MenuBackColor))
                 {
                     e.Graphics.FillRectangle(brush, e.AffectedBounds);
                 }
@@ -49,14 +45,14 @@ namespace CrossworldsModManager
         {
             if (e.Item.Owner is ToolStripDropDownMenu)
             {
-                e.TextColor = e.Item.Enabled ? Color.White : Color.Gray;
+                e.TextColor = e.Item.Enabled ? ThemeManager.CurrentTheme.MenuForeColor : Color.Gray;
             }
             base.OnRenderItemText(e);
         }
 
         protected override void OnRenderImageMargin(ToolStripRenderEventArgs e)
         {
-            using (var brush = new SolidBrush(_dropDownBackgroundColor))
+            using (var brush = new SolidBrush(ThemeManager.CurrentTheme.ControlBackColor))
             {
                 e.Graphics.FillRectangle(brush, e.AffectedBounds);
             }
@@ -70,7 +66,7 @@ namespace CrossworldsModManager
             var rect = e.ImageRectangle;
             var center = new PointF(rect.X + rect.Width / 2f, rect.Y + rect.Height / 2f);
 
-            using (var pen = new Pen(Color.White, 2))
+            using (var pen = new Pen(ThemeManager.CurrentTheme.MenuForeColor, 2))
             {
                 g.DrawLines(pen, new PointF[] {
                     new PointF(center.X - 4.5f, center.Y - 1.5f),

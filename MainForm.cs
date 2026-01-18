@@ -53,7 +53,7 @@ namespace CrossworldsModManager
             this.Text = $"Blue Star Manager v{appVersion} - A Sonic Racing: CrossWorlds Mod Manager";
 
             // Apply the custom dark theme renderer for menus and tool strips
-            ToolStripManager.Renderer = new DarkThemeMenuRenderer(new DarkThemeColorTable());
+            // ToolStripManager.Renderer is now set by ThemeManager.SetTheme()
 
             // Add Text Change Tool to Tools menu
             var textChangeToolItem = new ToolStripMenuItem("Text Change Tool");
@@ -64,6 +64,9 @@ namespace CrossworldsModManager
             toolsToolStripMenuItem.DropDownItems.Add(textChangeToolItem);
 
             LoadSettingsAndSetup();
+
+            ThemeManager.SetTheme(SettingsManager.Settings.SelectedTheme);
+            ThemeManager.ApplyTheme(this);
 
             // Initialize details pane with default state (icon)
             UpdateModDetails(null);
@@ -2001,18 +2004,21 @@ namespace CrossworldsModManager
         private void modListView_DrawColumnHeader(object sender, DrawListViewColumnHeaderEventArgs e)
         {
             // Use a dark background for the header
-            using (var solidBrush = new SolidBrush(Color.FromArgb(63, 63, 70)))
+            using (var solidBrush = new SolidBrush(ThemeManager.CurrentTheme.ButtonBackColor))
             {
                 e.Graphics.FillRectangle(solidBrush, e.Bounds);
             }
             // Draw the header text in white (defensive null checks)
             var headerText = e.Header?.Text ?? string.Empty;
             var fontToUse = e.Font ?? this.Font ?? SystemFonts.DefaultFont;
-            TextRenderer.DrawText(e.Graphics, headerText, fontToUse, e.Bounds, Color.White,
+            TextRenderer.DrawText(e.Graphics, headerText, fontToUse, e.Bounds, ThemeManager.CurrentTheme.ButtonForeColor,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
 
             // Draw a border for separation
-            e.Graphics.DrawRectangle(Pens.Black, e.Bounds);
+            using (var pen = new Pen(ThemeManager.CurrentTheme.BorderColor))
+            {
+                e.Graphics.DrawRectangle(pen, e.Bounds);
+            }
         }
 
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
@@ -2023,6 +2029,8 @@ namespace CrossworldsModManager
                 {
                     // Reload everything to apply new settings
                     LoadSettingsAndSetup();
+                    ThemeManager.SetTheme(SettingsManager.Settings.SelectedTheme);
+                    ThemeManager.ApplyTheme(this);
                     UpdateDeveloperTabVisibility();
                 }
             }
