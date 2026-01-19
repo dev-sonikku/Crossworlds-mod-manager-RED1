@@ -63,20 +63,6 @@ namespace CrossworldsModManager
             toolsToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
             toolsToolStripMenuItem.DropDownItems.Add(textChangeToolItem);
 
-            LoadSettingsAndSetup();
-
-            ThemeManager.SetTheme(SettingsManager.Settings.SelectedTheme);
-            ThemeManager.ApplyTheme(this);
-
-            // Initialize details pane with default state (icon)
-            UpdateModDetails(null);
-
-            // Enable drag-and-drop for reordering
-            modListView.AllowDrop = true;
-            modListView.ItemDrag += modListView_ItemDrag;
-            modListView.DragEnter += modListView_DragEnter;
-            modListView.DragDrop += modListView_DragDrop;
-
             // Programmatically add the "Browse Mods" button to the flow layout
             btnBrowseMods = new Button
             {
@@ -124,6 +110,20 @@ namespace CrossworldsModManager
             btnRestoreMods.FlatAppearance.BorderSize = 0;
             btnRestoreMods.Click += btnRestoreMods_Click;
             pnlTopActions.Controls.Add(btnRestoreMods);
+
+            LoadSettingsAndSetup();
+
+            ThemeManager.SetTheme(SettingsManager.Settings.SelectedTheme);
+            ThemeManager.ApplyTheme(this);
+
+            // Initialize details pane with default state (icon)
+            UpdateModDetails(null);
+
+            // Enable drag-and-drop for reordering
+            modListView.AllowDrop = true;
+            modListView.ItemDrag += modListView_ItemDrag;
+            modListView.DragEnter += modListView_DragEnter;
+            modListView.DragDrop += modListView_DragDrop;
 
             // Add Mod Config Maker to context menu
             var configMakerItem = new ToolStripMenuItem("Mod Config Maker");
@@ -518,8 +518,7 @@ namespace CrossworldsModManager
             // Before applying configurations, check for newly enabled mods that need a default config.
             bool defaultsSet = false;
             // Use a copy of the items to iterate over, as the collection can be modified.
-            var itemsToProcess = modListView.Items.Cast<ListViewItem>().ToList();
-            foreach (ListViewItem item in modListView.Items)
+            foreach (ListViewItem item in _allModItems)
             {
                 if (item.Checked && item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
                 {   
@@ -562,7 +561,7 @@ namespace CrossworldsModManager
             try
             {
                 // Then, apply the current configurations for all mods.
-                foreach (ListViewItem item in modListView.Items)
+                foreach (ListViewItem item in _allModItems)
                 {
                     if (item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
                     {
@@ -594,7 +593,7 @@ namespace CrossworldsModManager
 
                 progressBarProgress.Report(10);
                 // Check if any enabled mods have JSON files.
-                var enabledModsWithJson = modListView.Items.Cast<ListViewItem>()
+                var enabledModsWithJson = _allModItems
                     .Where(i => i.Checked && i.Tag is ModInfo modInfo && // Only look at checked mods
                                // Enumerate all .json files, but crucially, ignore any that are currently disabled.
                                // This ensures we only merge JSON files that correspond to the user's selected configuration.
@@ -1318,7 +1317,7 @@ namespace CrossworldsModManager
 
             var enabledMods = new List<string>();
             var modLoadOrder = new List<string>();
-            foreach (ListViewItem item in modListView.Items)
+            foreach (ListViewItem item in _allModItems)
             {
                 if (item.Tag is ModInfo modInfo)
                 {
@@ -1358,7 +1357,7 @@ namespace CrossworldsModManager
 
             // Check if any enabled mods require UE4SS
             bool requiresUe4ss = false;
-            foreach (ListViewItem item in modListView.Items)
+            foreach (ListViewItem item in _allModItems)
             {
                 if (item.Checked && item.Tag is ModInfo modInfo && (IsUe4ssScriptMod(modInfo.DirectoryPath) || modInfo.IsLogicMod))
                 {
@@ -1446,7 +1445,7 @@ namespace CrossworldsModManager
                 // 2b. Cleanup UE4SS mods (remove any mod managed by us from the target dir)
                 if (Directory.Exists(targetUe4ssModsDir))
                 {
-                    foreach (ListViewItem item in modListView.Items)
+                    foreach (ListViewItem item in _allModItems)
                     {
                         if (item.Tag is ModInfo modInfo && IsUe4ssScriptMod(modInfo.DirectoryPath))
                         {
@@ -1467,9 +1466,9 @@ namespace CrossworldsModManager
                 // 3. Create new links for checked mods.
                 var installTasks = new List<Task<bool>>();
                 // Iterate through all items in the list view to preserve the visual load order.
-                for (int i = 0; i < modListView.Items.Count; i++)
+                for (int i = 0; i < _allModItems.Count; i++)
                 {
-                    var item = modListView.Items[i];
+                    var item = _allModItems[i];
                     // Only create links for mods that are actually checked.
                     if (item.Checked && item.Tag is ModInfo modInfo)
                     {
@@ -1961,6 +1960,13 @@ namespace CrossworldsModManager
                 modListView.Items.Insert(newIndex, selectedItem);
                 modListView.Items[newIndex].Selected = true;
                 modListView.Focus();
+
+                // Sync _allModItems if not searching
+                if (string.IsNullOrWhiteSpace(txtSearch.Text))
+                {
+                    _allModItems.Clear();
+                    _allModItems.AddRange(modListView.Items.Cast<ListViewItem>());
+                }
             }
         }
 
@@ -1979,29 +1985,20 @@ namespace CrossworldsModManager
 
         private void SortModsView()
         {
+            // Update colors for all items
+            foreach (ListViewItem item in _allModItems)
+                item.ForeColor = item.Checked ? Color.White : Color.Gray;
+
             if (SettingsManager.Settings.SortEnabledModsToTop)
             {
-                var enabledItems = new List<ListViewItem>();
-                var disabledItems = new List<ListViewItem>();
+                var enabledItems = _allModItems.Where(i => i.Checked).ToList();
+                var disabledItems = _allModItems.Where(i => !i.Checked).ToList();
 
-                foreach (ListViewItem item in modListView.Items)
-                {
-                    item.ForeColor = item.Checked ? Color.White : Color.Gray;
-                    if (item.Checked) enabledItems.Add(item);
-                    else disabledItems.Add(item);
-                }
-
-                modListView.BeginUpdate();
-                modListView.Items.Clear();
-                modListView.Items.AddRange(enabledItems.ToArray());
-                modListView.Items.AddRange(disabledItems.ToArray());
-                modListView.EndUpdate();
-            }
-            else
-            {
-                // Just update colors without re-ordering
-                foreach (ListViewItem item in modListView.Items)
-                    item.ForeColor = item.Checked ? Color.White : Color.Gray;
+                _allModItems.Clear();
+                _allModItems.AddRange(enabledItems);
+                _allModItems.AddRange(disabledItems);
+                
+                ApplyFilter(); // Refresh the list view with new order
             }
         }
 
@@ -2842,6 +2839,13 @@ namespace CrossworldsModManager
 
             draggedItem.Selected = true;
             modListView.Focus();
+
+            // Sync _allModItems if not searching
+            if (string.IsNullOrWhiteSpace(txtSearch.Text))
+            {
+                _allModItems.Clear();
+                _allModItems.AddRange(modListView.Items.Cast<ListViewItem>());
+            }
         }
 
         #endregion
