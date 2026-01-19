@@ -395,8 +395,8 @@ namespace CrossworldsModManager
         
             launchPlatformDropDown.DropDownItems.Clear();
         
-            // Always provide options for Steam and Epic, using detected paths or falling back to the settings path.
-            var platformsToShow = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? new List<string> { "Steam", "Epic Games" } : new List<string> { "Steam" };
+            // Always provide options for Steam, using detected paths or falling back to the settings path.
+            var platformsToShow = new List<string> { "Steam" };
             foreach (var platformName in platformsToShow)
             {
                 var item = new ToolStripMenuItem(platformName);
@@ -407,35 +407,73 @@ namespace CrossworldsModManager
                 launchPlatformDropDown.DropDownItems.Add(item);
             }
         
-            // Add a "Custom" option if a game directory is set in the settings.
-            if (!string.IsNullOrWhiteSpace(SettingsManager.Settings.GameDirectory))
-            {
-                var customItem = new ToolStripMenuItem("Custom");
-                customItem.Tag = "Custom";
-                customItem.Click += PlatformMenuItem_Click;
-                customItem.ForeColor = Color.White;
-                customItem.BackColor = Color.FromArgb(45, 45, 48);
-                launchPlatformDropDown.DropDownItems.Add(customItem);
-            }
+            // Always add "Executable" option.
+            var customItem = new ToolStripMenuItem("Executable");
+            customItem.Tag = "Executable";
+            customItem.Click += PlatformMenuItem_Click;
+            customItem.ForeColor = Color.White;
+            customItem.BackColor = Color.FromArgb(45, 45, 48);
+            launchPlatformDropDown.DropDownItems.Add(customItem);
         
-            // Select the first detected platform, or the first available option.
-            if (launchPlatformDropDown.DropDownItems.Count > 0)
+            // Select the preferred platform if set, otherwise fallback to detection or first item.
+            ToolStripMenuItem? itemToSelect = null;
+
+            if (!string.IsNullOrEmpty(SettingsManager.Settings.PreferredLaunchPlatform))
             {
-                var defaultSelection = _gameInstallations.Any()
-                    ? launchPlatformDropDown.DropDownItems.Cast<ToolStripMenuItem>().FirstOrDefault(i => i.Text == _gameInstallations.Keys.First())
-                    : launchPlatformDropDown.DropDownItems[0];
-        
-                if (defaultSelection != null)
-                    PlatformMenuItem_Click(defaultSelection, EventArgs.Empty);
+                itemToSelect = launchPlatformDropDown.DropDownItems.Cast<ToolStripMenuItem>()
+                    .FirstOrDefault(i => (string)i.Tag == SettingsManager.Settings.PreferredLaunchPlatform);
             }
+
+            if (itemToSelect == null && _gameInstallations.Any())
+            {
+                itemToSelect = launchPlatformDropDown.DropDownItems.Cast<ToolStripMenuItem>().FirstOrDefault(i => i.Text == _gameInstallations.Keys.First());
+            }
+
+            if (itemToSelect == null && launchPlatformDropDown.DropDownItems.Count > 0)
+            {
+                itemToSelect = launchPlatformDropDown.DropDownItems[0] as ToolStripMenuItem;
+            }
+
+            if (itemToSelect != null)
+                PlatformMenuItem_Click(itemToSelect, EventArgs.Empty);
         }
 
         private void PlatformMenuItem_Click(object? sender, EventArgs e)
         {
             if (sender is not ToolStripMenuItem item || item.Tag is not string platform) return;
 
+            if (platform == "Executable")
+            {
+                bool pathSet = !string.IsNullOrEmpty(SettingsManager.Settings.GameDirectory) && 
+                               !string.IsNullOrEmpty(SettingsManager.Settings.GameExecutableName) &&
+                               File.Exists(Path.Combine(SettingsManager.Settings.GameDirectory, SettingsManager.Settings.GameExecutableName));
+                
+                if (!pathSet)
+                {
+                    using (var ofd = new OpenFileDialog())
+                    {
+                        ofd.Title = "Select Game Executable (SonicRacingCrossWorlds.exe)";
+                        ofd.Filter = "SonicRacingCrossWorlds.exe|SonicRacingCrossWorlds.exe";
+                        if (ofd.ShowDialog() == DialogResult.OK)
+                        {
+                            SettingsManager.Settings.GameDirectory = Path.GetDirectoryName(ofd.FileName);
+                            SettingsManager.Settings.GameExecutableName = Path.GetFileName(ofd.FileName);
+                            SettingsManager.Save();
+                        }
+                        else return; // Cancelled, do not switch platform
+                    }
+                }
+            }
+
             _selectedPlatform = platform; // This is safe now
             launchPlatformDropDown.Text = _selectedPlatform; // This is safe now
+            
+            if (SettingsManager.Settings.PreferredLaunchPlatform != platform)
+            {
+                SettingsManager.Settings.PreferredLaunchPlatform = platform;
+                SettingsManager.Save();
+            }
+
             UpdateStatus($"Selected platform: {_selectedPlatform}");
         }
         
@@ -831,7 +869,7 @@ namespace CrossworldsModManager
 
         private void btnPlay_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(_selectedPlatform) || !_gameInstallations.ContainsKey(_selectedPlatform))
+            if (string.IsNullOrEmpty(_selectedPlatform) || (_selectedPlatform != "Executable" && !_gameInstallations.ContainsKey(_selectedPlatform)))
             {
                 CustomMessageBox.Show("Could not find game installation to launch.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -853,15 +891,20 @@ namespace CrossworldsModManager
                 {
                     launchUrl = $"steam://run/{GameRegistry.SteamAppId}";
                 }
-                else if (_selectedPlatform == "Epic Games")
-                {
-                    launchUrl = "com.epicgames.launcher://apps/da1c2c6e190147019e4188f24687a17c%3A3cd74802827f4ecdac46214273fd701a%3A7133a8c315324112a3eee2458f0a8242?action=launch&silent=true";
-                }
-                else if (_selectedPlatform == "Custom")
+                else if (_selectedPlatform == "Executable")
                 {
                     // For custom paths, we find and launch the executable directly.
-                    var exePath = Path.Combine(_gameInstallations["Custom"].Path, "SonicRacingCrossWorldsSteam.exe"); // Assuming exe name
-                    Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
+                    var exeName = SettingsManager.Settings.GameExecutableName ?? "SonicRacingCrossWorlds.exe";
+                    var exePath = Path.Combine(SettingsManager.Settings.GameDirectory ?? "", exeName);
+                    
+                    if (File.Exists(exePath))
+                    {
+                        Process.Start(new ProcessStartInfo(exePath) { UseShellExecute = true });
+                    }
+                    else
+                    {
+                        CustomMessageBox.Show($"Executable not found at:\n{exePath}", "Launch Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
                     return; // Return early as we don't use launchUrl for this case
                 }
 

@@ -13,7 +13,9 @@ namespace CrossworldsModManager
     public class AppSettings
     {
         public string? GameDirectory { get; set; }
+        public string? GameExecutableName { get; set; }
         public string? ModsDirectory { get; set; }
+        public string? PreferredLaunchPlatform { get; set; }
 
         public Dictionary<string, ModProfile> Profiles { get; set; } = new();
         public string? ActiveProfileName { get; set; }

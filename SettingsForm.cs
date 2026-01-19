@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Windows.Forms;
 
 namespace CrossworldsModManager
@@ -12,7 +13,14 @@ namespace CrossworldsModManager
 
         private void SettingsForm_Load(object sender, EventArgs e)
         {
-            txtGameDir.Text = SettingsManager.Settings.GameDirectory;
+            if (!string.IsNullOrEmpty(SettingsManager.Settings.GameDirectory) && !string.IsNullOrEmpty(SettingsManager.Settings.GameExecutableName))
+            {
+                txtGameDir.Text = Path.Combine(SettingsManager.Settings.GameDirectory, SettingsManager.Settings.GameExecutableName);
+            }
+            else
+            {
+                txtGameDir.Text = SettingsManager.Settings.GameDirectory;
+            }
             txtModsDir.Text = SettingsManager.Settings.ModsDirectory;
             chkSortEnabled.Checked = SettingsManager.Settings.SortEnabledModsToTop;
             chkAutoClean.Checked = SettingsManager.Settings.AutoCleanTemporaryFiles;
@@ -44,12 +52,13 @@ namespace CrossworldsModManager
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
         {
-            using (var fbd = new FolderBrowserDialog())
+            using (var ofd = new OpenFileDialog())
             {
-                fbd.Description = "Select the game's installation directory";
-                if (fbd.ShowDialog() == DialogResult.OK)
+                ofd.Title = "Select Game Executable (SonicRacingCrossWorlds.exe)";
+                ofd.Filter = "SonicRacingCrossWorlds.exe|SonicRacingCrossWorlds.exe";
+                if (ofd.ShowDialog() == DialogResult.OK)
                 {
-                    txtGameDir.Text = fbd.SelectedPath;
+                    txtGameDir.Text = ofd.FileName;
                 }
             }
         }
@@ -75,7 +84,20 @@ namespace CrossworldsModManager
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            SettingsManager.Settings.GameDirectory = txtGameDir.Text;
+            string inputPath = txtGameDir.Text;
+            if (File.Exists(inputPath))
+            {
+                SettingsManager.Settings.GameDirectory = Path.GetDirectoryName(inputPath);
+                SettingsManager.Settings.GameExecutableName = Path.GetFileName(inputPath);
+            }
+            else
+            {
+                // Fallback if user entered a directory manually or cleared it
+                SettingsManager.Settings.GameDirectory = inputPath;
+                if (string.IsNullOrEmpty(SettingsManager.Settings.GameExecutableName))
+                    SettingsManager.Settings.GameExecutableName = "SonicRacingCrossWorlds.exe";
+            }
+
             SettingsManager.Settings.ModsDirectory = txtModsDir.Text;
             SettingsManager.Settings.SortEnabledModsToTop = chkSortEnabled.Checked;
             SettingsManager.Settings.AutoCleanTemporaryFiles = chkAutoClean.Checked;
