@@ -421,7 +421,7 @@ namespace CrossworldsModManager
             if (!string.IsNullOrEmpty(SettingsManager.Settings.PreferredLaunchPlatform))
             {
                 itemToSelect = launchPlatformDropDown.DropDownItems.Cast<ToolStripMenuItem>()
-                    .FirstOrDefault(i => (string)i.Tag == SettingsManager.Settings.PreferredLaunchPlatform);
+                    .FirstOrDefault(i => (string?)i.Tag == SettingsManager.Settings.PreferredLaunchPlatform);
             }
 
             if (itemToSelect == null && _gameInstallations.Any())
@@ -490,12 +490,21 @@ namespace CrossworldsModManager
             // This block handles enabling all files for such mods.
             if (selectedOptionIdentifiers.Contains("enable"))
             {
-                foreach (var file in Directory.EnumerateFiles(modInfo.DirectoryPath, "*.*", SearchOption.AllDirectories))
+                if (!Directory.Exists(modInfo.DirectoryPath)) return;
+
+                try
                 {
-                    if (file.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase))
+                    foreach (var file in Directory.EnumerateFiles(modInfo.DirectoryPath, "*.*", SearchOption.AllDirectories))
                     {
-                        File.Move(file, file.Replace(".disabled", ""));
+                        if (file.EndsWith(".disabled", StringComparison.OrdinalIgnoreCase))
+                        {
+                            try { File.Move(file, file.Replace(".disabled", "")); } catch { }
+                        }
                     }
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"Error enabling files for '{modInfo.Name}': {ex.Message}");
                 }
                 return;
             }
@@ -503,6 +512,8 @@ namespace CrossworldsModManager
             // Iterate through all possible files defined in the [Files] section.
             foreach (var fileMapping in modInfo.FileGroupMappings)
             {
+                try
+                {
                 var fileBase = fileMapping.Key;
                 if (!modInfo.FileGroupMappings.TryGetValue(fileBase, out var group) || group == null) continue;
 
@@ -512,6 +523,7 @@ namespace CrossworldsModManager
                 string baseName = Path.GetFileName(combinedPath);
 
                 if (string.IsNullOrEmpty(directory)) continue;
+                if (!Directory.Exists(directory)) continue;
 
                 // Find all related files (.pak, .utoc, .ucas, etc.)
                 var filesToProcess = Directory.GetFiles(Path.GetFullPath(directory), baseName + ".*");
@@ -539,9 +551,13 @@ namespace CrossworldsModManager
                     }
                     catch (Exception ex)
                     {
-                        CustomMessageBox.Show($"Failed to apply option for '{baseName}': {ex.Message}",
-                            "Configuration Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        AppendLog($"Failed to apply option for '{baseName}': {ex.Message}");
                     }
+                }
+                }
+                catch (Exception ex)
+                {
+                    AppendLog($"Error processing file mapping '{fileMapping.Key}': {ex.Message}");
                 }
             }
         }
@@ -601,31 +617,38 @@ namespace CrossworldsModManager
                 // Then, apply the current configurations for all mods.
                 foreach (ListViewItem item in _allModItems)
                 {
-                    if (item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
+                    try
                     {
-                        // Get the saved selection for this mod.
-                        var activeProfile = GetActiveProfile();
-                        if (activeProfile == null) continue;
-
-                        var selectedOptionIdentifiers = new List<string>();
-                        foreach (var group in modInfo.ConfigurationGroups)
+                        if (item.Tag is ModInfo modInfo && modInfo.ConfigurationGroups.Any())
                         {
-                            var configKey = $"{modInfo.Name}:{group.GroupName}";
-                            if (activeProfile.ModConfigurations.TryGetValue(configKey, out var selectedValue))
+                            // Get the saved selection for this mod.
+                            var activeProfile = GetActiveProfile();
+                            if (activeProfile == null) continue;
+
+                            var selectedOptionIdentifiers = new List<string>();
+                            foreach (var group in modInfo.ConfigurationGroups)
                             {
-                                // For SelectMultiple, the value is comma-separated. Split it.
-                                var options = selectedValue.Split(',').Select(s => s.Trim());
-                                foreach (var option in options)
+                                var configKey = $"{modInfo.Name}:{group.GroupName}";
+                                if (activeProfile.ModConfigurations.TryGetValue(configKey, out var selectedValue))
                                 {
-                                    selectedOptionIdentifiers.Add($"{group.GroupName}.{option}");
+                                    // For SelectMultiple, the value is comma-separated. Split it.
+                                    var options = selectedValue.Split(',').Select(s => s.Trim());
+                                    foreach (var option in options)
+                                    {
+                                        selectedOptionIdentifiers.Add($"{group.GroupName}.{option}");
+                                    }
                                 }
                             }
+                            ApplyModConfiguration(modInfo, selectedOptionIdentifiers);
                         }
-                        ApplyModConfiguration(modInfo, selectedOptionIdentifiers);
+                        else if (item.Tag is ModInfo modInfoWithoutConfig) // Handle non-configurable mods
+                        {
+                            ApplyModConfiguration(modInfoWithoutConfig, item.Checked ? new List<string> { "enable" } : new List<string>());
+                        }
                     }
-                    else if (item.Tag is ModInfo modInfoWithoutConfig) // Handle non-configurable mods
+                    catch (Exception ex)
                     {
-                        ApplyModConfiguration(modInfoWithoutConfig, item.Checked ? new List<string> { "enable" } : new List<string>());
+                        AppendLog($"Error processing mod '{item.Text}': {ex.Message}");
                     }
                 }
 

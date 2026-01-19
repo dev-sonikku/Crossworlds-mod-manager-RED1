@@ -22,7 +22,15 @@ namespace CrossworldsModManager
                 prompt.ForeColor = Color.White;
 
                 Label textLabel = new Label() { Left = 20, Top = 20, Text = text, AutoSize = true, MaximumSize = new Size(400, 0) };
-                TextBox textBox = new TextBox() { Left = 20, Top = 50, Width = 390, Text = defaultValue };
+                TextBox textBox = new TextBox() { 
+                    Left = 20, 
+                    Top = 50, 
+                    Width = 390, 
+                    Text = defaultValue,
+                    BackColor = Color.FromArgb(30, 30, 30),
+                    ForeColor = Color.White,
+                    BorderStyle = BorderStyle.FixedSingle
+                };
                 
                 // Adjust input position based on label height
                 if (textLabel.Bottom > 40) textBox.Top = textLabel.Bottom + 10;

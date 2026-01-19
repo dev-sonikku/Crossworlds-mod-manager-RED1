@@ -139,7 +139,7 @@ namespace CrossworldsModManager
             dgvMod.Columns.Add("Language", "Lang");
             dgvMod.Columns.Add("Namespace", "Namespace");
             dgvMod.Columns.Add("Key", "Key");
-            dgvMod.Columns.Add("Value", "New Text (Editable)");
+            dgvMod.Columns.Add("Value", "New Text (Double Click)");
             dgvMod.Columns[0].Width = 60;
             dgvMod.Columns[1].ReadOnly = true;
             dgvMod.Columns[2].ReadOnly = true;
@@ -177,13 +177,14 @@ namespace CrossworldsModManager
         {
             var dgv = new DataGridView();
             dgv.BackgroundColor = Color.FromArgb(30, 30, 30);
-            dgv.ForeColor = Color.Black; // Cell text color (black for editability visibility)
+            dgv.ForeColor = Color.White;
             dgv.GridColor = Color.FromArgb(60, 60, 60);
             dgv.RowHeadersVisible = false;
             dgv.AllowUserToAddRows = false;
             dgv.AllowUserToDeleteRows = false;
             dgv.BorderStyle = BorderStyle.None;
-            dgv.DefaultCellStyle.BackColor = Color.FromArgb(240, 240, 240);
+            dgv.DefaultCellStyle.BackColor = Color.FromArgb(30, 30, 30);
+            dgv.DefaultCellStyle.ForeColor = Color.White;
             dgv.DefaultCellStyle.SelectionBackColor = Color.FromArgb(0, 122, 204);
             dgv.DefaultCellStyle.SelectionForeColor = Color.White;
             return dgv;
