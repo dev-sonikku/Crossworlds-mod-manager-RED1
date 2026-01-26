@@ -515,7 +515,13 @@ namespace CrossworldsModManager
                 try
                 {
                 var fileBase = fileMapping.Key;
-                if (!modInfo.FileGroupMappings.TryGetValue(fileBase, out var group) || group == null) continue;
+                // Fix for Linux: Normalize path separators to match the current OS
+                if (Path.DirectorySeparatorChar == '/')
+                {
+                    fileBase = fileBase.Replace('\\', '/');
+                }
+
+                if (!modInfo.FileGroupMappings.TryGetValue(fileMapping.Key, out var group) || group == null) continue;
 
                 // Correctly separate the directory and the base filename from the mod.ini entry.
                 string combinedPath = Path.Combine(modInfo.DirectoryPath, fileBase);
