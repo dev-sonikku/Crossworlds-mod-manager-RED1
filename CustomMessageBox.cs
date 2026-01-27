@@ -121,7 +121,7 @@ namespace CrossworldsModManager
 
                 // Calculate size
                 int contentHeight = lbl.Bottom + 20;
-                int buttonPanelHeight = 50;
+                int buttonPanelHeight = 80;
                 form.ClientSize = new Size(500, Math.Max(150, contentHeight + buttonPanelHeight));
 
                 // Button panel

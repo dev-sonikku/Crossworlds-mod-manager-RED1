@@ -36,6 +36,10 @@ namespace CrossworldsModManager
         // Default is false (show confirmation).
         public bool DoNotConfirmEnableDisable { get; set; } = false;
 
+        // If true, the app will NOT warn about unsaved changes when playing.
+        // Default is false (warn).
+        public bool DoNotWarnUnsavedChanges { get; set; } = false;
+
         // Deprecated properties for migration
         public List<string>? EnabledMods { get; set; }
         public Dictionary<string, string>? ModConfigurations { get; set; }

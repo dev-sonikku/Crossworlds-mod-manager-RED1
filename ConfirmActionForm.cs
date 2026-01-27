@@ -18,7 +18,7 @@ namespace CrossworldsModManager
             this.Text = "Confirm";
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.StartPosition = FormStartPosition.CenterParent;
-            this.Size = new Size(420, 160);
+            this.ClientSize = new Size(420, 150);
             this.MinimizeBox = false;
             this.MaximizeBox = false;
 

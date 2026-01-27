@@ -573,6 +573,11 @@ namespace CrossworldsModManager
 
         private async void btnSave_Click(object sender, EventArgs e)
         {
+            await SaveAndInstallModsAsync();
+        }
+
+        private async Task SaveAndInstallModsAsync()
+        {
             // Disable the Play button during save and show status
             btnPlay.Enabled = false;
             btnPlay.ForeColor = Color.Gray;
@@ -899,8 +904,31 @@ namespace CrossworldsModManager
             }
         }
 
-        private void btnPlay_Click(object sender, EventArgs e)
+        private async void btnPlay_Click(object sender, EventArgs e)
         {
+            if (!SettingsManager.Settings.DoNotWarnUnsavedChanges && HasUnsavedChanges())
+            {
+                using (var form = new UnsavedChangesForm())
+                {
+                    var result = form.ShowDialog(this);
+                    
+                    if (form.DoNotShowAgain)
+                    {
+                        SettingsManager.Settings.DoNotWarnUnsavedChanges = true;
+                        SettingsManager.Save();
+                    }
+
+                    if (result == DialogResult.Cancel)
+                    {
+                        return;
+                    }
+                    else if (result == DialogResult.Yes) // Save and Play
+                    {
+                        await SaveAndInstallModsAsync();
+                    }
+                }
+            }
+
             if (string.IsNullOrEmpty(_selectedPlatform) || (_selectedPlatform != "Executable" && !_gameInstallations.ContainsKey(_selectedPlatform)))
             {
                 CustomMessageBox.Show("Could not find game installation to launch.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -1412,6 +1440,49 @@ namespace CrossworldsModManager
             SettingsManager.Save();
         }
 
+        private bool HasUnsavedChanges()
+        {
+            var activeProfile = GetActiveProfile();
+            if (activeProfile == null) return false;
+
+            var currentEnabledMods = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var currentLoadOrder = new List<string>();
+
+            foreach (ListViewItem item in _allModItems)
+            {
+                if (item.Tag is ModInfo modInfo)
+                {
+                    var dirName = Path.GetFileName(modInfo.DirectoryPath);
+                    currentLoadOrder.Add(dirName);
+                    if (item.Checked)
+                    {
+                        currentEnabledMods.Add(dirName);
+                    }
+                }
+            }
+
+            var savedEnabledMods = new HashSet<string>(activeProfile.EnabledMods ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+            
+            if (!currentEnabledMods.SetEquals(savedEnabledMods)) return true;
+
+            // Check load order
+            var savedLoadOrder = activeProfile.ModLoadOrder ?? new List<string>();
+            
+            // Filter savedLoadOrder to only include mods currently present in the list (to handle external deletions)
+            var savedLoadOrderFiltered = savedLoadOrder.Where(m => currentLoadOrder.Contains(m, StringComparer.OrdinalIgnoreCase)).ToList();
+            
+            // If counts differ (e.g. new mods added), it's a change
+            if (currentLoadOrder.Count != savedLoadOrderFiltered.Count) return true;
+
+            for (int i = 0; i < currentLoadOrder.Count; i++)
+            {
+                if (!string.Equals(currentLoadOrder[i], savedLoadOrderFiltered[i], StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
         private async Task<bool> InstallModsAsync()
         {
             string? gamePath = null;
@@ -1496,7 +1567,10 @@ namespace CrossworldsModManager
                         }
                         else if (Regex.IsMatch(dirInfo.Name, @"^\d{3}-"))
                         {
-                            Directory.Delete(dir, true);
+                            if (File.Exists(Path.Combine(dir, ".bsm_managed")))
+                            {
+                                Directory.Delete(dir, true);
+                            }
                         }
                     }
                 }
@@ -1513,7 +1587,10 @@ namespace CrossworldsModManager
                     // Check for copied folder pattern (000-ModName)
                     else if (Regex.IsMatch(dirInfo.Name, @"^\d{3}-"))
                     {
-                        Directory.Delete(dir, true);
+                        if (File.Exists(Path.Combine(dir, ".bsm_managed")))
+                        {
+                            Directory.Delete(dir, true);
+                        }
                     }
                 }
 
@@ -1565,7 +1642,7 @@ namespace CrossworldsModManager
 
                                 if (useCopy)
                                 {
-                                    installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath));
+                                    installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath, true));
                                 }
                                 else
                                 {
@@ -1580,7 +1657,7 @@ namespace CrossworldsModManager
                                 
                                 if (useCopy)
                                 {
-                                    installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath));
+                                    installTasks.Add(CopyDirectoryAsync(linkName, modInfo.DirectoryPath, true));
                                 }
                                 else
                                 {
@@ -1627,7 +1704,7 @@ namespace CrossworldsModManager
                         var devLinkName = Path.Combine(targetModsDir, "000-DevExport"); // "000" prefix for highest priority
                         if (useCopy)
                         {
-                            await CopyDirectoryAsync(devLinkName, devModDir);
+                            await CopyDirectoryAsync(devLinkName, devModDir, true);
                         }
                         else
                         {
@@ -1838,7 +1915,7 @@ namespace CrossworldsModManager
 
         private async Task<bool> InstallUe4ssModAsync(string destPath, string sourcePath)
         {
-            bool success = await CopyDirectoryAsync(destPath, sourcePath);
+            bool success = await CopyDirectoryAsync(destPath, sourcePath, false);
             if (success)
             {
                 try
@@ -1853,7 +1930,7 @@ namespace CrossworldsModManager
             return success;
         }
 
-        private async Task<bool> CopyDirectoryAsync(string destDir, string sourceDir)
+        private async Task<bool> CopyDirectoryAsync(string destDir, string sourceDir, bool markAsManaged = false)
         {
             try
             {
@@ -1862,6 +1939,10 @@ namespace CrossworldsModManager
                     if (Directory.Exists(destDir)) Directory.Delete(destDir, true);
                     Directory.CreateDirectory(destDir);
                     CopyDirRecursive(sourceDir, destDir);
+                    if (markAsManaged)
+                    {
+                        File.WriteAllText(Path.Combine(destDir, ".bsm_managed"), "");
+                    }
                 });
                 return true;
             }

@@ -31,6 +31,7 @@ namespace CrossworldsModManager
             this.chkAutoCloseLog = new System.Windows.Forms.CheckBox();
             this.chkDeveloperMode = new System.Windows.Forms.CheckBox();
             this.chkDoNotBackup = new System.Windows.Forms.CheckBox();
+            this.chkDoNotWarnUnsavedChanges = new System.Windows.Forms.CheckBox();
             this.lblTheme = new System.Windows.Forms.Label();
             this.cmbTheme = new System.Windows.Forms.ComboBox();
             this.btnCustomizeTheme = new System.Windows.Forms.Button();
@@ -208,14 +209,25 @@ namespace CrossworldsModManager
             this.chkDoNotConfirmEnableDisable.Text = "Do not ask for confirmation when enabling/disabling all";
             this.chkDoNotConfirmEnableDisable.UseVisualStyleBackColor = true;
             // 
+            // chkDoNotWarnUnsavedChanges
+            // 
+            this.chkDoNotWarnUnsavedChanges.AutoSize = true;
+            this.chkDoNotWarnUnsavedChanges.ForeColor = System.Drawing.Color.Gainsboro;
+            this.chkDoNotWarnUnsavedChanges.Location = new System.Drawing.Point(102, 228);
+            this.chkDoNotWarnUnsavedChanges.Name = "chkDoNotWarnUnsavedChanges";
+            this.chkDoNotWarnUnsavedChanges.Size = new System.Drawing.Size(255, 17);
+            this.chkDoNotWarnUnsavedChanges.TabIndex = 15;
+            this.chkDoNotWarnUnsavedChanges.Text = "Do not warn about unsaved changes when playing";
+            this.chkDoNotWarnUnsavedChanges.UseVisualStyleBackColor = true;
+            // 
             // lblTheme
             // 
             this.lblTheme.AutoSize = true;
             this.lblTheme.ForeColor = System.Drawing.Color.Gainsboro;
-            this.lblTheme.Location = new System.Drawing.Point(12, 231);
+            this.lblTheme.Location = new System.Drawing.Point(12, 254);
             this.lblTheme.Name = "lblTheme";
             this.lblTheme.Size = new System.Drawing.Size(43, 13);
-            this.lblTheme.TabIndex = 15;
+            this.lblTheme.TabIndex = 16;
             this.lblTheme.Text = "Theme:";
             // 
             // cmbTheme
@@ -225,18 +237,18 @@ namespace CrossworldsModManager
             this.cmbTheme.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.cmbTheme.ForeColor = System.Drawing.Color.White;
             this.cmbTheme.FormattingEnabled = true;
-            this.cmbTheme.Location = new System.Drawing.Point(102, 228);
+            this.cmbTheme.Location = new System.Drawing.Point(102, 251);
             this.cmbTheme.Name = "cmbTheme";
             this.cmbTheme.Size = new System.Drawing.Size(200, 21);
-            this.cmbTheme.TabIndex = 16;
+            this.cmbTheme.TabIndex = 17;
             this.cmbTheme.SelectedIndexChanged += new System.EventHandler(this.cmbTheme_SelectedIndexChanged);
             // 
             // btnCustomizeTheme
             // 
-            this.btnCustomizeTheme.Location = new System.Drawing.Point(310, 227);
+            this.btnCustomizeTheme.Location = new System.Drawing.Point(310, 250);
             this.btnCustomizeTheme.Name = "btnCustomizeTheme";
             this.btnCustomizeTheme.Size = new System.Drawing.Size(75, 23);
-            this.btnCustomizeTheme.TabIndex = 17;
+            this.btnCustomizeTheme.TabIndex = 18;
             this.btnCustomizeTheme.Text = "Edit...";
             this.btnCustomizeTheme.UseVisualStyleBackColor = false;
             this.btnCustomizeTheme.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
@@ -255,6 +267,7 @@ namespace CrossworldsModManager
             this.Controls.Add(this.chkDeveloperMode);
             this.Controls.Add(this.chkDoNotBackup);
             this.Controls.Add(this.chkDoNotConfirmEnableDisable);
+            this.Controls.Add(this.chkDoNotWarnUnsavedChanges);
             this.Controls.Add(this.chkAutoCloseLog);
             this.Controls.Add(this.chkCheckForGames);
             this.Controls.Add(this.chkAutoClean);
@@ -298,6 +311,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.CheckBox chkDeveloperMode;
         private System.Windows.Forms.CheckBox chkDoNotBackup;
         private System.Windows.Forms.CheckBox chkDoNotConfirmEnableDisable;
+        private System.Windows.Forms.CheckBox chkDoNotWarnUnsavedChanges;
         private System.Windows.Forms.Label lblTheme;
         private System.Windows.Forms.ComboBox cmbTheme;
         private System.Windows.Forms.Button btnCustomizeTheme;

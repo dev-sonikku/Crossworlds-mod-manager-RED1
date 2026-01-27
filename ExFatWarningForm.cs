@@ -20,7 +20,7 @@ namespace CrossworldsModManager
         private void InitializeComponent()
         {
             this.Text = "File System Warning";
-            this.Size = new Size(450, 240);
+            this.ClientSize = new Size(450, 210);
             this.StartPosition = FormStartPosition.CenterParent;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;

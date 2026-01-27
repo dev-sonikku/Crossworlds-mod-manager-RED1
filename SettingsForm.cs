@@ -28,14 +28,19 @@ namespace CrossworldsModManager
             chkAutoCloseLog.Checked = SettingsManager.Settings.AutoCloseLogOnSuccess;
             chkDeveloperMode.Checked = SettingsManager.Settings.DeveloperModeEnabled;
             var doNotBackupChk = this.Controls.Find("chkDoNotBackup", true);
-            if (doNotBackupChk.Length > 0 && doNotBackupChk[0] is CheckBox cb)
+            if (doNotBackupChk.Length > 0 && doNotBackupChk[0] is CheckBox chkBackup)
             {
-                cb.Checked = SettingsManager.Settings.DoNotBackupModsAutomatically;
+                chkBackup.Checked = SettingsManager.Settings.DoNotBackupModsAutomatically;
             }
             var doNotConfirmChk = this.Controls.Find("chkDoNotConfirmEnableDisable", true);
-            if (doNotConfirmChk.Length > 0 && doNotConfirmChk[0] is CheckBox cb2)
+            if (doNotConfirmChk.Length > 0 && doNotConfirmChk[0] is CheckBox chkConfirm)
             {
-                cb2.Checked = SettingsManager.Settings.DoNotConfirmEnableDisable;
+                chkConfirm.Checked = SettingsManager.Settings.DoNotConfirmEnableDisable;
+            }
+            var doNotWarnChk = this.Controls.Find("chkDoNotWarnUnsavedChanges", true);
+            if (doNotWarnChk.Length > 0 && doNotWarnChk[0] is CheckBox chkWarn)
+            {
+                chkWarn.Checked = SettingsManager.Settings.DoNotWarnUnsavedChanges;
             }
 
             var cmbThemeControl = this.Controls.Find("cmbTheme", true);
@@ -105,14 +110,19 @@ namespace CrossworldsModManager
             SettingsManager.Settings.AutoCloseLogOnSuccess = chkAutoCloseLog.Checked;
             SettingsManager.Settings.DeveloperModeEnabled = chkDeveloperMode.Checked;
             var doNotBackupChk2 = this.Controls.Find("chkDoNotBackup", true);
-            if (doNotBackupChk2.Length > 0 && doNotBackupChk2[0] is CheckBox cb2)
+            if (doNotBackupChk2.Length > 0 && doNotBackupChk2[0] is CheckBox chkBackup)
             {
-                SettingsManager.Settings.DoNotBackupModsAutomatically = cb2.Checked;
+                SettingsManager.Settings.DoNotBackupModsAutomatically = chkBackup.Checked;
             }
             var doNotConfirmChk2 = this.Controls.Find("chkDoNotConfirmEnableDisable", true);
-            if (doNotConfirmChk2.Length > 0 && doNotConfirmChk2[0] is CheckBox cb3)
+            if (doNotConfirmChk2.Length > 0 && doNotConfirmChk2[0] is CheckBox chkConfirm)
             {
-                SettingsManager.Settings.DoNotConfirmEnableDisable = cb3.Checked;
+                SettingsManager.Settings.DoNotConfirmEnableDisable = chkConfirm.Checked;
+            }
+            var doNotWarnChk2 = this.Controls.Find("chkDoNotWarnUnsavedChanges", true);
+            if (doNotWarnChk2.Length > 0 && doNotWarnChk2[0] is CheckBox chkWarn)
+            {
+                SettingsManager.Settings.DoNotWarnUnsavedChanges = chkWarn.Checked;
             }
             var cmbThemeControl = this.Controls.Find("cmbTheme", true);
             if (cmbThemeControl.Length > 0 && cmbThemeControl[0] is ComboBox cmbTheme && cmbTheme.SelectedItem != null)
