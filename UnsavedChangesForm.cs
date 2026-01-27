@@ -8,8 +8,6 @@ namespace CrossworldsModManager
 #pragma warning disable CA1416
     public class UnsavedChangesForm : Form
     {
-        public bool DoNotShowAgain { get; private set; }
-        private CheckBox _chkDoNotShow = null!;
 
         public UnsavedChangesForm()
         {
@@ -36,14 +34,6 @@ namespace CrossworldsModManager
                 Size = new Size(410, 50),
                 ForeColor = Color.White,
                 Font = new Font(SystemFonts.MessageBoxFont?.FontFamily ?? SystemFonts.DefaultFont.FontFamily, 10)
-            };
-
-            _chkDoNotShow = new CheckBox()
-            {
-                Text = "Do not show this again",
-                Location = new Point(20, 80),
-                AutoSize = true,
-                ForeColor = Color.Gainsboro
             };
 
             var btnSaveAndPlay = new Button()
@@ -86,19 +76,12 @@ namespace CrossworldsModManager
             btnCancel.FlatAppearance.BorderSize = 0;
 
             this.Controls.Add(lblMessage);
-            this.Controls.Add(_chkDoNotShow);
             this.Controls.Add(btnSaveAndPlay);
             this.Controls.Add(btnPlayAnyways);
             this.Controls.Add(btnCancel);
 
             this.AcceptButton = btnSaveAndPlay;
             this.CancelButton = btnCancel;
-        }
-
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-            DoNotShowAgain = _chkDoNotShow.Checked;
-            base.OnFormClosing(e);
         }
     }
 #pragma warning restore CA1416

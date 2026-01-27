@@ -911,12 +911,6 @@ namespace CrossworldsModManager
                 using (var form = new UnsavedChangesForm())
                 {
                     var result = form.ShowDialog(this);
-                    
-                    if (form.DoNotShowAgain)
-                    {
-                        SettingsManager.Settings.DoNotWarnUnsavedChanges = true;
-                        SettingsManager.Save();
-                    }
 
                     if (result == DialogResult.Cancel)
                     {
