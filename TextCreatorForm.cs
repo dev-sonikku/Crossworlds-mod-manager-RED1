@@ -393,8 +393,19 @@ namespace CrossworldsModManager
             {
                 sfd.FileName = Path.GetFileName(_targetFileName);
                 sfd.Filter = "JSON Files|*.json";
+                sfd.OverwritePrompt = false; // Disable the native prompt which can have theme issues on Linux
+
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
+                    if (File.Exists(sfd.FileName))
+                    {
+                        var result = CustomMessageBox.Show($"The file '{Path.GetFileName(sfd.FileName)}' already exists.\nDo you want to replace it?", "Confirm Save As", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                        if (result != DialogResult.Yes)
+                        {
+                            return; // User cancelled the overwrite
+                        }
+                    }
+
                     try
                     {
                         var options = new JsonSerializerOptions { WriteIndented = true };

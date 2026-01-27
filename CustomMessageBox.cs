@@ -85,15 +85,7 @@ namespace CrossworldsModManager
                     pbox.Size = new Size(32, 32);
                     pbox.SizeMode = PictureBoxSizeMode.Zoom;
                     
-                    Icon sysIcon = SystemIcons.Application;
-                    switch (icon)
-                    {
-                        case MessageBoxIcon.Error: sysIcon = SystemIcons.Error; break;
-                        case MessageBoxIcon.Warning: sysIcon = SystemIcons.Warning; break;
-                        case MessageBoxIcon.Question: sysIcon = SystemIcons.Question; break;
-                        case MessageBoxIcon.Information: sysIcon = SystemIcons.Information; break;
-                    }
-                    pbox.Image = sysIcon.ToBitmap();
+                    pbox.Image = CreateIcon(icon);
                     form.Controls.Add(pbox);
                     textX = 70;
                 }
@@ -203,6 +195,58 @@ namespace CrossworldsModManager
                 else
                     return form.ShowDialog();
             }
+        }
+
+        private static Bitmap CreateIcon(MessageBoxIcon icon)
+        {
+            var bmp = new Bitmap(32, 32);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+
+                var fontName = SystemFonts.MessageBoxFont?.FontFamily ?? SystemFonts.DefaultFont.FontFamily;
+
+                switch (icon)
+                {
+                    case MessageBoxIcon.Error: // Red X
+                        g.FillEllipse(Brushes.IndianRed, 1, 1, 30, 30);
+                        using (var pen = new Pen(Color.White, 3))
+                        {
+                            g.DrawLine(pen, 10, 10, 22, 22);
+                            g.DrawLine(pen, 22, 10, 10, 22);
+                        }
+                        break;
+
+                    case MessageBoxIcon.Question: // Blue ?
+                        g.FillEllipse(Brushes.DodgerBlue, 1, 1, 30, 30);
+                        using (var font = new Font(fontName, 20, FontStyle.Bold, GraphicsUnit.Pixel))
+                        {
+                            var size = g.MeasureString("?", font);
+                            g.DrawString("?", font, Brushes.White, (32 - size.Width) / 2, (32 - size.Height) / 2 + 1);
+                        }
+                        break;
+
+                    case MessageBoxIcon.Warning: // Orange !
+                        g.FillEllipse(Brushes.DarkOrange, 1, 1, 30, 30);
+                        using (var font = new Font(fontName, 20, FontStyle.Bold, GraphicsUnit.Pixel))
+                        {
+                            var size = g.MeasureString("!", font);
+                            g.DrawString("!", font, Brushes.White, (32 - size.Width) / 2, (32 - size.Height) / 2 + 1);
+                        }
+                        break;
+
+                    case MessageBoxIcon.Information: // Blue i
+                        g.FillEllipse(Brushes.DodgerBlue, 1, 1, 30, 30);
+                        using (var font = new Font(fontName, 20, FontStyle.Bold, GraphicsUnit.Pixel))
+                        {
+                            var size = g.MeasureString("i", font);
+                            g.DrawString("i", font, Brushes.White, (32 - size.Width) / 2, (32 - size.Height) / 2 + 1);
+                        }
+                        break;
+                }
+            }
+            return bmp;
         }
     }
 #pragma warning restore CA1416
