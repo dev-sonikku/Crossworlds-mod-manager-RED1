@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Drawing;
 
 namespace CrossworldsModManager
 {
@@ -45,5 +46,11 @@ namespace CrossworldsModManager
             Description = configSection.GetValueOrDefault("Description", $"Select an option for {GroupName}:");
             Options = configSection.GetValueOrDefault("Options", "").Split(',').Select(o => o.Trim()).ToList();
         }
+    }
+
+    public class ModSection
+    {
+        public string Name { get; set; } = "Section";
+        public Color? TextColor { get; set; }
     }
 }

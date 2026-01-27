@@ -30,6 +30,10 @@ namespace CrossworldsModManager
         private Button? btnBackupMods; // Added for Mod Backup
         private Button? btnRestoreMods; // Added for Mod Restore
         private readonly string? _oneClickUrl;
+        private ToolStripMenuItem? renameToolStripMenuItem;
+        private ToolStripMenuItem? changeColorToolStripMenuItem;
+        private ToolStripMenuItem? configMakerItem;
+        private ToolStripMenuItem? normalizeRootItem;
 
         public MainForm(string? oneClickUrl, string appVersion)
         {
@@ -116,6 +120,12 @@ namespace CrossworldsModManager
             ThemeManager.SetTheme(SettingsManager.Settings.SelectedTheme);
             ThemeManager.ApplyTheme(this);
 
+            // Enable OwnerDraw to customize section appearance
+            modListView.OwnerDraw = true;
+            modListView.DrawSubItem += modListView_DrawSubItem;
+            modListView.DrawColumnHeader += modListView_DrawColumnHeader;
+            modListView.ItemCheck += modListView_ItemCheck;
+
             // Initialize details pane with default state (icon)
             UpdateModDetails(null);
 
@@ -126,21 +136,39 @@ namespace CrossworldsModManager
             modListView.DragDrop += modListView_DragDrop;
 
             // Add Mod Config Maker to context menu
-            var configMakerItem = new ToolStripMenuItem("Mod Config Maker");
+            configMakerItem = new ToolStripMenuItem("Mod Config Maker");
             configMakerItem.ForeColor = Color.White;
             configMakerItem.BackColor = Color.FromArgb(45, 45, 48);
             configMakerItem.Click += ConfigMakerItem_Click;
             
-            var normalizeRootItem = new ToolStripMenuItem("Normalize Mod Root");
+            normalizeRootItem = new ToolStripMenuItem("Normalize Mod Root");
             normalizeRootItem.ForeColor = Color.White;
             normalizeRootItem.BackColor = Color.FromArgb(45, 45, 48);
             normalizeRootItem.Click += NormalizeRootItem_Click;
             
             if (modContextMenuStrip != null)
             {
+                renameToolStripMenuItem = new ToolStripMenuItem("Rename");
+                renameToolStripMenuItem.ForeColor = Color.White;
+                renameToolStripMenuItem.BackColor = Color.FromArgb(45, 45, 48);
+                renameToolStripMenuItem.Click += RenameSection_Click;
+                modContextMenuStrip.Items.Insert(0, renameToolStripMenuItem);
+
+                changeColorToolStripMenuItem = new ToolStripMenuItem("Change Color");
+                changeColorToolStripMenuItem.ForeColor = Color.White;
+                changeColorToolStripMenuItem.BackColor = Color.FromArgb(45, 45, 48);
+                changeColorToolStripMenuItem.Click += ChangeSectionColor_Click;
+                modContextMenuStrip.Items.Insert(1, changeColorToolStripMenuItem);
+
+                var addSectionItem = new ToolStripMenuItem("Add Section");
+                addSectionItem.ForeColor = Color.White;
+                addSectionItem.BackColor = Color.FromArgb(45, 45, 48);
+                addSectionItem.Click += AddSection_Click;
+
                 modContextMenuStrip.Items.Add(new ToolStripSeparator());
                 modContextMenuStrip.Items.Add(configMakerItem);
                 modContextMenuStrip.Items.Add(normalizeRootItem);
+                modContextMenuStrip.Items.Add(addSectionItem);
             }
 
             // Make top-level menus change color when their dropdown is opened/closed
@@ -161,6 +189,63 @@ namespace CrossworldsModManager
             }
 
             StartPipeServer();
+        }
+
+        private void RenameSection_Click(object? sender, EventArgs e)
+        {
+            if (modListView.SelectedItems.Count != 1) return;
+            var item = modListView.SelectedItems[0];
+            if (item.Tag is ModSection section)
+            {
+                string newName = Prompt.ShowDialog("Enter new section name:", "Rename Section", section.Name);
+                if (!string.IsNullOrWhiteSpace(newName) && newName != section.Name)
+                {
+                    section.Name = newName;
+                    item.Text = newName;
+                    modListView.Invalidate(item.Bounds);
+                    SaveModListState();
+                }
+            }
+        }
+
+        private void ChangeSectionColor_Click(object? sender, EventArgs e)
+        {
+            if (modListView.SelectedItems.Count != 1) return;
+            var item = modListView.SelectedItems[0];
+            if (item.Tag is ModSection section)
+            {
+                using (var cd = new ColorDialog())
+                {
+                    cd.Color = section.TextColor ?? ThemeManager.CurrentTheme.AccentColor;
+                    if (cd.ShowDialog() == DialogResult.OK)
+                    {
+                        section.TextColor = cd.Color;
+                        modListView.Invalidate(item.Bounds);
+                        SaveModListState();
+                    }
+                }
+            }
+        }
+
+        private void AddSection_Click(object? sender, EventArgs e)
+        {
+            string name = Prompt.ShowDialog("Enter section name:", "Add Section");
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            var item = CreateSectionListViewItem(name);
+
+            int insertIndex = _allModItems.Count;
+            if (modListView.SelectedItems.Count > 0)
+            {
+                var selectedItem = modListView.SelectedItems[0];
+                insertIndex = _allModItems.IndexOf(selectedItem);
+                if (insertIndex == -1) insertIndex = _allModItems.Count;
+            }
+
+            _allModItems.Insert(insertIndex, item);
+            ApplyFilter();
+            SaveModListState();
+            UpdateStatus($"Added section '{name}'.");
         }
 
         private void TextChangeToolItem_Click(object? sender, EventArgs e)
@@ -1128,7 +1213,22 @@ namespace CrossworldsModManager
             // Now, add mods to the list view in the correct, saved order.
             foreach (var modName in modLoadOrder)
             {
-                if (foundMods.TryGetValue(modName, out var modInfo)) // This should be case-insensitive in the future if needed
+                if (modName.StartsWith("SECTION:"))
+                {
+                    var sectionName = modName.Substring(8);
+                    Color? color = null;
+                    if (sectionName.Contains('|'))
+                    {
+                        var parts = sectionName.Split('|');
+                        sectionName = parts[0];
+                        if (parts.Length > 1 && int.TryParse(parts[1], out int argb))
+                        {
+                            color = Color.FromArgb(argb);
+                        }
+                    }
+                    _allModItems.Add(CreateSectionListViewItem(sectionName, color));
+                }
+                else if (foundMods.TryGetValue(modName, out var modInfo)) // This should be case-insensitive in the future if needed
                 {
                     _allModItems.Add(CreateModListViewItem(modInfo, enabledMods));
                     foundMods.Remove(modName); // Remove from dictionary so we don't add it again.
@@ -1393,6 +1493,18 @@ namespace CrossworldsModManager
             return item;
         }
 
+        private ListViewItem CreateSectionListViewItem(string name, Color? color = null)
+        {
+            var item = new ListViewItem(name);
+            item.Tag = new ModSection { Name = name, TextColor = color };
+            item.ForeColor = color ?? ThemeManager.CurrentTheme.AccentColor;
+            // Add empty subitems to align with columns
+            item.SubItems.Add(""); // Author
+            item.SubItems.Add(""); // Actions
+            item.SubItems.Add(""); // Update
+            return item;
+        }
+
         private void ApplyFilter()
         {
             modListView.BeginUpdate();
@@ -1427,6 +1539,13 @@ namespace CrossworldsModManager
                             enabledMods.Add(modFolderName);
                         }
                     }
+                }
+                else if (item.Tag is ModSection section)
+                {
+                    if (section.TextColor.HasValue)
+                        modLoadOrder.Add($"SECTION:{section.Name}|{section.TextColor.Value.ToArgb()}");
+                    else
+                        modLoadOrder.Add($"SECTION:{section.Name}");
                 }
             }
             activeProfile.EnabledMods = enabledMods;
@@ -2082,6 +2201,10 @@ namespace CrossworldsModManager
                             CustomMessageBox.Show($"Failed to delete mod '{modInfo.Name}':\n{ex.Message}", "Deletion Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
                     }
+                    else if (item.Tag is ModSection)
+                    {
+                        _allModItems.Remove(item);
+                    }
                 }
 
                 ApplyFilter(); // Refresh the list view
@@ -2126,6 +2249,15 @@ namespace CrossworldsModManager
             UpdateModDetails(modInfo);
         }
 
+        private void modListView_ItemCheck(object? sender, ItemCheckEventArgs e)
+        {
+            // Prevent checking/unchecking section items
+            if (modListView.Items[e.Index].Tag is ModSection)
+            {
+                e.NewValue = e.CurrentValue;
+            }
+        }
+
         private void modListView_ItemChecked(object sender, ItemCheckedEventArgs e)
         {
             // To prevent this from running for every item during a refresh, we check if the listview has focus.
@@ -2152,24 +2284,62 @@ namespace CrossworldsModManager
             }
         }
 
-        private void modListView_DrawColumnHeader(object sender, DrawListViewColumnHeaderEventArgs e)
+        private void modListView_DrawSubItem(object? sender, DrawListViewSubItemEventArgs e)
         {
-            // Use a dark background for the header
-            using (var solidBrush = new SolidBrush(ThemeManager.CurrentTheme.ButtonBackColor))
+            if (e.Item?.Tag is ModSection section)
             {
-                e.Graphics.FillRectangle(solidBrush, e.Bounds);
-            }
-            // Draw the header text in white (defensive null checks)
-            var headerText = e.Header?.Text ?? string.Empty;
-            var fontToUse = e.Font ?? this.Font ?? SystemFonts.DefaultFont;
-            TextRenderer.DrawText(e.Graphics, headerText, fontToUse, e.Bounds, ThemeManager.CurrentTheme.ButtonForeColor,
-                TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+                // For sections, we draw a custom separator style across the entire row
+                if (e.ColumnIndex == 0)
+                {
+                    // Calculate the full bounds of the row (spanning all columns)
+                    var rowBounds = e.Item.Bounds;
+                    
+                    // Fill background
+                    using (var brush = new SolidBrush(ThemeManager.CurrentTheme.ControlBackColor))
+                    {
+                        e.Graphics.FillRectangle(brush, rowBounds);
+                    }
 
-            // Draw a border for separation
-            using (var pen = new Pen(ThemeManager.CurrentTheme.BorderColor))
-            {
-                e.Graphics.DrawRectangle(pen, e.Bounds);
+                    // Draw the text centered
+                    var text = section.Name;
+                    var textColor = section.TextColor ?? ThemeManager.CurrentTheme.AccentColor;
+                    using (var font = new Font(e.Item.Font, FontStyle.Bold))
+                    {
+                        // Use TextRenderer for better measurement and drawing (fixes clipping and centering)
+                        var flags = TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine;
+                        var textSize = TextRenderer.MeasureText(e.Graphics, text, font, new Size(rowBounds.Width, rowBounds.Height), flags);
+                        
+                        var textRect = new Rectangle(
+                            rowBounds.X + (rowBounds.Width - textSize.Width) / 2,
+                            rowBounds.Y + (rowBounds.Height - textSize.Height) / 2,
+                            textSize.Width,
+                            textSize.Height);
+
+                        TextRenderer.DrawText(e.Graphics, text, font, textRect, textColor, flags);
+
+                        // Draw lines on left and right
+                        using (var pen = new Pen(ThemeManager.CurrentTheme.BorderColor))
+                        {
+                            int midY = rowBounds.Y + rowBounds.Height / 2;
+                            // Left line
+                            e.Graphics.DrawLine(pen, rowBounds.X + 10, midY, textRect.X - 10, midY);
+                            // Right line
+                            e.Graphics.DrawLine(pen, textRect.Right + 10, midY, rowBounds.Right - 10, midY);
+                        }
+                    }
+                }
+                // We handled everything in column 0, so do nothing for other columns
             }
+            else
+            {
+                // For normal items, let the system draw it (including checkboxes)
+                e.DrawDefault = true;
+            }
+        }
+
+        private void modListView_DrawColumnHeader(object? sender, DrawListViewColumnHeaderEventArgs e)
+        {
+            e.DrawDefault = true;
         }
 
         private void CreateNewGroupFromSelection(object? sender, EventArgs e)
@@ -2298,7 +2468,10 @@ namespace CrossworldsModManager
 
             foreach (ListViewItem item in modListView.Items)
             {
-                item.Checked = enable;
+                if (item.Tag is ModInfo) // Only check/uncheck actual mods, ignore sections
+                {
+                    item.Checked = enable;
+                }
             }
             SaveModListState();
             UpdateStatus(enable ? "Enabling all mods and applying changes..." : "Disabling all mods and applying changes...");
@@ -2514,33 +2687,70 @@ namespace CrossworldsModManager
 
         private void modContextMenuStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (modListView.SelectedItems.Count == 0)
-            {
-                e.Cancel = true;
-                return;
-            }
+            // Allow opening even if no selection (to add section at the end)
+            bool hasSelection = modListView.SelectedItems.Count > 0;
 
             bool singleSelection = modListView.SelectedItems.Count == 1;
-            var selectedItem = modListView.SelectedItems[0];
-            var modInfo = selectedItem.Tag as ModInfo;
+            var selectedItem = singleSelection ? modListView.SelectedItems[0] : null;
+            var modInfo = selectedItem?.Tag as ModInfo;
+            var section = selectedItem?.Tag as ModSection;
+
+            bool isMod = modInfo != null;
+            bool isSection = section != null;
 
             // Configure option
+            configureToolStripMenuItem.Visible = isMod;
             configureToolStripMenuItem.Enabled = singleSelection && (modInfo?.ConfigurationGroups.Any() ?? false);
 
             // Single item only actions
-            openFolderToolStripMenuItem.Enabled = singleSelection;
-            toggleEnabledToolStripMenuItem.Enabled = singleSelection;
+            openFolderToolStripMenuItem.Visible = isMod;
+            openFolderToolStripMenuItem.Enabled = singleSelection && isMod;
+            
+            toggleEnabledToolStripMenuItem.Visible = isMod;
+            toggleEnabledToolStripMenuItem.Enabled = singleSelection && isMod;
+
+            if (renameToolStripMenuItem != null)
+            {
+                renameToolStripMenuItem.Visible = isSection;
+                renameToolStripMenuItem.Enabled = singleSelection && isSection;
+            }
+            if (changeColorToolStripMenuItem != null)
+            {
+                changeColorToolStripMenuItem.Visible = isSection;
+                changeColorToolStripMenuItem.Enabled = singleSelection && isSection;
+            }
+            if (configMakerItem != null)
+            {
+                configMakerItem.Visible = isMod;
+            }
+            if (normalizeRootItem != null)
+            {
+                // Only show if there is a selection and it contains at least one mod (not just sections)
+                normalizeRootItem.Visible = hasSelection && modListView.SelectedItems.Cast<ListViewItem>().Any(i => i.Tag is ModInfo);
+            }
 
             // Move Up/Down options
-            moveUpToolStripMenuItem1.Enabled = singleSelection && selectedItem.Index > 0;
-            moveDownToolStripMenuItem1.Enabled = singleSelection && selectedItem.Index < modListView.Items.Count - 1;
+            moveUpToolStripMenuItem1.Enabled = singleSelection && selectedItem != null && selectedItem.Index > 0;
+            moveDownToolStripMenuItem1.Enabled = singleSelection && selectedItem != null && selectedItem.Index < modListView.Items.Count - 1;
+
+            // Delete option
+            deleteToolStripMenuItem.Enabled = hasSelection;
+            
+            // Move to Top/Bottom
+            moveToTopToolStripMenuItem.Enabled = hasSelection;
+            moveToBottomToolStripMenuItem.Enabled = hasSelection;
 
             // Populate Add to Group menu
+            bool canAddToGroup = hasSelection && !modListView.SelectedItems.Cast<ListViewItem>().Any(i => i.Tag is ModSection);
+            addToGroupToolStripMenuItem.Visible = canAddToGroup;
+
             addToGroupToolStripMenuItem.DropDownItems.Clear();
 
             var newGroupItem = new ToolStripMenuItem("New Group...");
             newGroupItem.Click += CreateNewGroupFromSelection;
             addToGroupToolStripMenuItem.DropDownItems.Add(newGroupItem);
+            
+            addToGroupToolStripMenuItem.Enabled = canAddToGroup;
 
             if (SettingsManager.Settings.ModGroups.Count > 0)
             {
