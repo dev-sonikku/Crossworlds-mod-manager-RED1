@@ -24,6 +24,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="question_mark.png" />
+    <EmbeddedResource Include="blue_i.png" />
+    <EmbeddedResource Include="yellow_exclamation_point.png" />
+    <EmbeddedResource Include="red_x.png" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2210.55" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="SharpCompress" Version="0.37.2" />

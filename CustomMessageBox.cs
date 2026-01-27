@@ -3,6 +3,7 @@ using System;
 using System.Drawing;
 using System.Media;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using System.Windows.Forms;
 
 namespace CrossworldsModManager
@@ -82,12 +83,12 @@ namespace CrossworldsModManager
                 {
                     var pbox = new PictureBox();
                     pbox.Location = new Point(20, 20);
-                    pbox.Size = new Size(32, 32);
+                    pbox.Size = new Size(48, 48);
                     pbox.SizeMode = PictureBoxSizeMode.Zoom;
                     
                     pbox.Image = CreateIcon(icon);
                     form.Controls.Add(pbox);
-                    textX = 70;
+                    textX = 80;
                 }
                 
                 // Create label for text
@@ -199,52 +200,29 @@ namespace CrossworldsModManager
 
         private static Bitmap CreateIcon(MessageBoxIcon icon)
         {
-            var bmp = new Bitmap(32, 32);
+            string resourceName = "";
+            switch (icon)
+            {
+                case MessageBoxIcon.Error: resourceName = "CrossworldsModManager.red_x.png"; break;
+                case MessageBoxIcon.Question: resourceName = "CrossworldsModManager.question_mark.png"; break;
+                case MessageBoxIcon.Warning: resourceName = "CrossworldsModManager.yellow_exclamation_point.png"; break;
+                case MessageBoxIcon.Information: resourceName = "CrossworldsModManager.blue_i.png"; break;
+            }
+
+            if (!string.IsNullOrEmpty(resourceName))
+            {
+                var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    return new Bitmap(stream);
+                }
+            }
+
+            // Fallback placeholder if resource is missing
+            var bmp = new Bitmap(48, 48);
             using (var g = Graphics.FromImage(bmp))
             {
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-
-                var fontName = SystemFonts.MessageBoxFont?.FontFamily ?? SystemFonts.DefaultFont.FontFamily;
-
-                switch (icon)
-                {
-                    case MessageBoxIcon.Error: // Red X
-                        g.FillEllipse(Brushes.IndianRed, 1, 1, 30, 30);
-                        using (var pen = new Pen(Color.White, 3))
-                        {
-                            g.DrawLine(pen, 10, 10, 22, 22);
-                            g.DrawLine(pen, 22, 10, 10, 22);
-                        }
-                        break;
-
-                    case MessageBoxIcon.Question: // Blue ?
-                        g.FillEllipse(Brushes.DodgerBlue, 1, 1, 30, 30);
-                        using (var font = new Font(fontName, 20, FontStyle.Bold, GraphicsUnit.Pixel))
-                        {
-                            var size = g.MeasureString("?", font);
-                            g.DrawString("?", font, Brushes.White, (32 - size.Width) / 2, (32 - size.Height) / 2 + 1);
-                        }
-                        break;
-
-                    case MessageBoxIcon.Warning: // Orange !
-                        g.FillEllipse(Brushes.DarkOrange, 1, 1, 30, 30);
-                        using (var font = new Font(fontName, 20, FontStyle.Bold, GraphicsUnit.Pixel))
-                        {
-                            var size = g.MeasureString("!", font);
-                            g.DrawString("!", font, Brushes.White, (32 - size.Width) / 2, (32 - size.Height) / 2 + 1);
-                        }
-                        break;
-
-                    case MessageBoxIcon.Information: // Blue i
-                        g.FillEllipse(Brushes.DodgerBlue, 1, 1, 30, 30);
-                        using (var font = new Font(fontName, 20, FontStyle.Bold, GraphicsUnit.Pixel))
-                        {
-                            var size = g.MeasureString("i", font);
-                            g.DrawString("i", font, Brushes.White, (32 - size.Width) / 2, (32 - size.Height) / 2 + 1);
-                        }
-                        break;
-                }
+                g.FillEllipse(Brushes.Gray, 0, 0, 48, 48);
             }
             return bmp;
         }
