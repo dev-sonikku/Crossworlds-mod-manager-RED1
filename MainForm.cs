@@ -152,6 +152,8 @@ namespace CrossworldsModManager
                 toolsToolStripMenuItem.DropDownClosed += ParentMenu_DropDownClosed;
                 profilesToolStripMenuItem.DropDownOpened += ParentMenu_DropDownOpened;
                 profilesToolStripMenuItem.DropDownClosed += ParentMenu_DropDownClosed;
+                groupsToolStripMenuItem.DropDownOpened += ParentMenu_DropDownOpened;
+                groupsToolStripMenuItem.DropDownClosed += ParentMenu_DropDownClosed;
             }
             catch
             {
@@ -313,6 +315,7 @@ namespace CrossworldsModManager
             }
 
             UpdateProfilesMenu();
+            UpdateGroupsMenu();
             // Before doing anything else, create a backup of the mods directory to ModsTemp.
             try
             {
@@ -2094,6 +2097,35 @@ namespace CrossworldsModManager
             }
         }
 
+        private void CreateNewGroupFromSelection(object? sender, EventArgs e)
+        {
+            var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
+            if (selectedItems.Count == 0) return;
+
+            string name = Prompt.ShowDialog("Enter a name for the new mod group:", "Create Group");
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            if (SettingsManager.Settings.ModGroups.ContainsKey(name))
+            {
+                if (CustomMessageBox.Show($"Group '{name}' already exists. Overwrite?", "Overwrite Group", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                    return;
+            }
+
+            var groupMods = new List<string>();
+            foreach (var item in selectedItems)
+            {
+                if (item.Tag is ModInfo modInfo)
+                {
+                    groupMods.Add(Path.GetFileName(modInfo.DirectoryPath));
+                }
+            }
+
+            SettingsManager.Settings.ModGroups[name] = groupMods;
+            SettingsManager.Save();
+            UpdateGroupsMenu();
+            UpdateStatus($"Group '{name}' created with {groupMods.Count} mods.");
+        }
+
         private void settingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (var settingsForm = new SettingsForm())
@@ -2407,21 +2439,44 @@ namespace CrossworldsModManager
 
         private void modContextMenuStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            if (modListView.SelectedItems.Count != 1)
+            if (modListView.SelectedItems.Count == 0)
             {
-                e.Cancel = true; // Don't show the menu if no item is selected
+                e.Cancel = true;
                 return;
             }
 
+            bool singleSelection = modListView.SelectedItems.Count == 1;
             var selectedItem = modListView.SelectedItems[0];
             var modInfo = selectedItem.Tag as ModInfo;
 
             // Configure option
-            configureToolStripMenuItem.Enabled = modInfo?.ConfigurationGroups.Any() ?? false;
+            configureToolStripMenuItem.Enabled = singleSelection && (modInfo?.ConfigurationGroups.Any() ?? false);
+
+            // Single item only actions
+            openFolderToolStripMenuItem.Enabled = singleSelection;
+            toggleEnabledToolStripMenuItem.Enabled = singleSelection;
 
             // Move Up/Down options
-            moveUpToolStripMenuItem1.Enabled = selectedItem.Index > 0;
-            moveDownToolStripMenuItem1.Enabled = selectedItem.Index < modListView.Items.Count - 1;
+            moveUpToolStripMenuItem1.Enabled = singleSelection && selectedItem.Index > 0;
+            moveDownToolStripMenuItem1.Enabled = singleSelection && selectedItem.Index < modListView.Items.Count - 1;
+
+            // Populate Add to Group menu
+            addToGroupToolStripMenuItem.DropDownItems.Clear();
+
+            var newGroupItem = new ToolStripMenuItem("New Group...");
+            newGroupItem.Click += CreateNewGroupFromSelection;
+            addToGroupToolStripMenuItem.DropDownItems.Add(newGroupItem);
+
+            if (SettingsManager.Settings.ModGroups.Count > 0)
+            {
+                addToGroupToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
+                foreach (var groupName in SettingsManager.Settings.ModGroups.Keys.OrderBy(g => g))
+                {
+                    var item = new ToolStripMenuItem(groupName);
+                    item.Click += (s, args) => AddSelectionToGroup(groupName);
+                    addToGroupToolStripMenuItem.DropDownItems.Add(item);
+                }
+            }
         }
 
         private void ShowModConfigForm(ModInfo modInfo)
@@ -2687,6 +2742,172 @@ namespace CrossworldsModManager
                 SettingsManager.Save();
                 UpdateProfilesMenu();
                 RefreshModList();
+            }
+        }
+
+        #endregion
+
+        #region Group Management
+
+        private void UpdateGroupsMenu()
+        {
+            // Keep the first 3 items (Save, Manage, Separator) and remove the rest
+            while (groupsToolStripMenuItem.DropDownItems.Count > 3)
+            {
+                groupsToolStripMenuItem.DropDownItems.RemoveAt(3);
+            }
+
+            foreach (var groupName in SettingsManager.Settings.ModGroups.Keys.OrderBy(g => g))
+            {
+                var groupItem = new ToolStripMenuItem(groupName);
+                groupItem.Tag = groupName;
+
+                var loadExclusive = new ToolStripMenuItem("Load (Exclusive)");
+                loadExclusive.Click += (s, e) => ApplyModGroup(groupName, GroupApplyMode.Exclusive);
+
+                var enableAdditive = new ToolStripMenuItem("Enable (Additive)");
+                enableAdditive.Click += (s, e) => ApplyModGroup(groupName, GroupApplyMode.Additive);
+
+                var disableGroup = new ToolStripMenuItem("Disable Group Mods");
+                disableGroup.Click += (s, e) => ApplyModGroup(groupName, GroupApplyMode.Subtract);
+
+                groupItem.DropDownItems.Add(loadExclusive);
+                groupItem.DropDownItems.Add(enableAdditive);
+                groupItem.DropDownItems.Add(disableGroup);
+
+                groupsToolStripMenuItem.DropDownItems.Add(groupItem);
+            }
+        }
+
+        private enum GroupApplyMode { Exclusive, Additive, Subtract }
+
+        private void ApplyModGroup(string groupName, GroupApplyMode mode)
+        {
+            if (!SettingsManager.Settings.ModGroups.TryGetValue(groupName, out var modsInGroup)) return;
+
+            var modsSet = new HashSet<string>(modsInGroup, StringComparer.OrdinalIgnoreCase);
+            int changes = 0;
+
+            foreach (ListViewItem item in modListView.Items)
+            {
+                if (item.Tag is ModInfo modInfo)
+                {
+                    string modFolderName = Path.GetFileName(modInfo.DirectoryPath);
+                    bool isInGroup = modsSet.Contains(modFolderName);
+
+                    if (mode == GroupApplyMode.Exclusive)
+                    {
+                        if (item.Checked != isInGroup)
+                        {
+                            item.Checked = isInGroup;
+                            changes++;
+                        }
+                    }
+                    else if (mode == GroupApplyMode.Additive)
+                    {
+                        if (isInGroup && !item.Checked)
+                        {
+                            item.Checked = true;
+                            changes++;
+                        }
+                    }
+                    else if (mode == GroupApplyMode.Subtract)
+                    {
+                        if (isInGroup && item.Checked)
+                        {
+                            item.Checked = false;
+                            changes++;
+                        }
+                    }
+                }
+            }
+
+            if (changes > 0)
+            {
+                SaveModListState();
+                UpdateStatus($"Applied group '{groupName}' ({mode}). {changes} changes made.");
+            }
+            else
+            {
+                UpdateStatus($"Applied group '{groupName}'. No changes were necessary.");
+            }
+        }
+
+        private void saveEnabledAsGroupToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            string name = Prompt.ShowDialog("Enter a name for the new mod group:", "Save Group");
+            if (string.IsNullOrWhiteSpace(name)) return;
+
+            if (SettingsManager.Settings.ModGroups.ContainsKey(name))
+            {
+                if (CustomMessageBox.Show($"Group '{name}' already exists. Overwrite?", "Overwrite Group", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+                    return;
+            }
+
+            var enabledMods = new List<string>();
+            foreach (ListViewItem item in modListView.Items)
+            {
+                if (item.Checked && item.Tag is ModInfo modInfo)
+                {
+                    enabledMods.Add(Path.GetFileName(modInfo.DirectoryPath));
+                }
+            }
+
+            SettingsManager.Settings.ModGroups[name] = enabledMods;
+            SettingsManager.Save();
+            UpdateGroupsMenu();
+            UpdateStatus($"Group '{name}' saved with {enabledMods.Count} mods.");
+        }
+
+        private void AddSelectionToGroup(string groupName)
+        {
+            var selectedItems = modListView.SelectedItems.Cast<ListViewItem>().ToList();
+            if (selectedItems.Count == 0) return;
+
+            if (!SettingsManager.Settings.ModGroups.TryGetValue(groupName, out var groupMods))
+            {
+                groupMods = new List<string>();
+                SettingsManager.Settings.ModGroups[groupName] = groupMods;
+            }
+
+            int addedCount = 0;
+            foreach (var item in selectedItems)
+            {
+                if (item.Tag is ModInfo modInfo)
+                {
+                    string modFolderName = Path.GetFileName(modInfo.DirectoryPath);
+                    if (!groupMods.Any(m => m.Equals(modFolderName, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        groupMods.Add(modFolderName);
+                        addedCount++;
+                    }
+                }
+            }
+
+            if (addedCount > 0)
+            {
+                SettingsManager.Save();
+                UpdateGroupsMenu();
+                UpdateStatus($"Added {addedCount} mod(s) to group '{groupName}'.");
+            }
+            else
+            {
+                UpdateStatus($"Selected mods are already in group '{groupName}'.");
+            }
+        }
+
+        private void manageGroupsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var allMods = _allModItems
+                .Select(item => item.Tag as ModInfo)
+                .Where(info => info != null)
+                .Select(info => Path.GetFileName(info!.DirectoryPath))
+                .ToList();
+
+            using (var form = new GroupManagerForm(allMods))
+            {
+                form.ShowDialog(this);
+                UpdateGroupsMenu(); // Refresh menu after management
             }
         }
 
@@ -3078,6 +3299,45 @@ namespace CrossworldsModManager
         private void btnDevRefresh_Click(object sender, EventArgs e)
         {
             ScanAndListDevFiles();
+        }
+
+        private void btnOpenModsFolder_Click(object? sender, EventArgs e)
+        {
+            string? gamePath = null;
+            if (!string.IsNullOrEmpty(_selectedPlatform) && _gameInstallations.TryGetValue(_selectedPlatform, out var detectedGameInfo))
+            {
+                gamePath = detectedGameInfo.Path;
+            }
+            else
+            {
+                gamePath = SettingsManager.Settings.GameDirectory;
+            }
+
+            if (string.IsNullOrEmpty(gamePath) || !Directory.Exists(gamePath))
+            {
+                CustomMessageBox.Show("Game directory is not set or not found. Cannot open ~mods folder.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            var targetModsDir = Path.Combine(gamePath, "UNION", "Content", "Paks", "~mods");
+
+            try
+            {
+                Directory.CreateDirectory(targetModsDir);
+
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    Process.Start("xdg-open", $"\"{targetModsDir}\"");
+                }
+                else
+                {
+                    Process.Start("explorer.exe", targetModsDir);
+                }
+            }
+            catch (Exception ex)
+            {
+                CustomMessageBox.Show($"Failed to open folder:\n{ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void ScanAndListDevFiles()

@@ -19,6 +19,7 @@ namespace CrossworldsModManager
 
         public Dictionary<string, ModProfile> Profiles { get; set; } = new();
         public string? ActiveProfileName { get; set; }
+        public Dictionary<string, List<string>> ModGroups { get; set; } = new();
         public string SelectedTheme { get; set; } = "Default";
         public SerializableTheme CustomTheme { get; set; } = new SerializableTheme();
 

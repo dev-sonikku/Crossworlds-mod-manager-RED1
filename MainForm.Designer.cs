@@ -39,6 +39,7 @@ namespace CrossworldsModManager
             this.tabDeveloper = new System.Windows.Forms.TabPage();
             this.pnlDevTop = new System.Windows.Forms.Panel();
             this.btnDevSelectPath = new System.Windows.Forms.Button();
+            this.btnOpenModsFolder = new System.Windows.Forms.Button();
             this.btnDevRefresh = new System.Windows.Forms.Button();
             this.lblDevPath = new System.Windows.Forms.Label();
             this.chkListDevFiles = new System.Windows.Forms.CheckedListBox();
@@ -64,6 +65,10 @@ namespace CrossworldsModManager
             this.renameProfileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteProfileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.groupsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.saveEnabledAsGroupToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.manageGroupsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparatorGroups = new System.Windows.Forms.ToolStripSeparator();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.progressBar = new System.Windows.Forms.ToolStripProgressBar();
@@ -90,6 +95,7 @@ namespace CrossworldsModManager
             this.configureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openFolderToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toggleEnabledToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.addToGroupToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.moveToTopToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.moveToBottomToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
@@ -126,6 +132,7 @@ namespace CrossworldsModManager
             this.settingsToolStripMenuItem,
             this.toolsToolStripMenuItem,
             this.profilesToolStripMenuItem,
+            this.groupsToolStripMenuItem,
             this.aboutToolStripMenuItem});
             this.menuStrip1.ForeColor = System.Drawing.Color.White;
             this.menuStrip1.Dock = System.Windows.Forms.DockStyle.Top;
@@ -334,6 +341,36 @@ namespace CrossworldsModManager
             this.deleteProfileToolStripMenuItem.Text = "Delete Current Profile...";
             this.deleteProfileToolStripMenuItem.Click += new System.EventHandler(this.deleteProfileToolStripMenuItem_Click);
             // 
+            // groupsToolStripMenuItem
+            // 
+            this.groupsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.saveEnabledAsGroupToolStripMenuItem,
+            this.manageGroupsToolStripMenuItem,
+            this.toolStripSeparatorGroups});
+            this.groupsToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.groupsToolStripMenuItem.Name = "groupsToolStripMenuItem";
+            this.groupsToolStripMenuItem.Size = new System.Drawing.Size(57, 20);
+            this.groupsToolStripMenuItem.Text = "Groups";
+            // 
+            // saveEnabledAsGroupToolStripMenuItem
+            // 
+            this.saveEnabledAsGroupToolStripMenuItem.Name = "saveEnabledAsGroupToolStripMenuItem";
+            this.saveEnabledAsGroupToolStripMenuItem.Size = new System.Drawing.Size(235, 22);
+            this.saveEnabledAsGroupToolStripMenuItem.Text = "Save Enabled Mods as Group...";
+            this.saveEnabledAsGroupToolStripMenuItem.Click += new System.EventHandler(this.saveEnabledAsGroupToolStripMenuItem_Click);
+            // 
+            // manageGroupsToolStripMenuItem
+            // 
+            this.manageGroupsToolStripMenuItem.Name = "manageGroupsToolStripMenuItem";
+            this.manageGroupsToolStripMenuItem.Size = new System.Drawing.Size(235, 22);
+            this.manageGroupsToolStripMenuItem.Text = "Manage Groups...";
+            this.manageGroupsToolStripMenuItem.Click += new System.EventHandler(this.manageGroupsToolStripMenuItem_Click);
+            // 
+            // toolStripSeparatorGroups
+            // 
+            this.toolStripSeparatorGroups.Name = "toolStripSeparatorGroups";
+            this.toolStripSeparatorGroups.Size = new System.Drawing.Size(232, 6);
+            // 
             // aboutToolStripMenuItem
             // 
             this.aboutToolStripMenuItem.ForeColor = System.Drawing.Color.White;
@@ -467,6 +504,7 @@ namespace CrossworldsModManager
             // pnlDevTop
             // 
             this.pnlDevTop.Controls.Add(this.btnDevRefresh);
+            this.pnlDevTop.Controls.Add(this.btnOpenModsFolder);
             this.pnlDevTop.Controls.Add(this.btnDevSelectPath);
             this.pnlDevTop.Dock = System.Windows.Forms.DockStyle.Top;
             this.pnlDevTop.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(45)))), ((int)(((byte)(45)))), ((int)(((byte)(48)))));
@@ -488,6 +526,20 @@ namespace CrossworldsModManager
             this.btnDevSelectPath.Text = "Select UE Export Path...";
             this.btnDevSelectPath.UseVisualStyleBackColor = false;
             this.btnDevSelectPath.Click += new System.EventHandler(this.btnDevSelectPath_Click);
+            // 
+            // btnOpenModsFolder
+            // 
+            this.btnOpenModsFolder.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(63)))), ((int)(((byte)(63)))), ((int)(((byte)(70)))));
+            this.btnOpenModsFolder.FlatAppearance.BorderSize = 0;
+            this.btnOpenModsFolder.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnOpenModsFolder.ForeColor = System.Drawing.Color.White;
+            this.btnOpenModsFolder.Location = new System.Drawing.Point(250, 5);
+            this.btnOpenModsFolder.Name = "btnOpenModsFolder";
+            this.btnOpenModsFolder.Size = new System.Drawing.Size(90, 25);
+            this.btnOpenModsFolder.TabIndex = 2;
+            this.btnOpenModsFolder.Text = "Open ~mods";
+            this.btnOpenModsFolder.UseVisualStyleBackColor = false;
+            this.btnOpenModsFolder.Click += new System.EventHandler(this.btnOpenModsFolder_Click);
             // 
             // btnDevRefresh
             // 
@@ -752,6 +804,7 @@ namespace CrossworldsModManager
             this.configureToolStripMenuItem,
             this.openFolderToolStripMenuItem,
             this.toggleEnabledToolStripMenuItem,
+            this.addToGroupToolStripMenuItem,
             this.toolStripSeparator5,
             this.moveToTopToolStripMenuItem,
             this.moveToBottomToolStripMenuItem,
@@ -786,6 +839,13 @@ namespace CrossworldsModManager
             this.toggleEnabledToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.toggleEnabledToolStripMenuItem.Text = "Enable/Disable";
             this.toggleEnabledToolStripMenuItem.Click += new System.EventHandler(this.toggleEnabledToolStripMenuItem_Click);
+            // 
+            // addToGroupToolStripMenuItem
+            // 
+            this.addToGroupToolStripMenuItem.ForeColor = System.Drawing.Color.White;
+            this.addToGroupToolStripMenuItem.Name = "addToGroupToolStripMenuItem";
+            this.addToGroupToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.addToGroupToolStripMenuItem.Text = "Add to Group";
             // 
             // moveToTopToolStripMenuItem
             // 
@@ -893,6 +953,7 @@ namespace CrossworldsModManager
         private System.Windows.Forms.TabPage tabDeveloper;
         private System.Windows.Forms.Panel pnlDevTop;
         private System.Windows.Forms.Button btnDevSelectPath;
+        private System.Windows.Forms.Button btnOpenModsFolder;
         private System.Windows.Forms.Button btnDevRefresh;
         private System.Windows.Forms.Label lblDevPath;
         private System.Windows.Forms.CheckedListBox chkListDevFiles;
@@ -953,5 +1014,10 @@ namespace CrossworldsModManager
         private System.Windows.Forms.ToolStripMenuItem moveDownToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem deleteToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripMenuItem groupsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem saveEnabledAsGroupToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem manageGroupsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparatorGroups;
+        private System.Windows.Forms.ToolStripMenuItem addToGroupToolStripMenuItem;
     }
 }
