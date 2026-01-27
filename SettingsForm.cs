@@ -57,9 +57,9 @@ namespace CrossworldsModManager
 
         private void btnBrowseGameDir_Click(object sender, EventArgs e)
         {
-            using (var ofd = new OpenFileDialog())
+            using (var ofd = new CustomFileBrowser())
             {
-                ofd.Title = "Select Game Executable (SonicRacingCrossWorlds.exe)";
+                ofd.Text = "Select Game Executable (SonicRacingCrossWorlds.exe)";
                 ofd.Filter = "SonicRacingCrossWorlds.exe|SonicRacingCrossWorlds.exe";
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
@@ -70,9 +70,10 @@ namespace CrossworldsModManager
 
         private void btnBrowseModsDir_Click(object sender, EventArgs e)
         {
-            using (var fbd = new FolderBrowserDialog())
+            using (var fbd = new CustomFileBrowser())
             {
-                fbd.Description = "Select the directory to store your mods";
+                fbd.Mode = CustomFileBrowser.BrowserMode.SelectFolder;
+                fbd.Text = "Select the directory to store your mods";
                 while (fbd.ShowDialog() == DialogResult.OK)
                 {
                     var dirName = new System.IO.DirectoryInfo(fbd.SelectedPath).Name;

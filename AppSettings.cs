@@ -51,6 +51,8 @@ namespace CrossworldsModManager
         public string? DeveloperExportPath { get; set; }
         public List<string> DeveloperEnabledFiles { get; set; } = new();
         public bool SuppressExFatWarning { get; set; } = false;
+        public string? LastFileBrowserPath { get; set; }
+        public List<string> FavoritePaths { get; set; } = new();
     }
 
     public class SerializableTheme

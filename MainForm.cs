@@ -538,9 +538,9 @@ namespace CrossworldsModManager
                 
                 if (!pathSet)
                 {
-                    using (var ofd = new OpenFileDialog())
+                    using (var ofd = new CustomFileBrowser())
                     {
-                        ofd.Title = "Select Game Executable (SonicRacingCrossWorlds.exe)";
+                        ofd.Text = "Select Game Executable (SonicRacingCrossWorlds.exe)";
                         ofd.Filter = "SonicRacingCrossWorlds.exe|SonicRacingCrossWorlds.exe";
                         if (ofd.ShowDialog() == DialogResult.OK)
                         {
@@ -2085,9 +2085,10 @@ namespace CrossworldsModManager
         private void PromptForModsDirectory()
         {
             CustomMessageBox.Show("Welcome! Please select a folder to store your mods.", "First-Time Setup", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            using (var fbd = new FolderBrowserDialog())
+            using (var fbd = new CustomFileBrowser())
             {
-                fbd.Description = "Select or create a folder to store your mods";
+                fbd.Mode = CustomFileBrowser.BrowserMode.SelectFolder;
+                fbd.Text = "Select or create a folder to store your mods";
                 while (true)
                 {
                     if (fbd.ShowDialog() == DialogResult.OK)
@@ -2117,9 +2118,9 @@ namespace CrossworldsModManager
                 return;
             }
 
-            using (var ofd = new OpenFileDialog())
+            using (var ofd = new CustomFileBrowser())
             {
-                ofd.Title = "Select Mod Archive";
+                ofd.Text = "Select Mod Archive";
                 ofd.Filter = "Mod Archives|*.zip;*.7z;*.rar;*.tar;*.tar.gz;*.tar.xz;*.tar.zst;*.tar.bz2;*.tar.lz|All files (*.*)|*.*";
                 ofd.Multiselect = true;
         
@@ -2622,9 +2623,9 @@ namespace CrossworldsModManager
 
         private async void convertlocresToJsonToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            using (var ofd = new OpenFileDialog())
+            using (var ofd = new CustomFileBrowser())
             {
-                ofd.Title = "Select .locres file to convert";
+                ofd.Text = "Select .locres file to convert";
                 ofd.Filter = "Localization Resource (*.locres)|*.locres";
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
@@ -2635,9 +2636,9 @@ namespace CrossworldsModManager
 
         private async void convertjsonTolocresToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            using (var ofd = new OpenFileDialog())
+            using (var ofd = new CustomFileBrowser())
             {
-                ofd.Title = "Select .json file to convert";
+                ofd.Text = "Select .json file to convert";
                 ofd.Filter = "JSON File (*.json)|*.json";
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
@@ -3569,9 +3570,10 @@ namespace CrossworldsModManager
 
         private void btnDevSelectPath_Click(object sender, EventArgs e)
         {
-            using (var fbd = new FolderBrowserDialog())
+            using (var fbd = new CustomFileBrowser())
             {
-                fbd.Description = "Select your Unreal Engine content export directory";
+                fbd.Mode = CustomFileBrowser.BrowserMode.SelectFolder;
+                fbd.Text = "Select your Unreal Engine content export directory";
                 if (fbd.ShowDialog() == DialogResult.OK)
                 {
                     SettingsManager.Settings.DeveloperExportPath = fbd.SelectedPath;

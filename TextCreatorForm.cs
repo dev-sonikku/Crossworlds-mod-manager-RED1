@@ -389,23 +389,15 @@ namespace CrossworldsModManager
                 return;
             }
 
-            using (var sfd = new SaveFileDialog())
+            using (var sfd = new CustomFileBrowser())
             {
+                sfd.Mode = CustomFileBrowser.BrowserMode.SaveFile;
                 sfd.FileName = Path.GetFileName(_targetFileName);
                 sfd.Filter = "JSON Files|*.json";
-                sfd.OverwritePrompt = false; // Disable the native prompt which can have theme issues on Linux
+                sfd.OverwritePrompt = true; // CustomFileBrowser handles this with CustomMessageBox
 
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
-                    if (File.Exists(sfd.FileName))
-                    {
-                        var result = CustomMessageBox.Show($"The file '{Path.GetFileName(sfd.FileName)}' already exists.\nDo you want to replace it?", "Confirm Save As", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                        if (result != DialogResult.Yes)
-                        {
-                            return; // User cancelled the overwrite
-                        }
-                    }
-
                     try
                     {
                         var options = new JsonSerializerOptions { WriteIndented = true };
