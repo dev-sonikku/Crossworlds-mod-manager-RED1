@@ -28,10 +28,15 @@ namespace CrossworldsModManager
 
         public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon)
         {
-            return Show(null, text, caption, buttons, icon);
+            return Show(null, text, caption, buttons, icon, MessageBoxDefaultButton.Button1);
         }
 
-        public static DialogResult Show(IWin32Window? owner, string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon)
+        public static DialogResult Show(string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton defaultButton)
+        {
+            return Show(null, text, caption, buttons, icon, defaultButton);
+        }
+
+        public static DialogResult Show(IWin32Window? owner, string text, string caption, MessageBoxButtons buttons, MessageBoxIcon icon, MessageBoxDefaultButton defaultButton = MessageBoxDefaultButton.Button1)
         {
             // If no owner is specified, try to use the active form.
             // This fixes issues where the message box might appear behind other modal forms (like MegaManPromoForm).
@@ -48,6 +53,7 @@ namespace CrossworldsModManager
                 form.MaximizeBox = false;
                 form.MinimizeBox = false;
                 form.ShowIcon = false;
+                form.ShowInTaskbar = false;
                 form.BackColor = Color.FromArgb(45, 45, 48);
                 form.ForeColor = Color.White;
                 form.KeyPreview = true; // Enable key preview for Ctrl+C
@@ -102,7 +108,7 @@ namespace CrossworldsModManager
                 lbl.AutoSize = false;
                 lbl.Width = 480 - textX;
                 Size preferredSize = TextRenderer.MeasureText(text, lbl.Font, new Size(lbl.Width, 0), TextFormatFlags.WordBreak);
-                lbl.Height = preferredSize.Height + 5;
+                lbl.Height = preferredSize.Height + 10;
                 form.Controls.Add(lbl);
 
                 // Ctrl+C to copy text
@@ -158,6 +164,8 @@ namespace CrossworldsModManager
                     pnlButtons.Controls.Add(btn);
                 }
 
+                bool IsDef(MessageBoxDefaultButton btn) => defaultButton == btn;
+
                 // Add buttons based on type (RightToLeft flow means add rightmost button first)
                 switch (buttons)
                 {
@@ -165,26 +173,26 @@ namespace CrossworldsModManager
                         AddButton("OK", DialogResult.OK, true);
                         break;
                     case MessageBoxButtons.OKCancel:
-                        AddButton("Cancel", DialogResult.Cancel);
-                        AddButton("OK", DialogResult.OK, true);
+                        AddButton("Cancel", DialogResult.Cancel, IsDef(MessageBoxDefaultButton.Button2));
+                        AddButton("OK", DialogResult.OK, IsDef(MessageBoxDefaultButton.Button1));
                         break;
                     case MessageBoxButtons.YesNo:
-                        AddButton("No", DialogResult.No);
-                        AddButton("Yes", DialogResult.Yes, true);
+                        AddButton("No", DialogResult.No, IsDef(MessageBoxDefaultButton.Button2));
+                        AddButton("Yes", DialogResult.Yes, IsDef(MessageBoxDefaultButton.Button1));
                         break;
                     case MessageBoxButtons.YesNoCancel:
-                        AddButton("Cancel", DialogResult.Cancel);
-                        AddButton("No", DialogResult.No);
-                        AddButton("Yes", DialogResult.Yes, true);
+                        AddButton("Cancel", DialogResult.Cancel, IsDef(MessageBoxDefaultButton.Button3));
+                        AddButton("No", DialogResult.No, IsDef(MessageBoxDefaultButton.Button2));
+                        AddButton("Yes", DialogResult.Yes, IsDef(MessageBoxDefaultButton.Button1));
                         break;
                     case MessageBoxButtons.RetryCancel:
-                        AddButton("Cancel", DialogResult.Cancel);
-                        AddButton("Retry", DialogResult.Retry, true);
+                        AddButton("Cancel", DialogResult.Cancel, IsDef(MessageBoxDefaultButton.Button2));
+                        AddButton("Retry", DialogResult.Retry, IsDef(MessageBoxDefaultButton.Button1));
                         break;
                      case MessageBoxButtons.AbortRetryIgnore:
-                        AddButton("Ignore", DialogResult.Ignore);
-                        AddButton("Retry", DialogResult.Retry);
-                        AddButton("Abort", DialogResult.Abort);
+                        AddButton("Ignore", DialogResult.Ignore, IsDef(MessageBoxDefaultButton.Button3));
+                        AddButton("Retry", DialogResult.Retry, IsDef(MessageBoxDefaultButton.Button2));
+                        AddButton("Abort", DialogResult.Abort, IsDef(MessageBoxDefaultButton.Button1));
                         break;
                 }
 

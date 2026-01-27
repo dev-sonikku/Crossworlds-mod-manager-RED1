@@ -401,7 +401,7 @@ namespace CrossworldsModManager
 
             if (lstFiles.SelectedItem is not GameBananaFile selectedFile)
             {
-                MessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                CustomMessageBox.Show("Please select a file to download.", "No File Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 

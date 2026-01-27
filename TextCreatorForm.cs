@@ -11,6 +11,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public class TextCreatorForm : Form
     {
         private readonly string _targetFileName;
@@ -237,7 +239,7 @@ namespace CrossworldsModManager
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load Game.json: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to load Game.json: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 lblStatus.Text = "Error loading data.";
             }
         }
@@ -258,12 +260,12 @@ namespace CrossworldsModManager
                         dgvMod.Rows[idx].Tag = item;
                     }
                     lblStatus!.Text = $"Loaded existing mod with {_modData.Count} entries.";
-                    MessageBox.Show($"Loaded {_modData.Count} entries from existing file.", "Loaded", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    CustomMessageBox.Show($"Loaded {_modData.Count} entries from existing file.", "Loaded", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load existing mod file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                CustomMessageBox.Show($"Failed to load existing mod file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -357,7 +359,7 @@ namespace CrossworldsModManager
         {
             if (_modData.Count == 0)
             {
-                MessageBox.Show("No changes to save.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("No changes to save.", "Info", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -383,7 +385,7 @@ namespace CrossworldsModManager
 
             if (changesToSave.Count == 0)
             {
-                MessageBox.Show("No text changes detected compared to the original game text.\n\nAdd items from the left and modify their text on the right to create a mod.", "No Changes", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                CustomMessageBox.Show("No text changes detected compared to the original game text.\n\nAdd items from the left and modify their text on the right to create a mod.", "No Changes", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -486,4 +488,5 @@ namespace CrossworldsModManager
             public string Value { get; set; } = "";
         }
     }
+#pragma warning restore CA1416
 }
