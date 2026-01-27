@@ -163,7 +163,7 @@ namespace CrossworldsModManager
             StartPipeServer();
         }
 
-        private async void TextChangeToolItem_Click(object? sender, EventArgs e)
+        private void TextChangeToolItem_Click(object? sender, EventArgs e)
         {
             using (var nameForm = new TextCreatorFileNameForm())
             {
@@ -1996,7 +1996,7 @@ namespace CrossworldsModManager
             }
         }
 
-        private async void btnAddMod_Click(object sender, EventArgs e)
+        private void btnAddMod_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrWhiteSpace(SettingsManager.Settings.ModsDirectory) || !Directory.Exists(SettingsManager.Settings.ModsDirectory))
             {

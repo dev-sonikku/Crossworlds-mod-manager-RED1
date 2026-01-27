@@ -478,7 +478,7 @@ namespace CrossworldsModManager
             }
         }
 
-        public async Task LaunchProgressForm(GameBananaFile fileToInstall)
+        public Task LaunchProgressForm(GameBananaFile fileToInstall)
         {
             using (var progressForm = new ProgressForm($"Installing '{_mod.Name}'..."))
             {
@@ -486,6 +486,7 @@ namespace CrossworldsModManager
                 progressForm.Shown += async (s, e) => await RunFullInstallProcessAsync(fileToInstall, progressForm);
                 progressForm.ShowDialog(this);
             }
+            return Task.CompletedTask;
         }
 
         private async Task DownloadFileAsync(GameBananaFile selectedFile, string destinationPath, ProgressForm progressForm)
