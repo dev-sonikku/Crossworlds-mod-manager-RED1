@@ -4,6 +4,8 @@ using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
     public class TextCreatorFileNameForm : Form
     {
         public string FileName { get; private set; } = "";
@@ -96,9 +98,9 @@ namespace CrossworldsModManager
 
         private void BtnLoad_Click(object? sender, EventArgs e)
         {
-            using (var ofd = new OpenFileDialog())
+            using (var ofd = new CustomFileBrowser())
             {
-                ofd.Title = "Select JSON Mod File";
+                ofd.Text = "Select JSON Mod File";
                 ofd.Filter = "JSON Files (*.json)|*.json|All Files (*.*)|*.*";
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
@@ -109,4 +111,5 @@ namespace CrossworldsModManager
             }
         }
     }
+#pragma warning restore CA1416
 }

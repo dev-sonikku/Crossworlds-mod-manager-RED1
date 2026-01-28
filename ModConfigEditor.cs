@@ -509,7 +509,7 @@ namespace CrossworldsModManager
         {
             if (!(_lstOptions.SelectedItem is ConfigOption opt)) return;
 
-            using (var ofd = new OpenFileDialog())
+            using (var ofd = new CustomFileBrowser())
             {
                 ofd.Multiselect = true;
                 ofd.Filter = "Mod Files|*.pak;*.utoc;*.ucas;*.json|All Files|*.*";

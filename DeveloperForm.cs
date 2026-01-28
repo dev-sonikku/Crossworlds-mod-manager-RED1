@@ -91,9 +91,10 @@ namespace CrossworldsModManager
 
         private void BtnSelectPath_Click(object? sender, EventArgs e)
         {
-            using (var fbd = new FolderBrowserDialog())
+            using (var fbd = new CustomFileBrowser())
             {
-                fbd.Description = "Select your Unreal Engine content export directory";
+                fbd.Mode = CustomFileBrowser.BrowserMode.SelectFolder;
+                fbd.Text = "Select your Unreal Engine content export directory";
                 if (fbd.ShowDialog() == DialogResult.OK)
                 {
                     SelectedExportPath = fbd.SelectedPath;
