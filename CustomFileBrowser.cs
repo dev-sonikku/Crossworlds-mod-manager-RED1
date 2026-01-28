@@ -3,17 +3,153 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace CrossworldsModManager
 {
-    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
-#pragma warning disable CA1416
-    public class CustomFileBrowser : Form
+    public class CustomFileBrowser : IDisposable
     {
+        public static bool UseCustomOnWindows { get; set; } = false;
+        public static bool UseCustomOnLinux { get; set; } = true;
+
         public enum BrowserMode { OpenFile, SaveFile, SelectFolder }
 
         public BrowserMode Mode { get; set; } = BrowserMode.OpenFile;
+        public string InitialDirectory { get; set; } = "";
+        public string Filter { get; set; } = "All files (*.*)|*.*";
+        public int FilterIndex { get; set; } = 1;
+        public string FileName { get; set; } = "";
+        public string[] FileNames { get; private set; } = Array.Empty<string>();
+        public bool Multiselect { get; set; } = false;
+        public bool OverwritePrompt { get; set; } = true;
+        public string SelectedPath { get; private set; } = "";
+        public string Text { get; set; } = "";
+
+        public DialogResult ShowDialog(IWin32Window? owner = null)
+        {
+            bool useCustom = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? UseCustomOnWindows : UseCustomOnLinux;
+
+            string effectiveInitialDir = InitialDirectory;
+            if (string.IsNullOrEmpty(effectiveInitialDir))
+            {
+                effectiveInitialDir = SettingsManager.Settings.LastFileBrowserPath ?? "";
+            }
+
+            if (useCustom)
+            {
+                using (var form = new CustomFileBrowserForm())
+                {
+                    form.Mode = this.Mode;
+                    form.InitialDirectory = this.InitialDirectory;
+                    form.Filter = this.Filter;
+                    form.FilterIndex = this.FilterIndex;
+                    form.FileName = this.FileName;
+                    form.Multiselect = this.Multiselect;
+                    form.OverwritePrompt = this.OverwritePrompt;
+                    if (!string.IsNullOrEmpty(this.Text)) form.Text = this.Text;
+
+                    var result = form.ShowDialog(owner);
+
+                    if (result == DialogResult.OK)
+                    {
+                        this.FileName = form.FileName;
+                        this.FileNames = form.FileNames;
+                        this.SelectedPath = form.SelectedPath;
+                        this.FilterIndex = form.FilterIndex;
+                    }
+                    return result;
+                }
+            }
+            else
+            {
+                DialogResult result = DialogResult.Cancel;
+
+                if (Mode == BrowserMode.SelectFolder)
+                {
+                    using (var fbd = new FolderBrowserDialog())
+                    {
+                        fbd.Description = this.Text;
+                        fbd.SelectedPath = effectiveInitialDir;
+                        fbd.ShowNewFolderButton = true;
+
+                        result = fbd.ShowDialog(owner);
+
+                        if (result == DialogResult.OK)
+                        {
+                            this.SelectedPath = fbd.SelectedPath;
+                            this.FileName = fbd.SelectedPath;
+                        }
+                    }
+                }
+                else if (Mode == BrowserMode.SaveFile)
+                {
+                    using (var sfd = new SaveFileDialog())
+                    {
+                        sfd.Title = this.Text;
+                        sfd.InitialDirectory = effectiveInitialDir;
+                        sfd.Filter = this.Filter;
+                        sfd.FilterIndex = this.FilterIndex;
+                        sfd.FileName = this.FileName;
+                        sfd.OverwritePrompt = this.OverwritePrompt;
+
+                        result = sfd.ShowDialog(owner);
+
+                        if (result == DialogResult.OK)
+                        {
+                            this.FileName = sfd.FileName;
+                            this.FileNames = sfd.FileNames;
+                            this.FilterIndex = sfd.FilterIndex;
+                        }
+                    }
+                }
+                else
+                {
+                    using (var ofd = new OpenFileDialog())
+                    {
+                        ofd.Title = this.Text;
+                        ofd.InitialDirectory = effectiveInitialDir;
+                        ofd.Filter = this.Filter;
+                        ofd.FilterIndex = this.FilterIndex;
+                        ofd.FileName = this.FileName;
+                        ofd.Multiselect = this.Multiselect;
+
+                        result = ofd.ShowDialog(owner);
+
+                        if (result == DialogResult.OK)
+                        {
+                            this.FileName = ofd.FileName;
+                            this.FileNames = ofd.FileNames;
+                            this.FilterIndex = ofd.FilterIndex;
+                        }
+                    }
+                }
+
+                if (result == DialogResult.OK)
+                {
+                    string path = "";
+                    if (Mode == BrowserMode.SelectFolder) path = SelectedPath;
+                    else path = Path.GetDirectoryName(FileName) ?? "";
+
+                    if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
+                    {
+                        SettingsManager.Settings.LastFileBrowserPath = path;
+                        SettingsManager.Save();
+                    }
+                }
+
+                return result;
+            }
+        }
+
+        public void Dispose() { }
+    }
+
+    // Suppress CA1416 as System.Drawing is supported on Linux via libgdiplus for this application
+#pragma warning disable CA1416
+    internal class CustomFileBrowserForm : Form
+    {
+        public CustomFileBrowser.BrowserMode Mode { get; set; } = CustomFileBrowser.BrowserMode.OpenFile;
         public string InitialDirectory { get; set; } = "";
         public string Filter { get; set; } = "All files (*.*)|*.*";
         public int FilterIndex { get; set; } = 1;
@@ -46,7 +182,7 @@ namespace CrossworldsModManager
         private ContextMenuStrip _ctxFavorites = null!;
         private ContextMenuStrip _ctxFileList = null!;
 
-        public CustomFileBrowser()
+        public CustomFileBrowserForm()
         {
             InitializeComponent();
             ThemeManager.ApplyTheme(this);
@@ -327,18 +463,18 @@ namespace CrossworldsModManager
         {
             switch (Mode)
             {
-                case BrowserMode.OpenFile:
+                case CustomFileBrowser.BrowserMode.OpenFile:
                     this.Text = string.IsNullOrEmpty(Text) ? "Open File" : Text;
                     btnAction.Text = "Open";
                     lblFilter.Text = "Files of type:";
                     lvFiles.MultiSelect = Multiselect;
                     break;
-                case BrowserMode.SaveFile:
+                case CustomFileBrowser.BrowserMode.SaveFile:
                     this.Text = string.IsNullOrEmpty(Text) ? "Save File" : Text;
                     btnAction.Text = "Save";
                     lblFilter.Text = "Save as type:";
                     break;
-                case BrowserMode.SelectFolder:
+                case CustomFileBrowser.BrowserMode.SelectFolder:
                     this.Text = string.IsNullOrEmpty(Text) ? "Select Folder" : Text;
                     btnAction.Text = "Select Folder";
                     lblFileName.Text = "Folder:";
@@ -447,7 +583,7 @@ namespace CrossworldsModManager
                 }
 
                 // Files (if not in folder selection mode, or just show them anyway but grayed out? Standard is show)
-                if (Mode != BrowserMode.SelectFolder)
+                if (Mode != CustomFileBrowser.BrowserMode.SelectFolder)
                 {
                     string pattern = "*.*";
                     if (cmbFilter.SelectedIndex >= 0 && cmbFilter.SelectedIndex < _filterPatterns.Count)
@@ -507,7 +643,7 @@ namespace CrossworldsModManager
             {
                 Navigate(fullPath);
             }
-            else if (Mode != BrowserMode.SelectFolder)
+            else if (Mode != CustomFileBrowser.BrowserMode.SelectFolder)
             {
                 SelectFileAndClose(fullPath);
             }
@@ -518,7 +654,7 @@ namespace CrossworldsModManager
             if (lvFiles.SelectedItems.Count > 0)
             {
                 var item = lvFiles.SelectedItems[0];
-                if (Mode == BrowserMode.SelectFolder)
+                if (Mode == CustomFileBrowser.BrowserMode.SelectFolder)
                 {
                     if (item.Tag?.ToString() == "folder")
                         txtFileName.Text = item.Text;
@@ -609,7 +745,7 @@ namespace CrossworldsModManager
 
         private void BtnAction_Click(object? sender, EventArgs e)
         {
-            if (Mode == BrowserMode.SelectFolder)
+            if (Mode == CustomFileBrowser.BrowserMode.SelectFolder)
             {
                 // If a folder is selected in the list, use that. Otherwise use current path.
                 string path = _currentPath;
@@ -630,7 +766,7 @@ namespace CrossworldsModManager
 
                 string fullPath = Path.Combine(_currentPath, name);
 
-                if (Mode == BrowserMode.OpenFile)
+                if (Mode == CustomFileBrowser.BrowserMode.OpenFile)
                 {
                     if (File.Exists(fullPath))
                     {
@@ -646,7 +782,7 @@ namespace CrossworldsModManager
                         CustomMessageBox.Show("File not found.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
                 }
-                else if (Mode == BrowserMode.SaveFile)
+                else if (Mode == CustomFileBrowser.BrowserMode.SaveFile)
                 {
                     // Append extension if missing
                     if (cmbFilter.SelectedIndex >= 0 && cmbFilter.SelectedIndex < _filterPatterns.Count)
