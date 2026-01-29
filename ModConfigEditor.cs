@@ -43,6 +43,7 @@ namespace CrossworldsModManager
         private string _modPath;
         private string _configPath;
         private ModConfig _config = new ModConfig();
+        private string? _pendingThumbnailPath;
 
         // UI Controls
         private ListBox _lstGroups = null!;
@@ -60,6 +61,7 @@ namespace CrossworldsModManager
         private TextBox _txtModAuthor = null!;
         private TextBox _txtModVersion = null!;
         private TextBox _txtModDescription = null!;
+        private PictureBox _picThumbnail = null!;
 
         public ModConfigEditor(string modPath)
         {
@@ -132,8 +134,8 @@ namespace CrossworldsModManager
             _pnlMainInfo = new Panel { Dock = DockStyle.Fill, Padding = new Padding(10), Visible = false };
             splitContainer.Panel2.Controls.Add(_pnlMainInfo);
 
-            var grpMain = new GroupBox { Text = "Mod Information", Dock = DockStyle.Top, Height = 200, ForeColor = Color.White };
-            var layoutMain = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 4, Padding = new Padding(5) };
+            var grpMain = new GroupBox { Text = "Mod Information", Dock = DockStyle.Top, Height = 320, ForeColor = Color.White };
+            var layoutMain = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5, Padding = new Padding(5) };
             layoutMain.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
             layoutMain.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
@@ -141,6 +143,12 @@ namespace CrossworldsModManager
             _txtModAuthor = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _txtModVersion = new TextBox { Dock = DockStyle.Fill, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
             _txtModDescription = new TextBox { Dock = DockStyle.Fill, Multiline = true, Height = 60, BackColor = Color.FromArgb(30, 30, 30), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
+            
+            _picThumbnail = new PictureBox { Width = 160, Height = 90, SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.Black, BorderStyle = BorderStyle.FixedSingle, Margin = new Padding(0, 0, 10, 0) };
+            var btnChangeThumb = CreateButton("Change...", (s, e) => ChangeThumbnail(), 80);
+            var pnlThumb = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
+            pnlThumb.Controls.Add(_picThumbnail);
+            pnlThumb.Controls.Add(btnChangeThumb);
 
             layoutMain.Controls.Add(new Label { Text = "Name:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro }, 0, 0);
             layoutMain.Controls.Add(_txtModName, 1, 0);
@@ -150,6 +158,8 @@ namespace CrossworldsModManager
             layoutMain.Controls.Add(_txtModVersion, 1, 2);
             layoutMain.Controls.Add(new Label { Text = "Description:", AutoSize = true, Anchor = AnchorStyles.Left, ForeColor = Color.Gainsboro }, 0, 3);
             layoutMain.Controls.Add(_txtModDescription, 1, 3);
+            layoutMain.Controls.Add(new Label { Text = "Thumbnail:", AutoSize = true, Anchor = AnchorStyles.Left | AnchorStyles.Top, ForeColor = Color.Gainsboro, Margin = new Padding(0, 5, 0, 0) }, 0, 4);
+            layoutMain.Controls.Add(pnlThumb, 1, 4);
 
             grpMain.Controls.Add(layoutMain);
             _pnlMainInfo.Controls.Add(grpMain);
@@ -356,6 +366,7 @@ namespace CrossworldsModManager
             _txtModDescription.Text = _config.MainSection.ContainsKey("Description") ? _config.MainSection["Description"] : "";
 
             RefreshGroupList();
+            LoadThumbnail();
         }
 
         private void RefreshGroupList()
@@ -610,6 +621,51 @@ namespace CrossworldsModManager
             }
         }
 
+        private void LoadThumbnail()
+        {
+            string[] extensions = { ".jpg", ".png", ".jpeg", ".bmp", ".gif" };
+            foreach (var ext in extensions)
+            {
+                var p = Path.Combine(_modPath, "Thumb" + ext);
+                if (File.Exists(p))
+                {
+                    try
+                    {
+                        using (var stream = new FileStream(p, FileMode.Open, FileAccess.Read))
+                        {
+                            _picThumbnail.Image = Image.FromStream(stream);
+                        }
+                    }
+                    catch { }
+                    break;
+                }
+            }
+        }
+
+        private void ChangeThumbnail()
+        {
+            using (var ofd = new CustomFileBrowser())
+            {
+                ofd.Text = "Select Thumbnail Image";
+                ofd.Filter = "Image Files|*.jpg;*.png;*.jpeg;*.bmp;*.gif";
+                if (ofd.ShowDialog() == DialogResult.OK)
+                {
+                    _pendingThumbnailPath = ofd.FileName;
+                    try
+                    {
+                        using (var stream = new FileStream(_pendingThumbnailPath, FileMode.Open, FileAccess.Read))
+                        {
+                            _picThumbnail.Image = Image.FromStream(stream);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        CustomMessageBox.Show($"Error loading image: {ex.Message}");
+                    }
+                }
+            }
+        }
+
         private void SaveConfig()
         {
             var sb = new StringBuilder();
@@ -647,6 +703,26 @@ namespace CrossworldsModManager
                     {
                         sb.AppendLine($"{file}={grp.Name}.{opt.Name}");
                     }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(_pendingThumbnailPath) && File.Exists(_pendingThumbnailPath))
+            {
+                try
+                {
+                    string[] extensions = { ".jpg", ".png", ".jpeg", ".bmp", ".gif" };
+                    foreach (var ext in extensions)
+                    {
+                        var p = Path.Combine(_modPath, "Thumb" + ext);
+                        if (File.Exists(p)) File.Delete(p);
+                    }
+                    
+                    string dest = Path.Combine(_modPath, "Thumb" + Path.GetExtension(_pendingThumbnailPath));
+                    File.Copy(_pendingThumbnailPath, dest, true);
+                }
+                catch (Exception ex)
+                {
+                    CustomMessageBox.Show($"Error saving thumbnail: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
 
