@@ -91,6 +91,10 @@ namespace CrossworldsModManager
                                 }
                             }
                         }
+                        else
+                        {
+                            RegisterProtocolLinux();
+                        }
                     }
                     try
                     {
