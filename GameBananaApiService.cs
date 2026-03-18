@@ -220,7 +220,7 @@ namespace CrossworldsModManager
                     LikeCount = modProfile.LikeCount,
                     Submitter = modProfile.Submitter,
                     Media = modProfile.Media,
-                    ProfileUrl = $"https://gamebanana.com/{modType.ToLower()}/{modId}"
+                    ProfileUrl = $"https://gamebanana.com/{(modType.Equals("mod", StringComparison.CurrentCultureIgnoreCase) ? "mods" : modType.ToLower())}/{modId}"
                 };
             }
             catch (Exception ex)
