@@ -328,7 +328,6 @@ namespace CrossworldsModManager
             lblModName.Text = _mod.Name;
             lblAuthor.Text = $"by {_mod.Author}";
             lnkProfileUrl.Text = _mod.ProfileUrl;
-            _logger?.Report($"the ProfileUrl for this mod is {_mod.ProfileUrl}");
             lblLikeCount.Text = $"Likes: {_mod.LikeCount:N0}";
             webDescription.DocumentText = "<body style='background-color:#252526; color:white; font-family:sans-serif;'>Loading description...</body>";
 
