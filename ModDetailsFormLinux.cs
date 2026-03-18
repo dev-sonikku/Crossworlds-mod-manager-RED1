@@ -663,7 +663,7 @@ namespace CrossworldsModManager
             // Fetch the latest GameBanana version counter and store it separately as GBVersion
             try
             {
-                var latestVersion = await GameBananaApiService.GetLatestModVersionAsync(_mod.ModelName, _mod.Id);
+                var latestVersion = await GameBananaApiService.GetLatestModUpdateCountAsync(_mod.ModelName, _mod.Id);
                 if (!string.IsNullOrWhiteSpace(latestVersion))
                 {
                     iniData["GameBanana"]["GBVersion"] = latestVersion;

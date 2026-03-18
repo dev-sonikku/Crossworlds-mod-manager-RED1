@@ -1151,7 +1151,7 @@ namespace CrossworldsModManager
                     {
                         Name = mainSection.GetValueOrDefault("Name", modFolderName),
                         Author = mainSection.GetValueOrDefault("Author", "Unknown"),
-                        Version = mainSection.ContainsKey("Version") ? mainSection["Version"] : "1.0",
+                        Version = mainSection.ContainsKey("Version") ? mainSection["Version"] : "-1",
                         Description = mainSection.GetValueOrDefault("Description", "No description provided."),
                         DirectoryPath = modRoot,
                         IsLogicMod = mainSection.GetValueOrDefault("Type", "").Equals("LogicMod", StringComparison.OrdinalIgnoreCase)
@@ -1173,14 +1173,6 @@ namespace CrossworldsModManager
                         {
                             modInfo.GBVersion = gbVersionValue;
                         }
-                        else
-                        {
-                            modInfo.GBVersion = mainSection.ContainsKey("Version") ? mainSection["Version"] : "0";
-                        }
-                    }
-                    else
-                    {
-                        modInfo.GBVersion = mainSection.ContainsKey("Version") ? mainSection["Version"] : "0";
                     }
 
                     // New logic for multiple named [Config:GroupName] sections
@@ -1416,45 +1408,88 @@ namespace CrossworldsModManager
                 {
                     try
                     {
-                        var localGbVersion = modInfo.GBVersion;
-                        logger.Report($"[{modInfo.Name}] Found GameBanana info. Item: {itemType}/{itemId}. Local GBVersion: '{localGbVersion}'.");
-                        string? latestVersionStr = await GameBananaApiService.GetLatestModVersionAsync(itemType, itemId);
-                        
-                        if (string.IsNullOrEmpty(latestVersionStr))
+                        var localGbVersion = modInfo.GBVersion ?? "0";
+                        var iniSections = IniParser.Parse(iniPath);
+
+                        var localRawVersionStr = modInfo.Version == "-1" ? "0" : modInfo.Version;
+                        var localRawVersion = localRawVersionStr.Split('.').Select(part => int.TryParse(part, out var num) ? num : 0).ToArray() ?? [0];
+
+                        logger.Report($"[{modInfo.Name}] Found GameBanana info. Item: {itemType}/{itemId}. Local GBVersion: '{localGbVersion}'; Local Raw Version: '{string.Join(".", localRawVersion)}'.");
+                        string? latestVersionStr = await GameBananaApiService.GetLatestModUpdateCountAsync(itemType, itemId) ?? "0";
+                        string? latestRawVersionStr = await GameBananaApiService.GetLatestModVersionAsync(itemType, itemId) ?? "0";
+
+                        int[]? rawVersionParts = latestRawVersionStr?.Split('.').Select(part => int.TryParse(part, out var num) ? num : 0).ToArray();
+
+                        if (string.IsNullOrEmpty(latestVersionStr) && string.IsNullOrEmpty(latestRawVersionStr))
                         {
                             logger.Report($"[{modInfo.Name}] -> Could not fetch remote version from API.");
                             return;
                         }
-
-                        logger.Report($"[{modInfo.Name}] -> Fetched remote version: '{latestVersionStr}'.");
+                        else if (!string.IsNullOrEmpty(latestVersionStr) && !string.IsNullOrEmpty(latestRawVersionStr))
+                            logger.Report($"[{modInfo.Name}] -> Fetched remote version: '{latestVersionStr}' and raw version: '{latestRawVersionStr}'.");
+                        else if (!string.IsNullOrEmpty(latestVersionStr))
+                            logger.Report($"[{modInfo.Name}] -> Fetched remote version: '{latestVersionStr}'.");
+                        else if (!string.IsNullOrEmpty(latestRawVersionStr))
+                            logger.Report($"[{modInfo.Name}] -> Fetched remote raw version: '{latestRawVersionStr}'.");
 
                         // Compare integers: prefer GBVersion for local value, fallback to main Version if GBVersion isn't numeric
-                        if (int.TryParse(latestVersionStr, out int latestVersion))
-                        {
-                            int localGbInt = 0;
-                            if (!int.TryParse(localGbVersion, out localGbInt))
-                            {
-                                // try fallback to the mod's declared Version (may be semver) -- extract integer prefix
-                                if (int.TryParse(modInfo.Version?.Split('.')[0] ?? "0", out var v)) localGbInt = v;
-                            }
 
-                            if (latestVersion > localGbInt)
+                        if (int.TryParse(latestVersionStr, out int latestVersion) || rawVersionParts?.Length > 0)
+                        {
+                            if (!int.TryParse(localGbVersion, out int localGbInt) && !(localGbVersion == "0" && rawVersionParts != null && rawVersionParts.Length > 0 && rawVersionParts.Any(part => part > 0))){
+                                if (latestVersion > localGbInt)
+                                {
+                                    logger.Report($"[{modInfo.Name}] -> UPDATE AVAILABLE! (Remote: {latestVersion} > Local(GB): {localGbInt})");
+                                    // We need to update the UI on the UI thread.
+                                    this.Invoke((Action)(() => {
+                                        item.ForeColor = Color.LimeGreen;
+                                        var updateSubItem = item.SubItems[3];
+                                        if (!updateSubItem.Text.Contains("Update"))
+                                        {
+                                            updateSubItem.Text = "🔄 Update";
+                                        }
+                                    }));
+                                }
+                                else
+                                {
+                                    logger.Report($"[{modInfo.Name}] -> Mod is up to date. (Remote: {latestVersion} <= Local(GB): {localGbInt})");
+                                }
+                            } else if (rawVersionParts != null && rawVersionParts.Length > 0) // try to instead use rawVersion if GBVersion isn't a valid integer or is 0
                             {
-                                logger.Report($"[{modInfo.Name}] -> UPDATE AVAILABLE! (Remote: {latestVersion} > Local(GB): {localGbInt})");
-                                // We need to update the UI on the UI thread.
-                                this.Invoke((Action)(() => {
-                                    item.ForeColor = Color.LimeGreen;
-                                    // Place the "Update" action in the new "Update" column (index 3).
-                                    var updateSubItem = item.SubItems[3];
-                                    if (!updateSubItem.Text.Contains("Update"))
+                                bool IsRemoteVersionNewer = false;
+                                for (int i = 0; i < Math.Max(rawVersionParts.Length, localRawVersion.Length); i++)
+                                {
+                                    if (i >= rawVersionParts.Length) // Remote version has fewer parts, treat missing parts as 0
+                                        break;
+                                    if (i >= localRawVersion.Length) // Local version has fewer parts, treat missing parts as 0
                                     {
-                                        updateSubItem.Text = "🔄 Update";
+                                        IsRemoteVersionNewer = true; // Remote has more parts, consider it newer if all previous parts are equal
+                                        break;
                                     }
-                                }));
-                            }
-                            else
-                            {
-                                logger.Report($"[{modInfo.Name}] -> Mod is up to date. (Remote: {latestVersion} <= Local(GB): {localGbInt})");
+                                    if (rawVersionParts[i] > localRawVersion[i])
+                                    {
+                                        IsRemoteVersionNewer = true;
+                                        break;
+                                    }
+                                }
+
+                                if (IsRemoteVersionNewer)
+                                {
+                                    logger.Report($"[{modInfo.Name}] -> UPDATE AVAILABLE! (Remote: {latestVersionStr} > Local(Raw): {string.Join(".", [.. localRawVersion.Select(x => x.ToString())])})");
+                                    // We need to update the UI on the UI thread.
+                                    this.Invoke((Action)(() => {
+                                        item.ForeColor = Color.LimeGreen;
+                                        var updateSubItem = item.SubItems[3];
+                                        if (!updateSubItem.Text.Contains("Update"))
+                                        {
+                                            updateSubItem.Text = "🔄 Update";
+                                        }
+                                    }));
+                                }
+                                else
+                                {
+                                    logger.Report($"[{modInfo.Name}] -> Mod is up to date. (Remote: {string.Join(".", [.. rawVersionParts.Select(x => x.ToString())])} <= Local(GB): {string.Join(".", [.. localRawVersion.Select(x => x.ToString())])})");
+                                }
                             }
                         }
                     }
@@ -3446,7 +3481,7 @@ namespace CrossworldsModManager
             {
                 lblModName.Text = mod.Name;
                 lblModAuthor.Text = "By: " + mod.Author;
-                lblModVersion.Text = "Version: " + mod.Version;
+                lblModVersion.Text = "Version: " + (mod.Version == "-1" ? "1.0" : mod.Version);
                 txtModDescription.Text = mod.Description;
 
                 // Load Thumbnail

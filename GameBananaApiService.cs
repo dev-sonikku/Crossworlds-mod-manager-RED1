@@ -235,6 +235,37 @@ namespace CrossworldsModManager
         /// <param name="itemType">The item type (e.g., "Mod").</param>
         /// <param name="itemId">The item ID.</param>
         /// <returns>The latest version number as a string, or null if it cannot be fetched.</returns>
+        public static async Task<string?> GetLatestModUpdateCountAsync(string itemType, int itemId)
+        {
+            if (string.IsNullOrEmpty(itemType) || itemId <= 0)
+            {
+                return null;
+            }
+
+            string apiUrl = $"{ApiBaseUrl}/{itemType}/{itemId}/Updates?_nPage=1&_nPerpage=1";
+
+            try
+            {
+                var response = await _httpClient.GetAsync(apiUrl);
+                var content = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new HttpRequestException($"Request to GameBanana API failed with status code {response.StatusCode}.\nURL: {apiUrl}\nResponse: {content}");
+                }
+
+                using var jsonDoc = JsonDocument.Parse(content);
+
+                jsonDoc.RootElement.TryGetProperty("_aMetadata", out var cur_metadata);
+                cur_metadata.TryGetProperty("_nRecordCount", out var recordCount);
+                return recordCount.GetInt32().ToString() ?? null;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while fetching mod version. Details: {ex.Message}", ex);
+            }
+        }
+
         public static async Task<string?> GetLatestModVersionAsync(string itemType, int itemId)
         {
             if (string.IsNullOrEmpty(itemType) || itemId <= 0)
@@ -255,9 +286,14 @@ namespace CrossworldsModManager
                 }
 
                 using var jsonDoc = JsonDocument.Parse(content);
-                // The record count is nested inside the _aMetadata object.
-                return jsonDoc.RootElement.TryGetProperty("_aMetadata", out var metadata) && 
-                       metadata.TryGetProperty("_nRecordCount", out var recordCount) ? recordCount.GetInt32().ToString() : null;
+
+                jsonDoc.RootElement.TryGetProperty("_aRecords", out var cur_records);
+                if (cur_records.GetArrayLength() > 0)
+                {
+                    cur_records[0].TryGetProperty("_sVersion", out var version); 
+                    return version.GetString() ?? null;
+                }
+                return null;
             }
             catch (Exception ex)
             {
